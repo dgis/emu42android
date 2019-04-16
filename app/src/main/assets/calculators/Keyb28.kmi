@@ -1,0 +1,295 @@
+# switcher for nationalized keyboard setting
+
+Locale 7			# German(Neutral)
+	Include "kb28-gr.kmi"
+End
+
+Locale 2057			# English(UK)
+	Include "kb28-uk.kmi"
+End
+
+Locale 9			# English(Neutral)
+	Include "kb28-us.kmi"
+End
+
+Locale 0			# default, must be the last defined locale
+	Scancode 8		# <-
+		Map 8 35
+	End
+
+	Scancode 9		# TAB -> Alpha
+		Map 9 165
+	End
+
+	Scancode 13		# ENTER
+		Map 13 31
+	End
+
+	Scancode 16		# Shift
+		Map 16 21
+	End
+
+	Scancode 20		# CAPS -> LC
+		Map 20 164
+	End
+
+	Scancode 27		# ESC -> ATTN
+		Map 27 71
+	End
+
+	Scancode 32		# Space
+		Map 32 161
+	End
+
+	Scancode 36		# Pos1 -> <^v>
+		Map 36 22
+	End
+
+	Scancode 45		# INS
+		Map 45 11
+	End
+
+	Scancode 46		# DEL
+		Map 46 12
+	End
+
+	Scancode 37		# Left
+		Map 37 15
+	End
+
+	Scancode 38		# Up
+		Map 38 13
+	End
+
+	Scancode 39		# Right
+		Map 39 16
+	End
+
+	Scancode 40		# Down
+		Map 40 14
+	End
+
+	Scancode 48		# 0
+		Map 48 72
+	End
+
+	Scancode 49		# 1
+		Map 49 62
+	End
+
+	Scancode 50		# 2
+		Map 50 63
+	End
+
+	Scancode 51		# 3
+		Map 51 64
+	End
+
+	Scancode 52		# 4
+		Map 52 52
+	End
+
+	Scancode 53		# 5
+		Map 53 53
+	End
+
+	Scancode 54		# 6
+		Map 54 54
+	End
+
+	Scancode 55		# 7
+		Map 55 42
+	End
+
+	Scancode 56		# 8
+		Map 56 43
+	End
+
+	Scancode 57		# 9
+		Map 57 44
+	End
+
+	Scancode 65		# A
+		Map 65 111
+	End
+
+	Scancode 66		# B
+		Map 66 112
+	End
+
+	Scancode 67		# C
+		Map 67 113
+	End
+
+	Scancode 68		# D
+		Map 68 114
+	End
+
+	Scancode 69		# E
+		Map 69 115
+	End
+
+	Scancode 70		# F
+		Map 70 116
+	End
+
+	Scancode 71		# G
+		Map 71 121
+	End
+
+	Scancode 72		# H
+		Map 72 122
+	End
+
+	Scancode 73		# I
+		Map 73 123
+	End
+
+	Scancode 74		# J
+		Map 74 124
+	End
+
+	Scancode 75		# K
+		Map 75 125
+	End
+
+	Scancode 76		# L
+		Map 76 126
+	End
+
+	Scancode 77		# M
+		Map 77 131
+	End
+
+	Scancode 78		# N
+		Map 78 132
+	End
+
+	Scancode 79		# O
+		Map 79 133
+	End
+
+	Scancode 80		# P
+		Map 80 134
+	End
+
+	Scancode 81		# Q
+		Map 81 135
+	End
+
+	Scancode 82		# R
+		Map 82 136
+	End
+
+	Scancode 83		# S
+		Map 83 141
+	End
+
+	Scancode 84		# T
+		Map 84 142
+	End
+
+	Scancode 85		# U
+		Map 85 143
+	End
+
+	Scancode 86		# V
+		Map 86 144
+	End
+
+	Scancode 87		# W
+		Map 87 145
+	End
+
+	Scancode 88		# X
+		Map 88 146
+	End
+
+	Scancode 89		# Y
+		Map 89 151
+	End
+
+	Scancode 90		# Z
+		Map 90 152
+	End
+
+	Scancode 96		# Num 0
+		Map 96 72
+	End
+
+	Scancode 97		# Num 1
+		Map 97 62
+	End
+
+	Scancode 98		# Num 2
+		Map 98 63
+	End
+
+	Scancode 99		# Num 3
+		Map 99 64
+	End
+
+	Scancode 100		# Num 4
+		Map 100 52
+	End
+
+	Scancode 101		# Num 5
+		Map 101 53
+	End
+
+	Scancode 102		# Num 6
+		Map 102 54
+	End
+
+	Scancode 103		# Num 7
+		Map 103 42
+	End
+
+	Scancode 104		# Num 8
+		Map 104 43
+	End
+
+	Scancode 105		# Num 9
+		Map 105 44
+	End
+
+	Scancode 110		# Num , -> .
+		Map 110 73
+	End
+
+	Scancode 106		# Num *
+		Map 106 55
+	End
+
+	Scancode 107		# Num +
+		Map 107 75
+	End
+
+	Scancode 109		# Num -
+		Map 109 65
+	End
+
+	Scancode 111		# Num /
+		Map 111 45
+	End
+
+	Scancode 187		# +
+		Map 187 75
+	End
+
+	Scancode 189		# -
+		Map 189 65
+	End
+
+	Scancode 188		# ,
+		Map 188 74
+	End
+
+	Scancode 190		# .
+		Map 190 73
+	End
+
+	Scancode 191		# #
+		Map 191 153
+	End
+End

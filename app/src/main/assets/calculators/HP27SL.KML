@@ -1,0 +1,439 @@
+Global
+	Print    "================================================="
+	Print    ""
+	Print    "This Real 27S graphic is by Christoph Giesselink."
+	Print    "http://hp.giesselink.com/"
+	Print    "Graphic based on a scan by Hewlett-Packard."
+	Print    ""
+	Print    "================================================="
+	Title    "Real HP27S for 1024x768"
+	Author   "Christoph Giesselink"
+	Hardware "Lewis"
+	Model    "M"		# Mentor
+	Rom      "HP27S.ROM"
+	Bitmap   "HP27S.BMP"
+	Color    0 214 214 214
+	Debug    0
+End
+
+Background
+	Offset   0   0
+	Size   335 619
+End
+
+Lcd
+	Zoom 2
+	Offset 37 136
+	Color  0 165 182 165	# character color table
+	Color  1 164 181 164
+	Color  2 163 180 163
+	Color  3 162 178 162
+	Color  4 161 176 161
+	Color  5 160 174 160
+	Color  6 158 172 158
+	Color  7 156 170 156
+	Color  8 154 168 154
+	Color  9 152 166 152
+	Color 10 150 164 150
+	Color 11 148 162 148
+	Color 12 146 160 146
+	Color 13 144 158 144
+	Color 14 142 156 142
+	Color 15 140 154 140
+	Color 16 120 132 120
+	Color 17 100 110 100
+	Color 18  80  88  80
+	Color 19  60  66  60
+	Color 20  40  44  40
+	Color 21  20  22  20
+	Color 22   0   0   0
+	Color 23   0   0   0
+	Color 24   0   0   0
+	Color 25   0   0   0
+	Color 26   0   0   0
+	Color 27   0   0   0
+	Color 28   0   0   0
+	Color 29   0   0   0
+	Color 30   0   0   0
+	Color 31   0   0   0
+	Color 32 165 182 165	# background color table
+	Color 33 165 182 165
+	Color 34 165 182 165
+	Color 35 165 182 165
+	Color 36 165 182 165
+	Color 37 165 182 165
+	Color 38 165 182 165
+	Color 39 165 182 165
+	Color 40 165 182 165
+	Color 41 165 182 165
+	Color 42 165 182 165
+	Color 43 165 182 165
+	Color 44 165 182 165
+	Color 45 165 182 165
+	Color 46 165 182 165
+	Color 47 165 182 165
+	Color 48 165 182 165
+	Color 49 165 182 165
+	Color 50 165 182 165
+	Color 51 165 182 165
+	Color 52 165 182 165
+	Color 53 165 182 165
+	Color 54 165 182 165
+	Color 55 154 170 154
+	Color 56 143 158 143
+	Color 57 132 146 132
+	Color 58 121 134 121
+	Color 59 110 122 110
+	Color 60  99 110  99
+	Color 61  88  98  83
+	Color 62  77  86  77
+	Color 63  66  74  66
+End
+
+Annunciator 1
+	Size 17 11
+	Offset 40 121
+	Down 1 620
+End
+
+Annunciator 2
+	Size 20 11
+	Offset 61 121
+	Down 19 620
+End
+
+Annunciator 3
+	Size 23 11
+	Offset 84 121
+	Down 40 620
+End
+
+Annunciator 4
+	Size 15 11
+	Offset 110 121
+	Down 64 620
+End
+
+Annunciator 5
+	Size 20 11
+	Offset 128 121
+	Down 80 620
+End
+
+Annunciator 6
+	Size 5 11
+	Offset 151 121
+	Down 101 620
+End
+
+Annunciator 7
+	Size 17 11
+	Offset 157 121
+	Down 107 620
+End
+
+Button 71			# ON, should be the first defined key
+	Type 0
+	Size 32 23
+	Offset 26 554
+	Down 26 556
+	OutIn 0 32768
+End
+
+Button 01			# LCD "button" 1
+	Type 3
+	Size 42 21
+	Offset 37 163
+	OutIn 5 64
+End
+Button 02			# LCD "button" 2
+	Type 3
+	Size 42 21
+	Offset 81 163
+	OutIn 4 64
+End
+Button 03			# LCD "button" 3
+	Type 3
+	Size 42 21
+	Offset 125 163
+	OutIn 3 64
+End
+Button 04			# LCD "button" 4
+	Type 3
+	Size 42 21
+	Offset 169 163
+	OutIn 2 64
+End
+Button 05			# LCD "button" 5
+	Type 3
+	Size 42 21
+	Offset 213 163
+	OutIn 1 64
+End
+Button 06			# LCD "button" 6
+	Type 3
+	Size 42 21
+	Offset 257 163
+	OutIn 0 64
+End
+
+Button 11
+	Type 0
+	Size 32 23
+	Offset 26 259
+	Down 26 261
+	OutIn 5 64
+End
+Button 12
+	Type 0
+	Size 32 23
+	Offset 76 259
+	Down 76 261
+	OutIn 4 64
+End
+Button 13
+	Type 0
+	Size 32 23
+	Offset 126 259
+	Down 126 261
+	OutIn 3 64
+End
+Button 14
+	Type 0
+	Size 32 23
+	Offset 176 259
+	Down 176 261
+	OutIn 2 64
+End
+Button 15
+	Type 0
+	Size 32 23
+	Offset 226 259
+	Down 226 261
+	OutIn 1 64
+End
+Button 16
+	Type 0
+	Size 32 23
+	Offset 276 259
+	Down 276 261
+	OutIn 0 64
+End
+
+Button 21
+	Type 0
+	Size 32 23
+	Offset 26 308
+	Down 26 310
+	OutIn 5 32
+End
+Button 22
+	Type 0
+	Size 32 23
+	Offset 76 308
+	Down 76 310
+	OutIn 4 32
+End
+Button 23
+	Type 0
+	Size 32 23
+	Offset 126 308
+	Down 126 310
+	OutIn 3 32
+End
+Button 24
+	Type 0
+	Size 32 23
+	Offset 176 308
+	Down 176 310
+	OutIn 2 32
+End
+Button 25
+	Type 0
+	Size 32 23
+	Offset 226 308
+	Down 226 310
+	OutIn 1 32
+End
+Button 26
+	Type 0
+	Size 32 23
+	Offset 276 308
+	Down 276 310
+	OutIn 0 32
+End
+
+Button 31
+	Type 0
+	Size 83 23
+	Offset 26 357
+	Down 26 359
+	OutIn 4 16
+End
+Button 32
+	Type 0
+	Size 32 23
+	Offset 126 357
+	Down 126 359
+	OutIn 3 16
+End
+Button 33
+	Type 0
+	Size 32 23
+	Offset 176 357
+	Down 176 359
+	OutIn 2 16
+End
+Button 34
+	Type 0
+	Size 32 23
+	Offset 226 357
+	Down 226 359
+	OutIn 1 16
+End
+Button 35
+	Type 0
+	Size 32 23
+	Offset 276 357
+	Down 276 359
+	OutIn 0 16
+End
+
+Button 41
+	Type 0
+	Size 32 23
+	Offset 26 406
+	Down 26 408
+	OutIn 5 8
+End
+Button 42
+	Type 0
+	Size 44 23
+	Offset 83 406
+	Down 83 408
+	OutIn 3 8
+End
+Button 43
+	Type 0
+	Size 44 23
+	Offset 143 406
+	Down 143 408
+	OutIn 2 8
+End
+Button 44
+	Type 0
+	Size 44 23
+	Offset 204 406
+	Down 204 408
+	OutIn 1 8
+End
+Button 45
+	Type 0
+	Size 44 23
+	Offset 265 406
+	Down 265 408
+	OutIn 0 8
+End
+
+Button 51
+	Type 0
+	Size 32 23
+	Offset 26 455
+	Down 26 457
+	OutIn 5 4
+End
+Button 52
+	Type 0
+	Size 44 23
+	Offset 83 455
+	Down 83 457
+	OutIn 3 4
+End
+Button 53
+	Type 0
+	Size 44 23
+	Offset 143 455
+	Down 143 457
+	OutIn 2 4
+End
+Button 54
+	Type 0
+	Size 44 23
+	Offset 204 455
+	Down 204 457
+	OutIn 1 4
+End
+Button 55
+	Type 0
+	Size 44 23
+	Offset 265 455
+	Down 265 457
+	OutIn 0 4
+End
+
+Button 61
+	Type 0
+	Size 32 23
+	Offset 26 505
+	Down 26 507
+	OutIn 5 2
+End
+Button 62
+	Type 0
+	Size 44 23
+	Offset 83 505
+	Down 83 507
+	OutIn 3 2
+End
+Button 63
+	Type 0
+	Size 44 23
+	Offset 143 505
+	Down 143 507
+	OutIn 2 2
+End
+Button 64
+	Type 0
+	Size 44 23
+	Offset 204 505
+	Down 204 507
+	OutIn 1 2
+End
+Button 65
+	Type 0
+	Size 44 23
+	Offset 265 505
+	Down 265 507
+	OutIn 0 2
+End
+
+Button 72
+	Type 0
+	Size 44 23
+	Offset 83 554
+	Down 83 556
+	OutIn 3 1
+End
+Button 73
+	Type 0
+	Size 44 23
+	Offset 143 554
+	Down 143 556
+	OutIn 2 1
+End
+Button 74
+	Type 0
+	Size 44 23
+	Offset 204 554
+	Down 204 556
+	OutIn 1 1
+End
+Button 75
+	Type 0
+	Size 44 22
+	Offset 265 554
+	Down 265 556
+	OutIn 0 1
+End
+
+Include "Keyb27S.kmi"

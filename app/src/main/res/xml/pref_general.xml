@@ -1,0 +1,126 @@
+<PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
+
+    <!-- General -->
+        <PreferenceCategory android:title="@string/settings_category_general_title">
+            <SwitchPreference
+                android:key="settings_realspeed"
+                android:title="@string/settings_realspeed_title"
+                android:defaultValue="false" />
+            <SwitchPreference
+                android:key="settings_grayscale"
+                android:title="@string/settings_grayscale_title"
+                android:defaultValue="false" />
+            <SwitchPreference
+                android:key="settings_autosave"
+                android:title="@string/settings_autosave_title"
+                android:defaultValue="true" />
+            <SwitchPreference
+                android:key="settings_objectloadwarning"
+                android:title="@string/settings_objectloadwarning_title"
+                android:defaultValue="true" />
+            <SwitchPreference
+                android:key="settings_alwaysdisplog"
+                android:title="@string/settings_alwaysdisplog_title"
+                android:defaultValue="true" />
+
+            <SwitchPreference
+                android:key="settings_allow_rotation"
+                android:title="@string/settings_allow_rotation_title"
+                android:defaultValue="false" />
+            <SwitchPreference
+                android:key="settings_fill_screen"
+                android:title="@string/settings_fill_screen_title"
+                android:defaultValue="false" />
+            <SwitchPreference
+                android:key="settings_allow_sound"
+                android:title="@string/settings_allow_sound_title"
+                android:defaultValue="true" />
+            <SwitchPreference
+                android:key="settings_haptic_feedback"
+                android:title="@string/settings_haptic_feedback_title"
+                android:defaultValue="true" />
+        </PreferenceCategory>
+
+        <PreferenceCategory android:title="@string/settings_category_background_title">
+            <SwitchPreference
+                android:key="settings_background_kml_color"
+                android:title="@string/settings_background_kml_color_title"
+                android:summary="@string/settings_background_kml_color_summary"
+                android:defaultValue="false" />
+            <ListPreference
+                android:key="settings_background_fallback_color"
+                android:title="@string/settings_background_fallback_color_title"
+                android:dialogTitle="@string/settings_background_fallback_color_title"
+                android:summary="@string/settings_background_fallback_color_summary"
+                android:entries="@array/settings_background_fallback_color_item"
+                android:entryValues="@array/settings_background_fallback_color_value"
+                android:defaultValue="0"
+                />
+            <!--<org.emulator.forty.two.helpers.colorpicker.ColorPickerPreferenceCompat-->
+                <!--android:key="settings_background_custom_color"-->
+                <!--android:title="@string/settings_background_custom_color_title"-->
+                <!--android:summary="@string/settings_background_custom_color_summary"-->
+                <!--android:defaultValue="#FF000000"-->
+                <!--/>-->
+        </PreferenceCategory>
+
+        <!--<PreferenceCategory app:title="Style">
+            "Show Title",IDC_SHOWTITLE
+            "Show Menu",IDC_SHOWMENU
+        </PreferenceCategory>-->
+        <!--<PreferenceCategory app:title="Disassembler">
+            "HP Mnemonics",IDC_DISASM_HP
+            "Class Mnemonics",IDC_DISASM_CLASS
+        </PreferenceCategory>-->
+
+    <!-- Memory -->
+        <PreferenceCategory android:title="@string/settings_category_memory_cards_title">
+            <SwitchPreference
+                android:key="settings_port1en"
+                android:title="@string/settings_port1en_title"
+                android:defaultValue="false"
+                />
+            <SwitchPreference
+                android:key="settings_port1wr"
+                android:title="@string/settings_port1wr_title"
+                android:defaultValue="false"
+                />
+            <SwitchPreference
+                android:key="settings_port2en"
+                android:title="@string/settings_port2en_title"
+                android:defaultValue="false"
+                />
+            <SwitchPreference
+                android:key="settings_port2wr"
+                android:title="@string/settings_port2wr_title"
+                android:defaultValue="false"
+                />
+            <Preference
+                android:key="settings_port2load"
+                android:title="@string/settings_port2load_title"
+                android:summary=""
+                />
+        </PreferenceCategory>
+
+    <!-- Peripheral -->
+        <!--<PreferenceCategory app:title="Sound">-->
+            <!--"Volume",IDC_STATIC,14,21,24,8-->
+            <!--"Slider1",IDC_SOUND_SLIDER,"msctls_trackbar32",-->
+            <!--"Device",IDC_STATIC,13,42,24,8-->
+            <!--COMBOBOX        IDC_SOUND_DEVICE,44,40,193,87,CBS_DROPDOWNLIST |-->
+        <!--</PreferenceCategory>-->
+        <!--<PreferenceCategory app:title="Infrared Printer">
+            "IP Address:",IDC_STATIC
+            "Port:",IDC_STATIC
+            IDC_IR_ADDR
+            IDC_IR_PORT
+        </PreferenceCategory>-->
+        <!--<PreferenceCategory app:title="Serial Ports">
+            "Wire:",IDC_STATIC
+            COMBOBOX        IDC_WIRE
+            "IR:",IDC_STATIC
+            COMBOBOX        IDC_IR
+        </PreferenceCategory>-->
+
+</PreferenceScreen>

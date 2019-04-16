@@ -1,0 +1,426 @@
+Global
+	Title  "Erik Ehrling's HP42S for 1024x768"
+	Author "Erik Ehrling (based on Real HP42S by Christoph Giesselink)"
+	Hardware "Lewis"
+	Model  "D"
+	Rom    "HP42S.ROM"
+	Debug  0
+	Bitmap "ehrling42sl.bmp"
+End
+
+# Last updated 040117 - Changed button type, adjusted colour table, LCD buttons added
+
+Background
+	Offset   0   0
+	Size   340 618
+End
+
+Lcd
+	Zoom 2
+	Offset  40 138
+	Color  0 111 128 111	# character color table
+	Color  1 110 127 110
+	Color  2 109 126 109
+	Color  3 108 125 108
+	Color  4 107 124 107
+	Color  5 106 123 106
+	Color  6 105 122 105
+	Color  7 104 121 104
+	Color  8 103 120 103
+	Color  9 102 119 102
+	Color 10 100 117 100
+	Color 11  98 115  98
+	Color 12  96 113  96
+	Color 13  94 111  94
+	Color 14  92 109  92
+	Color 15  90 107  90	# first 42S 
+	Color 16  88 105  88   
+	Color 17  74  91  91   
+	Color 18  61  70  70   
+	Color 19  44  50  54   
+	Color 20  22  45  50   
+	Color 21  14  41  46   
+	Color 22  11  35  39
+	Color 23  11  35  39
+	Color 24  11  35  39
+	Color 25  11  35  39
+	Color 26  11  35  39
+	Color 27  11  35  39
+	Color 28  11  35  39
+	Color 29  11  35  39
+	Color 30  11  35  39
+	Color 31  11  35  39	# last 42S
+	Color 32 111 128 111	# background color table
+	Color 33 111 128 111
+	Color 34 111 128 111
+	Color 35 111 128 111
+	Color 36 111 128 111
+	Color 37 111 128 111
+	Color 38 111 128 111
+	Color 39 111 128 111
+	Color 40 111 128 111
+	Color 41 111 128 111
+	Color 42 111 128 111
+	Color 43 111 128 111
+	Color 44 111 128 111
+	Color 45 111 128 111
+	Color 46 111 128 111
+	Color 47 111 128 111	# first 42S
+	Color 48 111 128 111
+	Color 49 111 128 111
+	Color 50 111 128 111
+	Color 51 111 128 111
+	Color 52 111 128 111
+	Color 53 111 128 111
+	Color 54 111 128 111
+	Color 55 103 117 103
+	Color 56  93 107  93
+	Color 57  84  96  84
+	Color 58  75  85  75
+	Color 59  66  74  66
+	Color 60  56  64  56
+	Color 61  47  53  47
+	Color 62  38  42  38
+	Color 63  28  32  28	# last 42S
+End
+
+Annunciator 1			# Up/Down arrows
+	Size 17 11
+	Offset 43 122
+	Down 1 619
+End
+Annunciator 2			# Shift arrow
+	Size 20 11
+	Offset 64 122
+	Down 19 619
+End
+Annunciator 3			# Printing ind
+	Size 22 11
+	Offset 87 122
+	Down 40 619
+End
+Annunciator 4			# Processing ind
+	Size 15 11
+	Offset 112 122
+	Down 63 619
+End
+Annunciator 5			# Battery
+	Size 20 11
+	Offset 130 122
+	Down 79 619
+End
+Annunciator 6			# G
+	Size 4 11
+	Offset 153 122
+	Down 100 619
+End
+Annunciator 7			# RAD
+	Size 14 11
+	Offset 158 122
+	Down 105 619
+End
+
+Button 01			# LCD "button" 1
+	Type 3
+	Size 42 21 
+	Offset 40 165 
+OutIn 5 64
+End
+Button 02			# LCD "button" 2
+	Type 3
+	Size 42 21
+	Offset 84 165
+	OutIn 4 64
+End
+Button 03			# LCD "button" 3
+	Type 3
+	Size 42 21 
+	Offset 128 165 
+	OutIn 3 64
+End
+Button 04			# LCD "button" 4
+	Type 3
+	Size 42 21 
+	Offset 172 165 
+	OutIn 2 64
+End
+Button 05			# LCD "button" 5
+	Type 3
+	Size 42 21 
+	Offset 216 165 
+	OutIn 1 64
+End
+Button 06			# LCD "button" 6
+	Type 3
+	Size 42 21 
+	Offset 260 165
+	OutIn 0 64
+End
+
+Button 11		  # SIGMA+
+	Type 0
+	Size 37 29
+	Offset 31 255
+	Down 30 254
+	OutIn 5 64
+End
+Button 12		  # 1/X
+	Type 0
+	Size 37 29
+	Offset 80 255
+	Down 79 254
+	OutIn 4 64
+End
+Button 13		  # SQRT
+	Type 0
+	Size 37 29
+	Offset 129 255
+	Down 128 254
+	OutIn 3 64
+End
+Button 14		  # LOG
+	Type 0
+	Size 37 29
+	Offset 178 255
+	Down 177 254
+	OutIn 2 64
+End
+Button 15		  # LN
+	Type 0
+	Size 37 29
+	Offset 226 255
+	Down 225 254
+	OutIn 1 64
+End
+Button 16		  # XEQ
+	Type 0
+	Size 37 29
+	Offset 276 255
+	Down 275 254
+	OutIn 0 64
+End
+
+Button 21		  # STO
+	Type 0
+	Size 37 29
+	Offset 31 304
+	Down 30 303
+	OutIn 5 32
+End
+Button 22		  # RCL
+	Type 0
+	Size 37 29
+	Offset 80 304
+	Down 79 303
+	OutIn 4 32
+End
+Button 23		  # RDOWN
+	Type 0
+	Size 37 29
+	Offset 129 304
+	Down 128 303
+	OutIn 3 32
+End
+Button 24		  # SIN
+	Type 0
+	Size 37 29
+	Offset 178 304
+	Down 177 303
+	OutIn 2 32
+End
+Button 25		  # COS
+	Type 0
+	Size 37 29
+	Offset 227 304
+	Down 226 303
+	OutIn 1 32
+End
+Button 26		  # TAN
+	Type 0
+	Size 37 29
+	Offset 276 304
+	Down 275 303
+	OutIn 0 32
+End
+
+Button 31		  # ENTER
+	Type 0
+	Size  85 30
+	Offset 31 352
+	Down 30 351
+	OutIn 4 16
+End
+Button 32		  # X<>Y
+	Type 0
+	Size 37 29
+	Offset 129 352
+	Down 128 351
+	OutIn 3 16
+End
+Button 33		  # +/-
+	Type 0
+	Size 37 29
+	Offset 178 352
+	Down 177 351
+	OutIn 2 16
+End
+Button 34		  # EEX
+	Type 0
+	Size 37 29
+	Offset 227 352
+	Down 226 351 
+	OutIn 1 16
+End
+Button 35		  # DELETE
+	Type 0
+	Size 37 29
+	Offset 276 352
+	Down 275 351
+	OutIn 0 16
+End
+
+Button 41		  # Up-arrow
+	Type 0
+	Size  37 29
+	Offset 31 400
+	Down 30 399
+	OutIn 5 8
+End
+Button 42		  # 7
+	Type 0
+	Size 45 31
+	Offset 87 401
+	Down 86 400
+	OutIn 3 8
+End
+Button 43		  # 8
+	Type 0
+	Size 45 31
+	Offset 146 401
+	Down 145 400
+	OutIn 2 8
+End
+Button 44		  # 9
+	Type 0
+	Size 45 31
+	Offset 206 401
+	Down 205 400
+	OutIn 1 8
+End
+Button 45		  # /
+	Type 0
+	Size 45 31
+	Offset 265 401
+	Down 264 400
+	OutIn 0 8
+End
+
+Button 51		  # Down-arrow
+	Type 0
+	Size 37 29
+	Offset 31 449
+	Down 30 448
+	OutIn 5 4
+End
+Button 52		  # 4
+	Type 0
+	Size 45 31
+	Offset 87 450
+	Down 86 449
+	OutIn 3 4
+End
+Button 53		  # 5
+	Type 0
+	Size 45 31
+	Offset 146 450
+	Down 145 449
+	OutIn 2 4
+End
+Button 54		  # 6
+	Type 0
+	Size 45 31
+	Offset 206 450
+	Down 205 449
+	OutIn 1 4
+End
+Button 55		  # *
+	Type 0
+	Size 45 31
+	Offset 266 449
+	Down 265 448
+	OutIn 0 4
+End
+
+Button 61		  # SHIFT
+	Type 0
+	Size 37 29
+	Offset 31 497
+	Down 30 496
+	OutIn 5 2
+End
+Button 62		  # 1
+	Type 0
+	Size 45 31
+	Offset 89 498
+	Down 88 497
+	OutIn 3 2
+End
+Button 63		  # 2
+	Type 0
+	Size 45 31
+	Offset 147 498
+	Down 146 497
+	OutIn 2 2
+End
+Button 64		  # 3
+	Type 0
+	Size 45 31
+	Offset 206 498
+	Down 205 497
+	OutIn 1 2
+End
+Button 65		  # -
+	Type 0
+	Size 45 31
+	Offset 265 498
+	Down 264 497
+	OutIn 0 2
+End
+
+Button 71		  # EXIT
+	Type 0
+	Size 37 29
+	Offset 31 546
+	Down 30 545
+	OutIn 0 32768
+End
+Button 72		  # 0
+	Type 0
+	Size 45 31
+	Offset 87 546
+	Down 86 545
+	OutIn 3 1
+End
+Button 73		  # .
+	Type 0
+	Size 45 31
+	Offset 146 546
+	Down 145 545
+	OutIn 2 1
+End
+Button 74		  # R/S
+	Type 0
+	Size 45 31
+	Offset 206 546
+	Down 205 545
+	OutIn 1 1
+End
+Button 75		  # +
+	Type 0
+	Size 45 31
+	Offset 265 546
+	Down 264 545
+	OutIn 0 1
+End
+
+Include "Keyb42s.kmi"

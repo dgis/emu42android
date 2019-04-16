@@ -1,0 +1,495 @@
+# Keyboard UK: Keyboard-Emulation for PC and HP-28
+
+Scancode 8			# <-
+	ResetFlag 0
+	Map 8 35
+End
+
+Scancode 9			# TAB -> Alpha
+	ResetFlag 0
+	Map 9 165
+End
+
+Scancode 13			# ENTER
+	ResetFlag 0
+	Map 13 31
+End
+
+Scancode 16			# Shift
+	IfPressed 16
+		NotFlag 0
+		Press 21
+	Else
+		Release 21
+	End
+End
+
+Scancode 20			# CAPS -> LC
+	ResetFlag 0
+	Map 20 164
+End
+
+Scancode 27			# ESC -> ATTN
+	ResetFlag 0
+	Map 27 71
+End
+
+Scancode 32			# Space
+	ResetFlag 0
+	Map 32 161
+End
+
+Scancode 35			# End -> DROP
+	ResetFlag 0
+	Map 35 34
+End
+
+Scancode 36			# Home -> <^v>
+	ResetFlag 0
+	Map 36 22
+End
+
+Scancode 45			# INS
+	ResetFlag 0
+	Map 45 11
+End
+
+Scancode 46			# DEL
+	ResetFlag 0
+	Map 46 12
+End
+
+Scancode 37			# Left
+	ResetFlag 0
+	Map 37 15
+End
+
+Scancode 38			# Up
+	ResetFlag 0
+	Map 38 13
+End
+
+Scancode 39			# Right
+	ResetFlag 0
+	Map 39 16
+End
+
+Scancode 40			# Down
+	ResetFlag 0
+	Map 40 14
+End
+
+Scancode 48			# 0 )
+	IfPressed 16
+		IfPressed 48
+			IfFlag 0
+				Release 21
+				ResetFlag 0
+			Else
+				Press 21
+				Release 21
+				SetFlag 0
+			End
+			Press 156
+		Else
+			ResetFlag 0
+			Release 156
+		End
+	Else
+		Release 156
+		Map 48 72
+	End
+End
+
+Scancode 49			# 1
+	ResetFlag 0
+	Map 49 62
+End
+
+Scancode 50			# 2 "
+	ResetFlag 0
+	IfPressed 16
+		Map 50 21
+		Map 50 153
+	Else
+		Release 153
+		Map 50 63
+	End
+End
+
+Scancode 51			# 3
+	ResetFlag 0
+	Map 51 64
+End
+
+Scancode 52			# 4
+	ResetFlag 0
+	Map 52 52
+End
+
+Scancode 53			# 5 %
+	ResetFlag 0
+	IfPressed 16
+		Map 53 21
+		Map 53 63
+	Else
+		Release 63
+		Map 53 53
+	End
+End
+
+Scancode 54			# 6 ^
+	ResetFlag 0
+	IfPressed 16
+		Map 54 21
+		Map 54 55
+	Else
+		Release 55
+		Map 54 54
+	End
+End
+
+Scancode 55			# 7
+	Map 55 42
+End
+
+Scancode 56			# 8 *
+	IfPressed 16
+		IfPressed 56
+			IfFlag 0
+				Release 21
+				Press 21
+				Release 21
+				ResetFlag 0
+			End
+			Press 55
+		Else
+			ResetFlag 0
+			Release 55
+		End
+	Else
+		Release 55
+		Map 56 43
+	End
+End
+
+Scancode 57			# 9 (
+	IfPressed 16
+		IfFlag 0
+			Release 21
+			Press 21
+			Release 21
+			ResetFlag 0
+		End
+		Map 57 156
+	Else
+		Release 156
+		Map 57 44
+	End
+End
+
+Scancode 65			# A
+	ResetFlag 0
+	Map 65 111
+End
+
+Scancode 66			# B
+	ResetFlag 0
+	Map 66 112
+End
+
+Scancode 67			# C
+	ResetFlag 0
+	Map 67 113
+End
+
+Scancode 68			# D
+	ResetFlag 0
+	Map 68 114
+End
+
+Scancode 69			# E
+	ResetFlag 0
+	Map 69 115
+End
+
+Scancode 70			# F
+	ResetFlag 0
+	Map 70 116
+End
+
+Scancode 71			# G
+	ResetFlag 0
+	Map 71 121
+End
+
+Scancode 72			# H
+	ResetFlag 0
+	Map 72 122
+End
+
+Scancode 73			# I
+	ResetFlag 0
+	Map 73 123
+End
+
+Scancode 74			# J
+	ResetFlag 0
+	Map 74 124
+End
+
+Scancode 75			# K
+	ResetFlag 0
+	Map 75 125
+End
+
+Scancode 76			# L
+	ResetFlag 0
+	Map 76 126
+End
+
+Scancode 77			# M
+	ResetFlag 0
+	Map 77 131
+End
+
+Scancode 78			# N
+	ResetFlag 0
+	Map 78 132
+End
+
+Scancode 79			# O
+	ResetFlag 0
+	Map 79 133
+End
+
+Scancode 80			# P
+	ResetFlag 0
+	Map 80 134
+End
+
+Scancode 81			# Q
+	ResetFlag 0
+	Map 81 135
+End
+
+Scancode 82			# R
+	ResetFlag 0
+	Map 82 136
+End
+
+Scancode 83			# S
+	ResetFlag 0
+	Map 83 141
+End
+
+Scancode 84			# T
+	ResetFlag 0
+	Map 84 142
+End
+
+Scancode 85			# U
+	ResetFlag 0
+	Map 85 143
+End
+
+Scancode 86			# V
+	ResetFlag 0
+	Map 86 144
+End
+
+Scancode 87			# W
+	ResetFlag 0
+	Map 87 145
+End
+
+Scancode 88			# X
+	ResetFlag 0
+	Map 88 146
+End
+
+Scancode 89			# Y
+	ResetFlag 0
+	Map 89 151
+End
+
+Scancode 90			# Z
+	ResetFlag 0
+	Map 90 152
+End
+
+Scancode 96			# Num 0
+	ResetFlag 0
+	Map 96 72
+End
+
+Scancode 97			# Num 1
+	ResetFlag 0
+	Map 97 62
+End
+
+Scancode 98			# Num 2
+	ResetFlag 0
+	Map 98 63
+End
+
+Scancode 99			# Num 3 #
+	ResetFlag 0
+	Map 99 64
+End
+
+Scancode 100			# Num 4
+	ResetFlag 0
+	Map 100 52
+End
+
+Scancode 101			# Num 5
+	ResetFlag 0
+	Map 101 53
+End
+
+Scancode 102			# Num 6
+	ResetFlag 0
+	Map 102 54
+End
+
+Scancode 103			# Num 7
+	ResetFlag 0
+	Map 103 42
+End
+
+Scancode 104			# Num 8
+	ResetFlag 0
+	Map 104 43
+End
+
+Scancode 105			# Num 9
+	ResetFlag 0
+	Map 105 44
+End
+
+Scancode 110			# Num , -> .
+	ResetFlag 0
+	Map 110 73
+End
+
+Scancode 106			# Num *
+	ResetFlag 0
+	Map 106 55
+End
+
+Scancode 107			# Num +
+	ResetFlag 0
+	Map 107 75
+End
+
+Scancode 109			# Num -
+	ResetFlag 0
+	Map 109 65
+End
+
+Scancode 111			# Num /
+	ResetFlag 0
+	Map 111 45
+End
+
+Scancode 187			# = +
+	IfPressed 16
+		IfPressed 187
+			IfFlag 0
+				Release 21
+				Press 21
+				Release 21
+				ResetFlag 0
+			End
+			Press 75
+		Else
+			ResetFlag 0
+			Release 75
+		End
+	Else
+		Release 75
+		Map 187 163
+	End
+End
+
+Scancode 189			# -
+	ResetFlag 0
+	Map 189 65
+End
+
+Scancode 188			# , <
+	ResetFlag 0
+	IfPressed 16
+		Map 188 21
+		Map 188 151
+	Else
+		Release 151
+		Map 188 74
+	End
+End
+
+Scancode 190			# . >
+	ResetFlag 0
+	IfPressed 16
+		Map 190 21
+		Map 190 152
+	Else
+		Release 152
+		Map 190 73
+	End
+End
+
+Scancode 191			# / ?
+	ResetFlag 0
+	IfPressed 16
+		Map 191 21
+		Map 191 164
+	Else
+		Release 164
+		Map 191 45
+	End
+End
+
+Scancode 192			# '
+	Map 192 41
+End
+
+Scancode 219			# [ {
+	IfPressed 16
+		IfFlag 0
+			Release 21
+			Press 21
+			Release 21
+			ResetFlag 0
+		End
+		Map 219 154
+	Else
+		ResetFlag 0
+		Release 154
+		Map 219 155
+	End
+End
+
+Scancode 221			# ] }
+	IfPressed 221
+		IfFlag 0
+		Else
+			Press 21
+			Release 21
+		End
+		IfPressed 16
+			Press 154
+		Else
+			Press 155
+		End
+	Else
+		ResetFlag 0
+		Release 154
+		Release 155
+	End
+End
+
+Scancode 222			# #
+	Map 222 153
+End

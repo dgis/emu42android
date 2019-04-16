@@ -1,0 +1,83 @@
+<resources>
+
+    <!-- Info Activity -->
+
+    <string name="title_activity_info">About</string>
+    <string name="info_readme">ReadMe.txt</string>
+
+    <!-- Info Activity -->
+    <string name="title_web_activity_info">Help</string>
+    <string name="help_url">file:///android_asset/Emu42.htm</string>
+
+    <!-- Settings Activity -->
+
+    <string name="title_activity_settings">Settings</string>
+
+    <!-- PaintByNumber Activity -->
+
+    <string name="app_name">Emu42</string>
+    <string name="action_settings">Settings</string>
+    <string name="navigation_drawer_open">Open navigation drawer</string>
+    <string name="navigation_drawer_close">Close navigation drawer</string>
+    <!--<string name="nav_header_title">Emu42</string>-->
+    <!--<string name="nav_header_subtitle">android.studio@android.com</string>-->
+    <!--<string name="nav_header_desc">Navigation header</string>-->
+    <string name="nav_new">New...</string>
+    <string name="nav_open">Open...</string>
+    <string name="nav_save">Save</string>
+    <string name="nav_save_as">Save As...</string>
+    <string name="nav_close">Close</string>
+    <string name="nav_load_object">Load Object...</string>
+    <string name="nav_save_object">Save Object...</string>
+    <string name="nav_copy_screen">Copy Screen</string>
+    <string name="nav_copy_stack">Copy Stack</string>
+    <string name="nav_recents">Recent</string>
+    <string name="nav_edit">Edit</string>
+    <string name="nav_paste_stack">Paste Stack</string>
+    <string name="nav_reset_calculator">Reset Calculator</string>
+    <string name="nav_save_backup">Save Backup</string>
+    <string name="nav_restore_backup">Restore Backup</string>
+    <string name="nav_delete_backup">Delete Backup</string>
+    <string name="nav_view">View</string>
+    <string name="nav_change_kml_script">Change KML Script...</string>
+    <string name="nav_help">Help</string>
+    <string name="nav_item_help">Help</string>
+    <string name="nav_about">About Emu42...</string>
+    <string name="load_custom_kml">[Custom KML script...]</string>
+    <string name="load_default_kml">[Default KML script]</string>
+    <string name="pick_calculator">Pick a calculator</string>
+    <string name="message_state_saved">State saved</string>
+    <string name="message_do_you_want_to_save">Do you want to save changes?\n(BACK to cancel)</string>
+    <string name="message_yes">Yes</string>
+    <string name="message_no">No</string>
+    <string name="message_object_load">Warning: Trying to load an object while the emulator is busy will certainly result in a memory lost. Before loading an object you should be sure that the calculator is in idle state. Do you want to see this warning next time you try to load an object?</string>
+    <string name="message_screenshot">Emu42 screenshot</string>
+    <string name="message_share_screenshot">Share Emu42 screenshot</string>
+    <string name="message_press_reset">Are you sure you want to press the Reset Button?</string>
+    <string name="message_change_kml">You cannot change the KML script when Emu42 is not running. Use the File, New menu item to create a new calculator.</string>
+    <string name="message_kml_script_compilation_result">KML Script Compilation Result</string>
+    <string name="settings_category_general_title">General</string>
+    <string name="settings_realspeed_title">Authentic Calculator Speed</string>
+    <string name="settings_grayscale_title">Enable Virtual LCD Delay</string>
+    <string name="settings_autosave_title">Automatically Save Files</string>
+    <string name="settings_objectloadwarning_title">Show Load Object Warning</string>
+    <string name="settings_alwaysdisplog_title">Always Show KML Compilation Result</string>
+    <string name="settings_allow_rotation_title">Allow rotation</string>
+    <string name="settings_fill_screen_title">Fill screen</string>
+    <string name="settings_allow_sound_title">Allow sounds</string>
+    <string name="settings_haptic_feedback_title">Allow haptic feedback</string>
+    <string name="settings_category_background_title">Background Color</string>
+    <string name="settings_background_kml_color_title">Use KML color</string>
+    <string name="settings_background_kml_color_summary">Use default KML transparency color of the background bitmap (if exist)</string>
+    <string name="settings_background_fallback_color_title">Other possible colors</string>
+    <string name="settings_background_fallback_color_summary">Else if the KML color is not used</string>
+    <string name="settings_background_custom_color_title">Custom color</string>
+    <string name="settings_background_custom_color_summary">Used when selecting the \'Custom color\' in the \'Other possible colors\'</string>
+    <string name="settings_category_memory_cards_title">Memory Cards</string>
+    <string name="settings_port1en_title">Port 1 is Plugged</string>
+    <string name="settings_port1wr_title">Port 1 is Writable</string>
+    <string name="settings_port2en_title">Port 2 is Plugged</string>
+    <string name="settings_port2wr_title">Port 2 is Writable</string>
+    <string name="settings_port2load_title">Port 2 File</string>
+
+</resources>

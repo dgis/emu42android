@@ -1,0 +1,105 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    tools:showIn="navigation_view">
+
+    <!--
+        https://material.io/tools/icons/?icon=insert_drive_file&style=baseline
+        https://github.com/google/material-design-icons/tree/master/action/drawable-anydpi-v21
+    -->
+
+    <group android:checkableBehavior="single">
+        <item
+            android:id="@+id/nav_new"
+            android:icon="@drawable/ic_insert_drive_file_black_24dp"
+            android:title="@string/nav_new" />
+        <item
+            android:id="@+id/nav_open"
+            android:icon="@drawable/ic_description_black_24dp"
+            android:title="@string/nav_open" />
+        <item
+            android:id="@+id/nav_save"
+            android:icon="@drawable/ic_save_black_24dp"
+            android:title="@string/nav_save" />
+        <item
+            android:id="@+id/nav_save_as"
+            android:icon="@drawable/ic_save_black_24dp"
+            android:title="@string/nav_save_as" />
+        <item
+            android:id="@+id/nav_close"
+            android:icon="@drawable/ic_close_black_24dp"
+            android:title="@string/nav_close" />
+
+        <item
+            android:id="@+id/nav_settings"
+            android:icon="@drawable/ic_settings_black_24dp"
+            android:title="@string/action_settings" />
+    </group>
+
+    <item android:id="@+id/nav_item_recents"
+        android:title="@string/nav_recents">
+        <menu android:id="@+id/nav_menu_recents">
+        </menu>
+    </item>
+
+    <item android:title="@string/nav_edit">
+        <menu>
+            <item
+                android:id="@+id/nav_load_object"
+                android:icon="@drawable/ic_open_in_browser_black_24dp"
+                android:title="@string/nav_load_object" />
+            <item
+                android:id="@+id/nav_save_object"
+                android:icon="@drawable/ic_save_alt_black_24dp"
+                android:title="@string/nav_save_object" />
+            <item
+                android:id="@+id/nav_copy_screen"
+                android:icon="@drawable/ic_menu_share"
+                android:title="@string/nav_copy_screen" />
+            <item
+                android:id="@+id/nav_copy_stack"
+                android:icon="@drawable/ic_filter_none_black_24dp"
+                android:title="@string/nav_copy_stack" />
+            <item
+                android:id="@+id/nav_paste_stack"
+                android:icon="@drawable/ic_file_copy_black_24dp"
+                android:title="@string/nav_paste_stack" />
+            <item
+                android:id="@+id/nav_reset_calculator"
+                android:icon="@drawable/ic_refresh_black_24dp"
+                android:title="@string/nav_reset_calculator" />
+            <item
+                android:id="@+id/nav_backup_save"
+                android:icon="@drawable/ic_playlist_add_black_24dp"
+                android:title="@string/nav_save_backup" />
+            <item
+                android:id="@+id/nav_backup_restore"
+                android:icon="@drawable/ic_playlist_play_black_24dp"
+                android:title="@string/nav_restore_backup" />
+            <item
+                android:id="@+id/nav_backup_delete"
+                android:icon="@drawable/ic_remove_black_24dp"
+                android:title="@string/nav_delete_backup" />
+        </menu>
+    </item>
+    <item android:title="@string/nav_view">
+        <menu>
+            <item
+                android:id="@+id/nav_change_kml_script"
+                android:icon="@drawable/ic_wallpaper_black_24dp"
+                android:title="@string/nav_change_kml_script" />
+        </menu>
+    </item>
+    <item android:title="@string/nav_help">
+        <menu>
+            <item
+                android:id="@+id/nav_help"
+                android:icon="@drawable/ic_help_black_24dp"
+                android:title="@string/nav_item_help" />
+            <item
+                android:id="@+id/nav_about"
+                android:icon="@drawable/ic_info_black_24dp"
+                android:title="@string/nav_about" />
+        </menu>
+    </item>
+</menu>
