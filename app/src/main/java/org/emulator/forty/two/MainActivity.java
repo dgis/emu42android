@@ -597,7 +597,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
                 Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT);
                 intent.addCategory(Intent.CATEGORY_OPENABLE);
                 intent.setType("*/*");
-                intent.putExtra(Intent.EXTRA_TITLE, "emu48-state.e48");
+                intent.putExtra(Intent.EXTRA_TITLE, "emu42-state.e42");
                 startActivityForResult(intent, INTENT_GETOPENFILENAME);
             }
         });
@@ -610,28 +610,25 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         intent.addCategory(Intent.CATEGORY_OPENABLE);
         intent.setType("*/*");
         int model = NativeLib.getCurrentModel();
-        String extension = "e48";
+        String extension = "e42";
         switch (model) {
-            case 'S': //HP48SX
-            case 'G': //HP48GX
-                extension = "e48";
-            case '6': //HP38G 64K RAM
-            case 'A': //HP38G 32K RAM
-                extension = "e38";
+            case 'T': // HP17B # Trader
+                extension = "e17";
                 break;
-            case 'E': // HP39G/(HP39G+/HP39GS)/HP40G/HP40GS
-                extension = "e39";
+            case 'U': // HP17BII # Trader II
+                extension = "e17";
                 break;
-            case 'P': // HP39G+/HP39GS
-                extension = "e39";
+            case 'M': // HP27S # Mentor
+                extension = "e27";
                 break;
-            case '2': // HP48GII
-            case 'Q': // HP49G+/HP50G
-            case 'X': // HP49G
-                extension = "e49";
+            case 'O': // HP28S # Orlando
+                extension = "e28";
+                break;
+            case 'D': // HP42S # Davinci
+                extension = "e42";
                 break;
         }
-        intent.putExtra(Intent.EXTRA_TITLE, "emu48-state." + extension);
+        intent.putExtra(Intent.EXTRA_TITLE, "emu42-state." + extension);
         startActivityForResult(intent, INTENT_GETSAVEFILENAME);
     }
     private void OnFileClose() {
@@ -660,7 +657,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT);
         intent.addCategory(Intent.CATEGORY_OPENABLE);
         intent.setType("*/*");
-        intent.putExtra(Intent.EXTRA_TITLE, "emu48-object.hp");
+        intent.putExtra(Intent.EXTRA_TITLE, "emu42-object.hp");
         startActivityForResult(intent, INTENT_OBJECT_LOAD);
     }
 
@@ -685,7 +682,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         Intent intent = new Intent(Intent.ACTION_CREATE_DOCUMENT);
         intent.addCategory(Intent.CATEGORY_OPENABLE);
         intent.setType("*/*");
-        intent.putExtra(Intent.EXTRA_TITLE, "emu48-object.hp");
+        intent.putExtra(Intent.EXTRA_TITLE, "emu42-object.hp");
         startActivityForResult(intent, INTENT_OBJECT_SAVE);
     }
     private void OnViewCopy() {
@@ -696,7 +693,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
 
         NativeLib.onViewCopy(bitmapScreen);
 
-        String imageFilename = "Emu48-" + new SimpleDateFormat("yyyy-MM-dd_HH-mm-ss", Locale.US).format(new Date());
+        String imageFilename = "Emu42-" + new SimpleDateFormat("yyyy-MM-dd_HH-mm-ss", Locale.US).format(new Date());
         try {
             File storagePath = new File(this.getExternalCacheDir(), "");
             File imageFile = File.createTempFile(imageFilename, ".png", storagePath);

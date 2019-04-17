@@ -87,7 +87,7 @@ static LRESULT OnPaint(HWND hWindow)
 	PAINTSTRUCT Paint;
 	HDC hPaintDC;
 
-	PAINT_LOGD("Emu48-PAINT OnPaint()");
+	PAINT_LOGD("PAINT OnPaint()");
 
 	//UpdateWindowBars();						// update visibility of title and menu bar
 
@@ -107,7 +107,7 @@ static LRESULT OnPaint(HWND hWindow)
 		EnterCriticalSection(&csGDILock);	// solving NT GDI problems
 		{
 			// redraw background bitmap
-			PAINT_LOGD("Emu48-PAINT OnPaint() BitBlt()");
+			PAINT_LOGD("PAINT OnPaint() BitBlt()");
 			BitBlt(hPaintDC, Paint.rcPaint.left, Paint.rcPaint.top,
 				   Paint.rcPaint.right-Paint.rcPaint.left, Paint.rcPaint.bottom-Paint.rcPaint.top,
 				   hMainDC, rcMainPaint.left, rcMainPaint.top, SRCCOPY);

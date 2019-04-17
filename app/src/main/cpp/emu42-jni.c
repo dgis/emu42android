@@ -473,6 +473,10 @@ JNIEXPORT jint JNICALL Java_org_emulator_forty_two_NativeLib_onFileNew(JNIEnv *e
     chooseCurrentKmlMode = ChooseKmlMode_UNKNOWN;
 
     if(result) {
+        if(hLcdDC && hLcdDC->selectedBitmap) {
+            hLcdDC->selectedBitmap->bitmapInfoHeader->biHeight = -abs(hLcdDC->selectedBitmap->bitmapInfoHeader->biHeight);
+        }
+
         mainViewResizeCallback(nBackgroundW, nBackgroundH);
         draw();
 
@@ -496,8 +500,13 @@ JNIEXPORT jint JNICALL Java_org_emulator_forty_two_NativeLib_onFileOpen(JNIEnv *
     chooseCurrentKmlMode = ChooseKmlMode_FILE_OPEN;
     lastKMLFilename[0] = '\0';
     BOOL result = OpenDocument(szBufferFilename);
-    if (result)
+    if (result) {
+        if(hLcdDC && hLcdDC->selectedBitmap) {
+            hLcdDC->selectedBitmap->bitmapInfoHeader->biHeight = -abs(hLcdDC->selectedBitmap->bitmapInfoHeader->biHeight);
+        }
+
         MruAdd(szBufferFilename);
+    }
     chooseCurrentKmlMode = ChooseKmlMode_UNKNOWN;
     mainViewResizeCallback(nBackgroundW, nBackgroundH);
     if(result) {

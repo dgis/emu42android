@@ -954,7 +954,7 @@ static VOID UpdateDisplayClamshell(VOID)
 			   : 0;
 
 	ZeroMemory(pbyMask, bmiLcd.Lcd_bmih.biWidth * -bmiLcd.Lcd_bmih.biHeight);
-
+	byContrast=22;
 	if ((Chipset.IORam[DSPCTL]&DON) != 0 && dwKMLColor[byContrast] != I)
 	{
 		// scan complete display area of master
@@ -992,7 +992,7 @@ static VOID UpdateDisplayClamshell(VOID)
 		BitBlt(hLcdDC, 0, 0, nLcdXSize, nLcdYSize, hMaskDC, 0, 0, SRCCOPY);
 
 		// mask segment mask with background and brush
-		//BitBlt(hLcdDC, 0, 0, nLcdXSize, nLcdYSize, hBmpBkDC, 0, 0, ROP_PDSPxax);
+		BitBlt(hLcdDC, 0, 0, nLcdXSize, nLcdYSize, hBmpBkDC, 0, 0, ROP_PDSPxax);
 		GdiFlush();
 	}
 	LeaveCriticalSection(&csGDILock);

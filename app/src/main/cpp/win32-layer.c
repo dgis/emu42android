@@ -1302,7 +1302,7 @@ BOOL GetWindowPlacement(HWND hWnd, WINDOWPLACEMENT *lpwndpl) {
 BOOL SetWindowPlacement(HWND hWnd, CONST WINDOWPLACEMENT *lpwndpl) { return 0; }
 extern void draw();
 BOOL InvalidateRect(HWND hWnd, CONST RECT *lpRect, BOOL bErase) {
-    draw(); //TODO Need a true WM_PAINT event!
+    //draw(); //TODO Need a true WM_PAINT event!
     return 0;
 }
 BOOL AdjustWindowRect(LPRECT lpRect, DWORD dwStyle, BOOL bMenu) { return 0; }
@@ -1334,7 +1334,8 @@ HGDIOBJ SelectObject(HDC hdc, HGDIOBJ h) {
             case HGDIOBJ_TYPE_PEN:
                 break;
             case HGDIOBJ_TYPE_BRUSH:
-                break;
+                hdc->selectedBrushColor = h;
+                return h;
             case HGDIOBJ_TYPE_FONT:
                 break;
             case HGDIOBJ_TYPE_BITMAP: {
@@ -1392,11 +1393,11 @@ HGDIOBJ GetCurrentObject(HDC hdc, UINT type) {
     return NULL;
 }
 BOOL DeleteObject(HGDIOBJ ho) {
-    PAINT_LOGD("Emu48-PAINT DeleteObject(ho: %p)", ho);
+    PAINT_LOGD("PAINT DeleteObject(ho: %p)", ho);
     if(ho) {
         switch(ho->handleType) {
             case HGDIOBJ_TYPE_PALETTE: {
-                PAINT_LOGD("Emu48-PAINT DeleteObject() HGDIOBJ_TYPE_PALETTE");
+                PAINT_LOGD("PAINT DeleteObject() HGDIOBJ_TYPE_PALETTE");
                 ho->handleType = HGDIOBJ_TYPE_INVALID;
                 if(ho->paletteLog)
                     free(ho->paletteLog);
@@ -1405,7 +1406,7 @@ BOOL DeleteObject(HGDIOBJ ho) {
                 return TRUE;
             }
             case HGDIOBJ_TYPE_BITMAP: {
-                PAINT_LOGD("Emu48-PAINT DeleteObject() HGDIOBJ_TYPE_BITMAP");
+                PAINT_LOGD("PAINT DeleteObject() HGDIOBJ_TYPE_BITMAP");
                 ho->handleType = HGDIOBJ_TYPE_INVALID;
                 if(ho->bitmapInfo)
                     free((void *) ho->bitmapInfo);
@@ -1477,8 +1478,11 @@ BOOL DeleteDC(HDC hdc) {
 }
 
 HBRUSH  WINAPI CreateSolidBrush(COLORREF color) {
-    //TODO
-    return 0;
+    HGDIOBJ handle = (HGDIOBJ)malloc(sizeof(_HGDIOBJ));
+    memset(handle, 0, sizeof(_HGDIOBJ));
+    handle->handleType = HGDIOBJ_TYPE_BRUSH;
+    handle->brushColor = color;
+    return handle;
 }
 
 BOOL MoveToEx(HDC hdc, int x, int y, LPPOINT lppt) {
@@ -1490,7 +1494,7 @@ BOOL LineTo(HDC hdc, int x, int y) {
     return 0;
 }
 BOOL PatBlt(HDC hdcDest, int x, int y, int w, int h, DWORD rop) {
-    PAINT_LOGD("Emu48-PAINT PatBlt(hdcDest: %p, x: %d, y: %d, w: %d, h: %d, rop: 0x%08x)", hdcDest, x, y, w, h, rop);
+    PAINT_LOGD("PAINT PatBlt(hdcDest: %p, x: %d, y: %d, w: %d, h: %d, rop: 0x%08x)", hdcDest, x, y, w, h, rop);
 
     if((hdcDest->selectedBitmap || hdcDest->hdcCompatible == NULL) && w && h) {
         HBITMAP hBitmapDestination = NULL;
@@ -1572,6 +1576,8 @@ BOOL PatBlt(HDC hdcDest, int x, int y, int w, int h, DWORD rop) {
     }
     return 0;
 }
+#define ROP_PSDPxax 0x00B8074A				// ternary ROP
+#define ROP_PDSPxax 0x00D80745
 BOOL BitBlt(HDC hdc, int x, int y, int cx, int cy, HDC hdcSrc, int x1, int y1, DWORD rop) {
     if(hdcSrc && hdcSrc->selectedBitmap) {
         HBITMAP hBitmap = hdcSrc->selectedBitmap;
@@ -1587,7 +1593,7 @@ int SetStretchBltMode(HDC hdc, int mode) {
 }
 
 BOOL StretchBlt(HDC hdcDest, int xDest, int yDest, int wDest, int hDest, HDC hdcSrc, int xSrc, int ySrc, int wSrc, int hSrc, DWORD rop) {
-    PAINT_LOGD("Emu48-PAINT StretchBlt(hdcDest: %p, xDest: %d, yDest: %d, wDest: %d, hDest: %d, hdcSrc: %p, xSrc: %d, ySrc: %d, wSrc: %d, hSrc: %d, rop: 0x%08x)",
+    PAINT_LOGD("PAINT StretchBlt(hdcDest: %p, xDest: %d, yDest: %d, wDest: %d, hDest: %d, hdcSrc: %p, xSrc: %d, ySrc: %d, wSrc: %d, hSrc: %d, rop: 0x%08x)",
             hdcDest, xDest, yDest, wDest, hDest, hdcSrc, xSrc, ySrc, wSrc, hSrc, rop);
 
     if(hdcDest && hdcSrc
@@ -1659,6 +1665,13 @@ BOOL StretchBlt(HDC hdcDest, int xDest, int yDest, int wDest, int hDest, HDC hdc
             palette = hdcSrc->selectedPalette;
         PALETTEENTRY * palPalEntry = palette && palette->paletteLog && palette->paletteLog->palPalEntry ?
                                      palette->paletteLog->palPalEntry : NULL;
+        if(!palPalEntry && sourceBitCount <= 8 && hBitmapSource->bitmapInfoHeader->biClrUsed > 0) {
+            palPalEntry = (PALETTEENTRY *)hBitmapSource->bitmapInfo->bmiColors;
+        }
+        COLORREF brushColor;
+        if(hdcSrc->selectedBrushColor) {
+            brushColor = hdcSrc->selectedBrushColor->brushColor;
+        }
 
         int dst_maxx = xDest + wDest;
         int dst_maxy = yDest + hDest;
@@ -1716,7 +1729,17 @@ BOOL StretchBlt(HDC hdcDest, int xDest, int yDest, int wDest, int hDest, HDC hdc
                         destinationPixel[3] = 255;
                         break;
                     case 32:
-                        memcpy(destinationPixel, sourcePixel, (size_t) sourceBytes);
+                        if(rop == ROP_PDSPxax) {
+                            //https://docs.microsoft.com/en-us/windows/desktop/gdi/ternary-raster-operations
+                            UINT source = *sourcePixel;
+                            UINT destination = *destinationPixel;
+                            //*((UINT *)destinationPixel) = ((brushColor ^ source) & destination) ^ brushColor;
+                        } else if(rop == ROP_PSDPxax) {
+                            UINT source = *sourcePixel;
+                            UINT destination = *destinationPixel;
+                            //*((UINT *)destinationPixel) = ((brushColor ^ destination) & source) ^ brushColor;
+                        } else
+                            memcpy(destinationPixel, sourcePixel, (size_t) sourceBytes);
                         break;
                     default:
                         break;
@@ -1748,7 +1771,7 @@ UINT SetDIBColorTable(HDC  hdc, UINT iStart, UINT cEntries, CONST RGBQUAD *prgbq
     return 0;
 }
 HBITMAP CreateBitmap( int nWidth, int nHeight, UINT nPlanes, UINT nBitCount, CONST VOID *lpBits) {
-    PAINT_LOGD("Emu48-PAINT CreateBitmap()");
+    PAINT_LOGD("PAINT CreateBitmap()");
 
     HGDIOBJ newHBITMAP = (HGDIOBJ)malloc(sizeof(_HGDIOBJ));
     memset(newHBITMAP, 0, sizeof(_HGDIOBJ));
@@ -1773,7 +1796,7 @@ HBITMAP CreateBitmap( int nWidth, int nHeight, UINT nPlanes, UINT nBitCount, CON
     return newHBITMAP;
 }
 HBITMAP CreateDIBitmap( HDC hdc, CONST BITMAPINFOHEADER *pbmih, DWORD flInit, CONST VOID *pjBits, CONST BITMAPINFO *pbmi, UINT iUsage) {
-    PAINT_LOGD("Emu48-PAINT CreateDIBitmap()");
+    PAINT_LOGD("PAINT CreateDIBitmap()");
 
     HGDIOBJ newHBITMAP = (HGDIOBJ)malloc(sizeof(_HGDIOBJ));
     memset(newHBITMAP, 0, sizeof(_HGDIOBJ));
@@ -1794,7 +1817,7 @@ HBITMAP CreateDIBitmap( HDC hdc, CONST BITMAPINFOHEADER *pbmih, DWORD flInit, CO
     return newHBITMAP;
 }
 HBITMAP CreateDIBSection(HDC hdc, CONST BITMAPINFO *pbmi, UINT usage, VOID **ppvBits, HANDLE hSection, DWORD offset) {
-    PAINT_LOGD("Emu48-PAINT CreateDIBitmap()");
+    PAINT_LOGD("PAINT CreateDIBitmap()");
 
     HGDIOBJ newHBITMAP = (HGDIOBJ)malloc(sizeof(_HGDIOBJ));
     memset(newHBITMAP, 0, sizeof(_HGDIOBJ));
@@ -1817,7 +1840,7 @@ HBITMAP CreateDIBSection(HDC hdc, CONST BITMAPINFO *pbmi, UINT usage, VOID **ppv
     return newHBITMAP;
 }
 HBITMAP CreateCompatibleBitmap( HDC hdc, int cx, int cy) {
-    PAINT_LOGD("Emu48-PAINT CreateDIBitmap()");
+    PAINT_LOGD("PAINT CreateDIBitmap()");
 
     HGDIOBJ newHBITMAP = (HGDIOBJ)malloc(sizeof(_HGDIOBJ));
     memset(newHBITMAP, 0, sizeof(_HGDIOBJ));

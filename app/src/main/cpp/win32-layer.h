@@ -634,6 +634,7 @@ typedef struct __attribute__((packed)) tagLOGPALETTE {
     WORD        palNumEntries;
     PALETTEENTRY        palPalEntry[1];
 } LOGPALETTE, *PLOGPALETTE, NEAR *NPLOGPALETTE, FAR *LPLOGPALETTE;
+typedef DWORD   COLORREF;
 enum HGDIOBJ_TYPE {
 	HGDIOBJ_TYPE_INVALID = 0,
 	HGDIOBJ_TYPE_PEN,
@@ -651,8 +652,11 @@ typedef struct {
 
 	// HGDIOBJ_TYPE_BITMAP
 	CONST BITMAPINFO *bitmapInfo;
-	CONST BITMAPINFOHEADER * bitmapInfoHeader;
+	/*CONST*/ BITMAPINFOHEADER * bitmapInfoHeader;
 	CONST VOID *bitmapBits;
+
+	// HGDIOBJ_TYPE_BRUSH
+	COLORREF brushColor;
 } _HGDIOBJ;
 typedef _HGDIOBJ * HGDIOBJ;
 //typedef void * HGDIOBJ;
@@ -684,13 +688,14 @@ enum HDC_TYPE {
 };
 struct _HDC;
 typedef struct _HDC * HDC;
-struct _HDC{
+struct _HDC {
 	enum HDC_TYPE handleType;
 	HDC hdcCompatible;
     enum DC_TYPE dcType;
 	HBITMAP selectedBitmap;
     HPALETTE selectedPalette;
-    HPALETTE realizedPalette;
+	HPALETTE realizedPalette;
+	HBRUSH selectedBrushColor;
 	int windowOrigineX;
 	int windowOrigineY;
 };
@@ -701,7 +706,6 @@ extern BOOL DeleteDC(HDC hdc);
 extern HGDIOBJ SelectObject(HDC hdc, HGDIOBJ h);
 extern HGDIOBJ GetCurrentObject(HDC hdc, UINT type);
 
-typedef DWORD   COLORREF;
 HBRUSH  CreateSolidBrush(COLORREF color);
 
 extern BOOL MoveToEx(HDC hdc, int x, int y, LPPOINT lppt);
