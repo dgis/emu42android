@@ -1333,9 +1333,11 @@ HGDIOBJ SelectObject(HDC hdc, HGDIOBJ h) {
         switch (h->handleType) {
             case HGDIOBJ_TYPE_PEN:
                 break;
-            case HGDIOBJ_TYPE_BRUSH:
+            case HGDIOBJ_TYPE_BRUSH: {
+                HBRUSH oldSelectedBrushColor = hdc->selectedBrushColor;
                 hdc->selectedBrushColor = h;
-                return h;
+                return oldSelectedBrushColor; //h;
+            }
             case HGDIOBJ_TYPE_FONT:
                 break;
             case HGDIOBJ_TYPE_BITMAP: {
@@ -1547,6 +1549,11 @@ BOOL PatBlt(HDC hdcDest, int x, int y, int w, int h, DWORD rop) {
         PALETTEENTRY * palPalEntry = palette && palette->paletteLog && palette->paletteLog->palPalEntry ?
                                      palette->paletteLog->palPalEntry : NULL;
 
+        COLORREF brushColor = 0xFF000000; // 0xAABBGGRR
+        if(hdcDest->selectedBrushColor) {
+            brushColor = hdcDest->selectedBrushColor->brushColor;
+        }
+
         for (int currentY = y; currentY < y + h; currentY++) {
             for (int currentX = x; currentX < x + w; currentX++) {
                 BYTE * destinationPixel = pixelsDestination + (int)(destinationStride * currentY + 4.0 * currentX);
@@ -1564,6 +1571,10 @@ BOOL PatBlt(HDC hdcDest, int x, int y, int w, int h, DWORD rop) {
                         destinationPixel[1] = palPalEntry[0].peGreen;
                         destinationPixel[2] = palPalEntry[0].peBlue;
                         destinationPixel[3] = 255;
+                        break;
+                    case PATCOPY:
+                        // 0xAABBGGRR
+                        *((UINT *)destinationPixel) = brushColor;
                         break;
                     default:
                         break;
@@ -1668,9 +1679,9 @@ BOOL StretchBlt(HDC hdcDest, int xDest, int yDest, int wDest, int hDest, HDC hdc
         if(!palPalEntry && sourceBitCount <= 8 && hBitmapSource->bitmapInfoHeader->biClrUsed > 0) {
             palPalEntry = (PALETTEENTRY *)hBitmapSource->bitmapInfo->bmiColors;
         }
-        COLORREF brushColor;
-        if(hdcSrc->selectedBrushColor) {
-            brushColor = hdcSrc->selectedBrushColor->brushColor;
+        COLORREF brushColor = 0xFF000000; // 0xAABBGGRR
+        if(hdcDest->selectedBrushColor) {
+            brushColor = hdcDest->selectedBrushColor->brushColor;
         }
 
         int dst_maxx = xDest + wDest;
@@ -1729,15 +1740,16 @@ BOOL StretchBlt(HDC hdcDest, int xDest, int yDest, int wDest, int hDest, HDC hdc
                         destinationPixel[3] = 255;
                         break;
                     case 32:
-                        if(rop == ROP_PDSPxax) {
-                            //https://docs.microsoft.com/en-us/windows/desktop/gdi/ternary-raster-operations
-                            UINT source = *sourcePixel;
-                            UINT destination = *destinationPixel;
-                            //*((UINT *)destinationPixel) = ((brushColor ^ source) & destination) ^ brushColor;
-                        } else if(rop == ROP_PSDPxax) {
-                            UINT source = *sourcePixel;
-                            UINT destination = *destinationPixel;
-                            //*((UINT *)destinationPixel) = ((brushColor ^ destination) & source) ^ brushColor;
+                        if(rop == ROP_PDSPxax) { // P ^ (D & (S ^ P))
+                            // https://docs.microsoft.com/en-us/windows/desktop/gdi/ternary-raster-operations
+                            // http://www.qnx.com/developers/docs/6.4.1/gf/dev_guide/api/gf_context_set_rop.html
+                            UINT source = *((UINT *)sourcePixel); // 0xAABBGGRR
+                            UINT destination = *((UINT *)destinationPixel); // 0xAABBGGRR
+                            *((UINT *)destinationPixel) = (brushColor ^ (destination & (source ^ brushColor))) | 0xFF000000;
+                        } else if(rop == ROP_PSDPxax) { // P ^ (S & (D ^ P))
+                            UINT source = *((UINT *)sourcePixel);
+                            UINT destination = *((UINT *)destinationPixel);
+                            *((UINT *)destinationPixel) = brushColor ^ (source & (destination ^ brushColor)) | 0xFF000000;
                         } else
                             memcpy(destinationPixel, sourcePixel, (size_t) sourceBytes);
                         break;

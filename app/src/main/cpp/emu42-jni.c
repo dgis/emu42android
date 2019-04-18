@@ -887,7 +887,12 @@ JNIEXPORT int JNICALL Java_org_emulator_forty_two_NativeLib_onViewScript(JNIEnv 
 
     if (bSucc)
     {
+        if(hLcdDC && hLcdDC->selectedBitmap) {
+            hLcdDC->selectedBitmap->bitmapInfoHeader->biHeight = -abs(hLcdDC->selectedBitmap->bitmapInfoHeader->biHeight);
+        }
+
         mainViewResizeCallback(nBackgroundW, nBackgroundH);
+        draw();
         if (Chipset.wRomCrc != wRomCrc)		// ROM changed
         {
             CpuReset();
@@ -903,7 +908,7 @@ JNIEXPORT int JNICALL Java_org_emulator_forty_two_NativeLib_onViewScript(JNIEnv 
         SetWindowTitle(NULL);
     }
 //    mainViewResizeCallback(nBackgroundW, nBackgroundH);
-    draw();
+    //draw(); //TODO CRASH
 
     return result;
 }
@@ -939,13 +944,6 @@ JNIEXPORT void JNICALL Java_org_emulator_forty_two_NativeLib_setConfiguration(JN
         bRealSpeed = (BOOL) intValue1;
         if(isDynamic)
             SetSpeed(bRealSpeed);			// set speed
-    } else if(_tcscmp(_T("settings_grayscale"), configKey) == 0) {
-//        // LCD grayscale checkbox has been changed
-//        if (bGrayscale != (BOOL)intValue1) {
-//            UINT nOldState = SwitchToState(SM_INVALID);
-//            SetLcdMode(!bGrayscale);	// set new display mode
-//            SwitchToState(nOldState);
-//        }
     } else if(_tcscmp(_T("settings_sound_volume"), configKey) == 0) {
         dwWaveVol = (DWORD)intValue1;
         if(soundEnabled && intValue1 == 0) {
@@ -955,94 +953,6 @@ JNIEXPORT void JNICALL Java_org_emulator_forty_two_NativeLib_setConfiguration(JN
             SoundOpen(uWaveDevId);
             soundEnabled = TRUE;
         }
-//    } else if(_tcscmp(_T("settings_port1"), configKey) == 0) {
-//        BOOL settingsPort1en = (BOOL) intValue1;
-//        BOOL settingsPort1wr = (BOOL) intValue2;
-//        // port1
-//        if (Chipset.Port1Size && (cCurrentRomType!='X' || cCurrentRomType!='2' || cCurrentRomType!='Q'))   // CdB for HP: add apples
-//        {
-//            UINT nOldState = SwitchToState(SM_SLEEP);
-//            // save old card status
-//            BYTE byCardsStatus = Chipset.cards_status;
-//
-//            // port1 disabled?
-//            Chipset.cards_status &= ~(PORT1_PRESENT | PORT1_WRITE);
-//            if (settingsPort1en)
-//            {
-//                Chipset.cards_status |= PORT1_PRESENT;
-//                if (settingsPort1wr)
-//                    Chipset.cards_status |= PORT1_WRITE;
-//            }
-//
-//            // changed card status in slot1?
-//            if (   ((byCardsStatus ^ Chipset.cards_status) & (PORT1_PRESENT | PORT1_WRITE)) != 0
-//                   && (Chipset.IORam[CARDCTL] & ECDT) != 0 && (Chipset.IORam[TIMER2_CTRL] & RUN) != 0
-//                    )
-//            {
-//                Chipset.HST |= MP;		// set Module Pulled
-//                IOBit(SRQ2,NINT,FALSE);	// set NINT to low
-//                Chipset.SoftInt = TRUE;	// set interrupt
-//                bInterrupt = TRUE;
-//            }
-//            SwitchToState(nOldState);
-//        }
-//    } else if(_tcscmp(_T("settings_port2"), configKey) == 0) {
-//        settingsPort2en = (BOOL)intValue1;
-//        settingsPort2wr = (BOOL)intValue2;
-//        const char * settingsPort2load = settingsPort2en ? configStringValue : NULL;
-//
-//        LPCTSTR szActPort2Filename = _T("");
-//        BOOL bPort2CfgChange = FALSE;
-//        BOOL bPort2AttChange = FALSE;
-//
-//        // HP48SX/GX port2 change settings detection
-//        if (cCurrentRomType=='S' || cCurrentRomType=='G' || cCurrentRomType==0)
-//        {
-//            if(settingsPort2en && settingsPort2load) {
-//                if(_tcscmp(szPort2Filename, settingsPort2load) != 0) {
-//                    _tcscpy(szPort2Filename, settingsPort2load);
-//                    bPort2CfgChange = TRUE;    // slot2 configuration changed
-//                }
-//                szActPort2Filename = szPort2Filename;
-//
-//                // R/W port
-//                if (*szActPort2Filename != 0 && (BOOL) settingsPort2wr != bPort2Writeable) {
-//                    bPort2AttChange = TRUE;    // slot2 file R/W attribute changed
-//                    bPort2CfgChange = TRUE;    // slot2 configuration changed
-//                }
-//            } else {
-//                if(szPort2Filename[0] != '\0') {
-//                    bPort2CfgChange = TRUE;    // slot2 configuration changed
-//                    szPort2Filename[0] = '\0';
-//                }
-//            }
-//        }
-//
-//        if (bPort2CfgChange)			// slot2 configuration changed
-//        {
-//            UINT nOldState = SwitchToState(SM_INVALID);
-//
-//            UnmapPort2();				// unmap port2
-//
-//            if (cCurrentRomType)		// ROM defined
-//            {
-//                MapPort2(szActPort2Filename);
-//
-//                // port2 changed and card detection enabled
-//                if (   (bPort2AttChange || Chipset.wPort2Crc != wPort2Crc)
-//                       && (Chipset.IORam[CARDCTL] & ECDT) != 0 && (Chipset.IORam[TIMER2_CTRL] & RUN) != 0
-//                        )
-//                {
-//                    Chipset.HST |= MP;		// set Module Pulled
-//                    IOBit(SRQ2,NINT,FALSE);	// set NINT to low
-//                    Chipset.SoftInt = TRUE;	// set interrupt
-//                    bInterrupt = TRUE;
-//                }
-//                // save fingerprint of port2
-//                Chipset.wPort2Crc = wPort2Crc;
-//            }
-//            SwitchToState(nOldState);
-//        }
     }
 
     if(configKey)
