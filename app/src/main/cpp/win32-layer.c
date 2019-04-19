@@ -1791,17 +1791,17 @@ HBITMAP CreateBitmap( int nWidth, int nHeight, UINT nPlanes, UINT nBitCount, CON
 
     BITMAPINFO * newBitmapInfo = malloc(sizeof(BITMAPINFO));
     memset(newBitmapInfo, 0, sizeof(BITMAPINFO));
-    newBitmapInfo->bmiHeader.biBitCount = 8; //TODO should be nBitCount
-    newBitmapInfo->bmiHeader.biClrUsed = 2;
+    newBitmapInfo->bmiHeader.biBitCount = 32; //TODO should be nBitCount
+    newBitmapInfo->bmiHeader.biClrUsed = 0;
     newBitmapInfo->bmiHeader.biWidth = nWidth;
-    newBitmapInfo->bmiHeader.biHeight = nHeight;
-    newBitmapInfo->bmiHeader.biPlanes = nPlanes;
+    newBitmapInfo->bmiHeader.biHeight = -nHeight;
+    newBitmapInfo->bmiHeader.biPlanes = (WORD) nPlanes;
     newHBITMAP->bitmapInfo = newBitmapInfo;
     newHBITMAP->bitmapInfoHeader = (BITMAPINFOHEADER *)newBitmapInfo;
 
     size_t stride = (size_t)(4 * ((newBitmapInfo->bmiHeader.biWidth * newBitmapInfo->bmiHeader.biBitCount + 31) / 32));
-    size_t size = newBitmapInfo->bmiHeader.biHeight * stride;
-    newBitmapInfo->bmiHeader.biSizeImage = size;
+    size_t size = abs(newBitmapInfo->bmiHeader.biHeight) * stride;
+    newBitmapInfo->bmiHeader.biSizeImage = (DWORD) size;
     VOID * bitmapBits = malloc(size);
     memset(bitmapBits, 0, size);
     newHBITMAP->bitmapBits = bitmapBits;
@@ -1822,7 +1822,7 @@ HBITMAP CreateDIBitmap( HDC hdc, CONST BITMAPINFOHEADER *pbmih, DWORD flInit, CO
     size_t stride = (size_t)(4 * ((newBitmapInfo->bmiHeader.biWidth * newBitmapInfo->bmiHeader.biBitCount + 31) / 32));
     size_t size = newBitmapInfo->bmiHeader.biSizeImage ?
                     newBitmapInfo->bmiHeader.biSizeImage :
-                    newBitmapInfo->bmiHeader.biHeight * stride;
+                  abs(newBitmapInfo->bmiHeader.biHeight) * stride;
     VOID * bitmapBits = malloc(size);
     memcpy(bitmapBits, pjBits, size);
     newHBITMAP->bitmapBits = bitmapBits;
@@ -1869,7 +1869,7 @@ HBITMAP CreateCompatibleBitmap( HDC hdc, int cx, int cy) {
     newBitmapInfo->bmiHeader.biBitCount = 32;
 
     size_t stride = (size_t)(4 * ((newBitmapInfo->bmiHeader.biWidth * newBitmapInfo->bmiHeader.biBitCount + 31) / 32));
-    size_t size = newBitmapInfo->bmiHeader.biHeight * stride;
+    size_t size = abs(newBitmapInfo->bmiHeader.biHeight) * stride;
     newBitmapInfo->bmiHeader.biSizeImage = (DWORD) size;
     newHBITMAP->bitmapBits = malloc(size);
     memset((void *) newHBITMAP->bitmapBits, 0, size);
@@ -1881,6 +1881,97 @@ int GetDIBits(HDC hdc, HBITMAP hbm, UINT start, UINT cLines, LPVOID lpvBits, LPB
 }
 COLORREF GetPixel(HDC hdc, int x ,int y) {
     //TODO
+
+//    HBITMAP hBitmapSource = hdc->selectedBitmap;
+//    void * pixelsSource = (void *) hBitmapSource->bitmapBits;
+//
+//    BOOL reverseHeight = hBitmapSource->bitmapInfoHeader->biHeight < 0;
+//
+//    int sourceWidth = hBitmapSource->bitmapInfoHeader->biWidth;
+//    int sourceHeight = abs(hBitmapSource->bitmapInfoHeader->biHeight); // Can be < 0
+//
+//    int sourceBitCount = hBitmapSource->bitmapInfoHeader->biBitCount;
+//    int sourceBytes = sourceBitCount >> 3;
+//    int sourceStride = 4 * ((sourceWidth * hBitmapSource->bitmapInfoHeader->biBitCount + 31) / 32);
+//
+//    jint ret;
+//
+//    x -= hdc->windowOrigineX;
+//    y -= hdc->windowOrigineY;
+//
+//    HPALETTE palette = hdc->realizedPalette;
+//    if(!palette)
+//        palette = hdc->selectedPalette;
+//    PALETTEENTRY * palPalEntry = palette && palette->paletteLog && palette->paletteLog->palPalEntry ?
+//                                 palette->paletteLog->palPalEntry : NULL;
+//    if(!palPalEntry && sourceBitCount <= 8 && hBitmapSource->bitmapInfoHeader->biClrUsed > 0) {
+//        palPalEntry = (PALETTEENTRY *)hBitmapSource->bitmapInfo->bmiColors;
+//    }
+//    COLORREF brushColor = 0xFF000000; // 0xAABBGGRR
+//    if(hdc->selectedBrushColor) {
+//        brushColor = hdc->selectedBrushColor->brushColor;
+//    }
+//
+//    BYTE * sourcePixel = pixelsSource + sourceStride * y + 4 * x;
+//
+//    // -> ARGB_8888
+//    switch (sourceBitCount) {
+//        case 4: {
+//            BYTE colorIndex = (parity & 0x1 ? sourcePixel[0] & (BYTE)0x0F : sourcePixel[0] >> 4);
+//            //BYTE colorIndex = (parity & 0x1 ? sourcePixel[0] >> 4 : sourcePixel[0] & (BYTE)0x0F);
+//            if (palPalEntry) {
+//                destinationPixel[0] = palPalEntry[colorIndex].peBlue;
+//                destinationPixel[1] = palPalEntry[colorIndex].peGreen;
+//                destinationPixel[2] = palPalEntry[colorIndex].peRed;
+//                destinationPixel[3] = 255;
+//            } else {
+//                destinationPixel[0] = colorIndex;
+//                destinationPixel[1] = colorIndex;
+//                destinationPixel[2] = colorIndex;
+//                destinationPixel[3] = 255;
+//            }
+//            break;
+//        }
+//        case 8: {
+//            BYTE colorIndex = sourcePixel[0];
+//            if (palPalEntry) {
+//                destinationPixel[0] = palPalEntry[colorIndex].peBlue;
+//                destinationPixel[1] = palPalEntry[colorIndex].peGreen;
+//                destinationPixel[2] = palPalEntry[colorIndex].peRed;
+//                destinationPixel[3] = 255;
+//            } else {
+//                destinationPixel[0] = sourcePixel[0];
+//                destinationPixel[1] = sourcePixel[0];
+//                destinationPixel[2] = sourcePixel[0];
+//                destinationPixel[3] = 255;
+//            }
+//            break;
+//        }
+//        case 24:
+//            destinationPixel[0] = sourcePixel[2];
+//            destinationPixel[1] = sourcePixel[1];
+//            destinationPixel[2] = sourcePixel[0];
+//            destinationPixel[3] = 255;
+//            break;
+//        case 32:
+//            if(rop == ROP_PDSPxax) { // P ^ (D & (S ^ P))
+//                // https://docs.microsoft.com/en-us/windows/desktop/gdi/ternary-raster-operations
+//                // http://www.qnx.com/developers/docs/6.4.1/gf/dev_guide/api/gf_context_set_rop.html
+//                UINT source = *((UINT *)sourcePixel); // 0xAABBGGRR
+//                UINT destination = *((UINT *)destinationPixel); // 0xAABBGGRR
+//                *((UINT *)destinationPixel) = (brushColor ^ (destination & (source ^ brushColor))) | 0xFF000000;
+//            } else if(rop == ROP_PSDPxax) { // P ^ (S & (D ^ P))
+//                UINT source = *((UINT *)sourcePixel);
+//                UINT destination = *((UINT *)destinationPixel);
+//                *((UINT *)destinationPixel) = brushColor ^ (source & (destination ^ brushColor)) | 0xFF000000;
+//            } else
+//                memcpy(destinationPixel, sourcePixel, (size_t) sourceBytes);
+//            break;
+//        default:
+//            break;
+//    }
+
+
     return 0;
 }
 BOOL SetRect(LPRECT lprc, int xLeft, int yTop, int xRight, int yBottom) {

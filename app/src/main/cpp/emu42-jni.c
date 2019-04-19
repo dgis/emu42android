@@ -942,8 +942,7 @@ JNIEXPORT void JNICALL Java_org_emulator_forty_two_NativeLib_setConfiguration(JN
 
     if(_tcscmp(_T("settings_realspeed"), configKey) == 0) {
         bRealSpeed = (BOOL) intValue1;
-        if(isDynamic)
-            SetSpeed(bRealSpeed);			// set speed
+        SetSpeed(bRealSpeed);			// set speed
     } else if(_tcscmp(_T("settings_sound_volume"), configKey) == 0) {
         dwWaveVol = (DWORD)intValue1;
         if(soundEnabled && intValue1 == 0) {
