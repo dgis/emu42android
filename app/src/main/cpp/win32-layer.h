@@ -696,10 +696,11 @@ struct _HDC {
     HPALETTE selectedPalette;
 	HPALETTE realizedPalette;
 	HBRUSH selectedBrushColor;
-	int windowOrigineX;
-	int windowOrigineY;
+	BOOL isBackgroundColorSet;
+	COLORREF backgroundColor;
+	int windowOriginX;
+	int windowOriginY;
 };
-//typedef HANDLE HDC;
 
 extern HDC CreateCompatibleDC(HDC hdc);
 extern BOOL DeleteDC(HDC hdc);
@@ -949,6 +950,8 @@ extern BOOL GetClientRect(HWND hWnd, LPRECT lpRect);
 
 typedef char *PSZ;
 typedef DWORD   COLORREF;
+#define RGB(r,g,b)          ((COLORREF)(((BYTE)(r)|((WORD)((BYTE)(g))<<8))|(((DWORD)(BYTE)(b))<<16)))
+#define CLR_INVALID     0xFFFFFFFF
 
 extern BOOL MessageBeep(UINT uType);
 

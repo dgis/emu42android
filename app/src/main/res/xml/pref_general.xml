@@ -8,10 +8,6 @@
                 android:title="@string/settings_realspeed_title"
                 android:defaultValue="false" />
             <SwitchPreference
-                android:key="settings_grayscale"
-                android:title="@string/settings_grayscale_title"
-                android:defaultValue="false" />
-            <SwitchPreference
                 android:key="settings_autosave"
                 android:title="@string/settings_autosave_title"
                 android:defaultValue="true" />
@@ -72,55 +68,6 @@
         <!--<PreferenceCategory app:title="Disassembler">
             "HP Mnemonics",IDC_DISASM_HP
             "Class Mnemonics",IDC_DISASM_CLASS
-        </PreferenceCategory>-->
-
-    <!-- Memory -->
-        <PreferenceCategory android:title="@string/settings_category_memory_cards_title">
-            <SwitchPreference
-                android:key="settings_port1en"
-                android:title="@string/settings_port1en_title"
-                android:defaultValue="false"
-                />
-            <SwitchPreference
-                android:key="settings_port1wr"
-                android:title="@string/settings_port1wr_title"
-                android:defaultValue="false"
-                />
-            <SwitchPreference
-                android:key="settings_port2en"
-                android:title="@string/settings_port2en_title"
-                android:defaultValue="false"
-                />
-            <SwitchPreference
-                android:key="settings_port2wr"
-                android:title="@string/settings_port2wr_title"
-                android:defaultValue="false"
-                />
-            <Preference
-                android:key="settings_port2load"
-                android:title="@string/settings_port2load_title"
-                android:summary=""
-                />
-        </PreferenceCategory>
-
-    <!-- Peripheral -->
-        <!--<PreferenceCategory app:title="Sound">-->
-            <!--"Volume",IDC_STATIC,14,21,24,8-->
-            <!--"Slider1",IDC_SOUND_SLIDER,"msctls_trackbar32",-->
-            <!--"Device",IDC_STATIC,13,42,24,8-->
-            <!--COMBOBOX        IDC_SOUND_DEVICE,44,40,193,87,CBS_DROPDOWNLIST |-->
-        <!--</PreferenceCategory>-->
-        <!--<PreferenceCategory app:title="Infrared Printer">
-            "IP Address:",IDC_STATIC
-            "Port:",IDC_STATIC
-            IDC_IR_ADDR
-            IDC_IR_PORT
-        </PreferenceCategory>-->
-        <!--<PreferenceCategory app:title="Serial Ports">
-            "Wire:",IDC_STATIC
-            COMBOBOX        IDC_WIRE
-            "IR:",IDC_STATIC
-            COMBOBOX        IDC_IR
         </PreferenceCategory>-->
 
 </PreferenceScreen>
