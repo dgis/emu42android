@@ -297,11 +297,17 @@ JNIEXPORT void JNICALL Java_org_emulator_forty_two_NativeLib_start(JNIEnv *env, 
 //    _tcscpy(szRomDirectory, "assets/calculators/");
 //    _tcscpy(szPort2Filename, "");
 
-    hWindowDC = CreateCompatibleDC(NULL);
-
     // initialization
     QueryPerformanceFrequency(&lFreq);		// init high resolution counter
     //QueryPerformanceCounter(&lAppStart);
+
+
+
+    hWnd = CreateWindow();
+    //hWindowDC = CreateCompatibleDC(NULL);
+    hWindowDC = GetDC(hWnd);
+
+
 
     szCurrentKml[0] = 0;					// no KML file selected
     SetSpeed(bRealSpeed);					// set speed
@@ -337,7 +343,9 @@ JNIEXPORT void JNICALL Java_org_emulator_forty_two_NativeLib_stop(JNIEnv *env, j
 
     //if (hThread)
     SwitchToState(SM_RETURN);	// exit emulation thread
-  	//ReleaseDC(hWnd, hWindowDC);
+
+    ReleaseDC(hWnd, hWindowDC);
+    DestroyWindow(hWnd);
 	hWindowDC = NULL;						// hWindowDC isn't valid any more
 	hWnd = NULL;
 
@@ -716,90 +724,113 @@ JNIEXPORT void JNICALL Java_org_emulator_forty_two_NativeLib_onViewCopy(JNIEnv *
         LOGE("AndroidBitmap_lockPixels() failed ! error=%d", ret);
     }
 
-//    // DIB bitmap
-//    #define WIDTHBYTES(bits) (((bits) + 31) / 32 * 4)
-//    #define PALVERSION       0x300
-//
-//    BITMAP bm;
-//    LPBITMAPINFOHEADER lpbi;
-//    PLOGPALETTE ppal;
-//    HBITMAP hBmp;
-//    HDC hBmpDC;
-//    HANDLE hClipObj;
-//    WORD wBits;
-//    DWORD dwLen, dwSizeImage;
-//
-//    _ASSERT(nLcdZoom >= 1 && nLcdZoom <= 4);
-//    hBmp = CreateCompatibleBitmap(hLcdDC,131*nLcdZoom*nGdiXZoom,SCREENHEIGHT*nLcdZoom*nGdiYZoom);   // CdB for HP: add apples display stuff
-//    hBmpDC = CreateCompatibleDC(hLcdDC);
-//    hBmp = (HBITMAP) SelectObject(hBmpDC,hBmp);
-//    EnterCriticalSection(&csGDILock); // solving NT GDI problems
-//    {
-//        UINT nLines = MAINSCREENHEIGHT;
-//
-//        // copy header display area
-//        StretchBlt(hBmpDC, 0, 0,
-//                   131*nLcdZoom*nGdiXZoom, Chipset.d0size*nLcdZoom*nGdiYZoom,
-//                   hLcdDC, Chipset.d0offset, 0,
-//                   131, Chipset.d0size, SRCCOPY);
-//        // copy main display area
-//        StretchBlt(hBmpDC, 0, Chipset.d0size*nLcdZoom*nGdiYZoom,
-//                   131*nLcdZoom*nGdiXZoom, nLines*nLcdZoom*nGdiYZoom,
-//                   hLcdDC, Chipset.boffset, Chipset.d0size,
-//                   131, nLines, SRCCOPY);
-//        // copy menu display area
-//        StretchBlt(hBmpDC, 0, (nLines+Chipset.d0size)*nLcdZoom*nGdiYZoom,
-//                   131*nLcdZoom*nGdiXZoom, MENUHEIGHT*nLcdZoom*nGdiYZoom,
-//                   hLcdDC, 0, (nLines+Chipset.d0size),
-//                   131, MENUHEIGHT, SRCCOPY);
-//        GdiFlush();
-//    }
-//    LeaveCriticalSection(&csGDILock);
-//    hBmp = (HBITMAP) SelectObject(hBmpDC,hBmp);
-//
-//    // fill BITMAP structure for size information
-//    GetObject((HANDLE) hBmp, sizeof(bm), &bm);
-//
-//    wBits = bm.bmPlanes * bm.bmBitsPixel;
-//    // make sure bits per pixel is valid
-//    if (wBits <= 1)
-//        wBits = 1;
-//    else if (wBits <= 4)
-//        wBits = 4;
-//    else if (wBits <= 8)
-//        wBits = 8;
-//    else // if greater than 8-bit, force to 24-bit
-//        wBits = 24;
-//
-//    dwSizeImage = WIDTHBYTES((DWORD)bm.bmWidth * wBits) * bm.bmHeight;
-//
-//    // calculate memory size to store CF_DIB data
-//    dwLen = sizeof(BITMAPINFOHEADER) + dwSizeImage;
-//    if (wBits != 24)				// a 24 bitcount DIB has no color table
-//    {
-//        // add size for color table
-//        dwLen += (DWORD) (1 << wBits) * sizeof(RGBQUAD);
-//    }
-//
-//
-//
-//
-//
-//    size_t strideSource = (size_t)(4 * ((hBmp->bitmapInfoHeader->biWidth * hBmp->bitmapInfoHeader->biBitCount + 31) / 32));
-//    size_t strideDestination = bitmapScreenInfo.stride;
-//    VOID * bitmapBitsSource = (VOID *)hBmp->bitmapBits;
-//    VOID * bitmapBitsDestination = pixelsDestination;
-//    for(int y = 0; y < hBmp->bitmapInfoHeader->biHeight; y++) {
-//        memcpy(bitmapBitsDestination, bitmapBitsSource, strideSource);
-//        bitmapBitsSource += strideSource;
-//        bitmapBitsDestination += strideDestination;
-//    }
-//
-//
-//    DeleteDC(hBmpDC);
-//    DeleteObject(hBmp);
-//    #undef WIDTHBYTES
-//    #undef PALVERSION
+    // DIB bitmap
+    #define WIDTHBYTES(bits) (((bits) + 31) / 32 * 4)
+    #define PALVERSION       0x300
+
+    HDC hSrcDC;
+    BITMAP bm;
+    LPBITMAPINFOHEADER lpbi;
+    PLOGPALETTE ppal;
+    HBITMAP hBmp;
+    HDC hBmpDC;
+    HANDLE hClipObj;
+    WORD wBits;
+    DWORD dwLen, dwSizeImage;
+    INT nxO, nyO, nxSize, nySize;
+
+    GetSizeLcdBitmap(&nxSize,&nySize); // get LCD size
+
+    nxO = nyO = 0;					// origin in HDC
+    hSrcDC = hLcdDC;				// use display HDC as source
+
+    if (nCurrentHardware == HDW_SACA)
+    {
+        TCHAR cBuffer[32];			// temp. buffer for text
+        MSG msg;
+
+        // Text
+        GetLcdNumberSaca(cBuffer);	// get display string
+        dwLen = (lstrlen(cBuffer) + 1) * sizeof(cBuffer[0]);
+        // memory allocation for clipboard data
+        if ((hClipObj = GlobalAlloc(GMEM_MOVEABLE, dwLen)) != NULL)
+        {
+            LPTSTR szText = (LPTSTR) GlobalLock(hClipObj);
+            lstrcpy(szText, cBuffer);
+#if defined _UNICODE
+            SetClipboardData(CF_UNICODETEXT, hClipObj);
+#else
+            SetClipboardData(CF_TEXT, hClipObj);
+#endif
+            GlobalUnlock(hClipObj);
+        }
+
+        // pump WM_PAINT message for closing menu before getting image
+//        while (PeekMessage (&msg, hWnd, WM_PAINT, WM_PAINT, PM_REMOVE))
+//            DispatchMessage (&msg);
+
+        // calculate bitmap origins from hWindowDC
+        nxO = nLcdX; if (nxO > 1) { nxO -= 2; nxSize += 4; };
+        nyO = nLcdY; if (nyO > 1) { nyO -= 2; nySize += 4; };
+
+        hSrcDC = hWindowDC;				// use output HDC as source
+    }
+
+    hBmp = CreateCompatibleBitmap(hSrcDC,nxSize,nySize);
+    hBmpDC = CreateCompatibleDC(hSrcDC);
+    hBmp = (HBITMAP) SelectObject(hBmpDC,hBmp);
+    EnterCriticalSection(&csGDILock); // solving NT GDI problems
+    {
+        // copy display area
+        BitBlt(hBmpDC,0,0,nxSize,nySize,hSrcDC,nxO,nyO,SRCCOPY);
+        GdiFlush();
+    }
+    LeaveCriticalSection(&csGDILock);
+    hBmp = (HBITMAP) SelectObject(hBmpDC,hBmp);
+
+    // fill BITMAP structure for size information
+    GetObject((HANDLE) hBmp, sizeof(bm), &bm);
+
+    wBits = bm.bmPlanes * bm.bmBitsPixel;
+    // make sure bits per pixel is valid
+    if (wBits <= 1)
+        wBits = 1;
+    else if (wBits <= 4)
+        wBits = 4;
+    else if (wBits <= 8)
+        wBits = 8;
+    else // if greater than 8-bit, force to 24-bit
+        wBits = 24;
+
+    dwSizeImage = WIDTHBYTES((DWORD)bm.bmWidth * wBits) * bm.bmHeight;
+
+    // calculate memory size to store CF_DIB data
+    dwLen = sizeof(BITMAPINFOHEADER) + dwSizeImage;
+    if (wBits != 24)				// a 24 bitcount DIB has no color table
+    {
+        // add size for color table
+        dwLen += (DWORD) (1 << wBits) * sizeof(RGBQUAD);
+    }
+
+
+
+
+
+    size_t strideSource = (size_t)(4 * ((hBmp->bitmapInfoHeader->biWidth * hBmp->bitmapInfoHeader->biBitCount + 31) / 32));
+    size_t strideDestination = bitmapScreenInfo.stride;
+    VOID * bitmapBitsSource = (VOID *)hBmp->bitmapBits;
+    VOID * bitmapBitsDestination = pixelsDestination;
+    for(int y = 0; y < hBmp->bitmapInfoHeader->biHeight; y++) {
+        memcpy(bitmapBitsDestination, bitmapBitsSource, strideSource);
+        bitmapBitsSource += strideSource;
+        bitmapBitsDestination += strideDestination;
+    }
+
+
+    DeleteDC(hBmpDC);
+    DeleteObject(hBmp);
+    #undef WIDTHBYTES
+    #undef PALVERSION
 
 
     AndroidBitmap_unlockPixels(env, bitmapScreen);
@@ -969,8 +1000,12 @@ JNIEXPORT jint JNICALL Java_org_emulator_forty_two_NativeLib_getState(JNIEnv *en
 }
 
 JNIEXPORT jint JNICALL Java_org_emulator_forty_two_NativeLib_getScreenWidth(JNIEnv *env, jobject thisz) {
-    return 131*nLcdZoom; //*nGdiXZoom;
+    INT nxSize,nySize;
+    GetSizeLcdBitmap(&nxSize,&nySize);	// get LCD size
+    return nxSize; //*nLcdZoom;
 }
 JNIEXPORT jint JNICALL Java_org_emulator_forty_two_NativeLib_getScreenHeight(JNIEnv *env, jobject thisz) {
-    return 10; //TODO SCREENHEIGHT*nLcdZoom; //*nGdiYZoom;
+    INT nxSize,nySize;
+    GetSizeLcdBitmap(&nxSize,&nySize);	// get LCD size
+    return nySize; //*nLcdZoom;
 }

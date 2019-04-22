@@ -115,9 +115,6 @@ static LRESULT OnPaint(HWND hWindow)
 			BitBlt(hPaintDC, nLcdX - nBackgroundX, nLcdY - nBackgroundY, nxSize, nySize,
 				   hLcdDC, 0, 0, SRCCOPY);
 
-
-            SetWindowOrgEx(hPaintDC, nBackgroundX, nBackgroundY, NULL);
-
             GdiFlush();
 		}
 		LeaveCriticalSection(&csGDILock);

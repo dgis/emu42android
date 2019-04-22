@@ -52,6 +52,11 @@ void win32Init() {
     contentSchemeLength = _tcslen(contentScheme);
 }
 
+int abs (int i) {
+    return i < 0 ? -i : i;
+}
+
+
 VOID OutputDebugString(LPCSTR lpOutputString) {
     LOGD("%s", lpOutputString);
 }
@@ -1287,9 +1292,18 @@ BOOL PostThreadMessage(DWORD idThread, UINT Msg, WPARAM wParam, LPARAM lParam) {
 #endif
 }
 
+HWND CreateWindow() {
+    HANDLE handle = malloc(sizeof(struct _HANDLE));
+    memset(handle, 0, sizeof(struct _HANDLE));
+    handle->handleType = HANDLE_TYPE_WINDOW;
+    handle->windowDC = CreateCompatibleDC(NULL);
+    return handle;
+}
+
 BOOL DestroyWindow(HWND hWnd) {
-    //TODO
-    return 0;
+    memset(hWnd, 0, sizeof(struct _HANDLE));
+    free(hWnd);
+    return TRUE;
 }
 
 BOOL GetWindowPlacement(HWND hWnd, WINDOWPLACEMENT *lpwndpl) {
@@ -1302,7 +1316,8 @@ BOOL GetWindowPlacement(HWND hWnd, WINDOWPLACEMENT *lpwndpl) {
 BOOL SetWindowPlacement(HWND hWnd, CONST WINDOWPLACEMENT *lpwndpl) { return 0; }
 extern void draw();
 BOOL InvalidateRect(HWND hWnd, CONST RECT *lpRect, BOOL bErase) {
-    //draw(); //TODO Need a true WM_PAINT event!
+    // Update when switch the screen off
+    draw(); //TODO Need a true WM_PAINT event!
     return 0;
 }
 BOOL AdjustWindowRect(LPRECT lpRect, DWORD dwStyle, BOOL bMenu) { return 0; }
@@ -1475,6 +1490,14 @@ HDC CreateCompatibleDC(HDC hdc) {
     handle->hdcCompatible = hdc;
     return handle;
 }
+HDC GetDC(HWND hWnd) {
+    return hWnd->windowDC;
+}
+int ReleaseDC(HWND hWnd, HDC hDC) {
+    hWnd->windowDC = NULL; //?
+    return TRUE;
+}
+
 BOOL DeleteDC(HDC hdc) {
     memset(hdc, 0, sizeof(struct _HDC));
     free(hdc);
@@ -1624,7 +1647,7 @@ BOOL StretchBlt(HDC hdcDest, int xDest, int yDest, int wDest, int hDest, HDC hdc
         int destinationWidth = 0;
         int destinationHeight = 0;
 
-        int sourceBitCount = hBitmapSource->bitmapInfoHeader->biBitCount;
+        UINT sourceBitCount = hBitmapSource->bitmapInfoHeader->biBitCount;
         int sourceStride = 4 * ((sourceWidth * hBitmapSource->bitmapInfoHeader->biBitCount + 31) / 32);
         int destinationStride = 0;
 
@@ -1667,6 +1690,7 @@ BOOL StretchBlt(HDC hdcDest, int xDest, int yDest, int wDest, int hDest, HDC hdc
         yDest -= hdcDest->windowOriginY;
 
         //LOGD("StretchBlt(%p, x:%d, y:%d, w:%d, h:%d, %08x, x:%d, y:%d, w:%d, h:%d) -> sourceBitCount: %d", hdcDest->hdcCompatible, xDest, yDest, wDest, hDest, hdcSrc, xSrc, ySrc, wSrc, hSrc, sourceBitCount);
+
         HPALETTE palette = hdcSrc->realizedPalette;
         if(!palette)
             palette = hdcSrc->selectedPalette;
@@ -1686,21 +1710,37 @@ BOOL StretchBlt(HDC hdcDest, int xDest, int yDest, int wDest, int hDest, HDC hdc
 
         int dst_maxx = xDest + wDest;
         int dst_maxy = yDest + hDest;
+
+        if(xDest < 0) {
+            wDest += xDest;
+            xDest = 0;
+        }
+        if(yDest < 0) {
+            hDest += yDest;
+            yDest = 0;
+        }
+        if(dst_maxx > destinationWidth)
+            dst_maxx = destinationWidth;
+        if(dst_maxy > destinationHeight)
+            dst_maxy = destinationHeight;
+
         for (int y = yDest; y < dst_maxy; y++) {
             int src_cury = ySrc + (y - yDest) * hSrc / hDest;
             if(!reverseHeight)
                 src_cury = sourceHeight - 1 - src_cury;
+            if (src_cury < 0 || src_cury >= sourceHeight)
+                continue;
             BYTE parity = (BYTE) xSrc;
             for (int x = xDest; x < dst_maxx; x++, parity++) {
                 int src_curx = xSrc + (x - xDest) * wSrc / wDest;
-                if (src_curx < 0 || src_cury < 0 || src_curx >= sourceWidth || src_cury >= sourceHeight)
+                if (src_curx < 0 || src_curx >= sourceWidth)
                     continue;
 
                 BYTE * sourcePixelBase = pixelsSource + sourceStride * src_cury;
                 BYTE * destinationPixelBase = pixelsDestination + destinationStride * y;
 
                 COLORREF sourceColor = 0xFF000000;
-                BYTE * sourceColorPointer = &sourceColor;
+                BYTE * sourceColorPointer = (BYTE *) &sourceColor;
 
                 switch (sourceBitCount) {
                     case 1: {
@@ -1709,24 +1749,24 @@ BOOL StretchBlt(HDC hdcDest, int xDest, int yDest, int wDest, int hDest, HDC hdc
                         // the color black in the source turns into the destination’s text color,
                         // and the color white in the source turns into the destination’s background
                         // color.
-                        BYTE * sourcePixel = sourcePixelBase + (src_curx >> 3);
-                        UINT bitNumber = src_curx % 8;
-                        if(*sourcePixel & (1 << bitNumber)) {
-                            sourceColorPointer[0] = 255;
-                            sourceColorPointer[1] = 255;
-                            sourceColorPointer[2] = 255;
-                        } else {
+                        BYTE * sourcePixel = sourcePixelBase + ((UINT)src_curx >> (UINT)3);
+                        UINT bitNumber = (UINT) (src_curx % 8);
+                        if(*sourcePixel & ((UINT)1 << bitNumber)) {
                             sourceColorPointer[0] = 0;
                             sourceColorPointer[1] = 0;
                             sourceColorPointer[2] = 0;
+                        } else {
+                            sourceColorPointer[0] = 255;
+                            sourceColorPointer[1] = 255;
+                            sourceColorPointer[2] = 255;
                         }
                         sourceColorPointer[3] = 255;
                         break;
                     }
                     case 4: {
-                        int currentXBytes = ((sourceBitCount >> 2) * src_curx) >> 1;
+                        int currentXBytes = ((sourceBitCount >> (UINT)2) * src_curx) >> (UINT)1;
                         BYTE * sourcePixel = sourcePixelBase + currentXBytes;
-                        BYTE colorIndex = (parity & 0x1 ? sourcePixel[0] & (BYTE)0x0F : sourcePixel[0] >> 4);
+                        BYTE colorIndex = (parity & (BYTE)0x1 ? sourcePixel[0] & (BYTE)0x0F : sourcePixel[0] >> (UINT)4);
                         if (palPalEntry) {
                             sourceColorPointer[0] = palPalEntry[colorIndex].peBlue;
                             sourceColorPointer[1] = palPalEntry[colorIndex].peGreen;
@@ -1741,8 +1781,7 @@ BOOL StretchBlt(HDC hdcDest, int xDest, int yDest, int wDest, int hDest, HDC hdc
                         break;
                     }
                     case 8: {
-                        int currentXBytes = ((sourceBitCount >> 2) * src_curx) >> 1;
-                        BYTE * sourcePixel = sourcePixelBase + currentXBytes;
+                        BYTE * sourcePixel = sourcePixelBase + src_curx;
                         BYTE colorIndex = sourcePixel[0];
                         if (palPalEntry) {
                             sourceColorPointer[0] = palPalEntry[colorIndex].peBlue;
@@ -1758,8 +1797,7 @@ BOOL StretchBlt(HDC hdcDest, int xDest, int yDest, int wDest, int hDest, HDC hdc
                         break;
                     }
                     case 24: {
-                        int currentXBytes = ((sourceBitCount >> 2) * src_curx) >> 1;
-                        BYTE * sourcePixel = sourcePixelBase + currentXBytes;
+                        BYTE * sourcePixel = sourcePixelBase + 3 * src_curx;
                         sourceColorPointer[0] = sourcePixel[2];
                         sourceColorPointer[1] = sourcePixel[1];
                         sourceColorPointer[2] = sourcePixel[0];
@@ -1767,24 +1805,8 @@ BOOL StretchBlt(HDC hdcDest, int xDest, int yDest, int wDest, int hDest, HDC hdc
                         break;
                     }
                     case 32: {
-                        int currentXBytes = ((sourceBitCount >> 2) * src_curx) >> 1;
-                        BYTE *sourcePixel = sourcePixelBase + currentXBytes;
-                        // https://docs.microsoft.com/en-us/windows/desktop/gdi/ternary-raster-operations
-                        // http://www.qnx.com/developers/docs/6.4.1/gf/dev_guide/api/gf_context_set_rop.html
-                        if (rop == ROP_PDSPxax) { // P ^ (D & (S ^ P))
-                            UINT source = *((UINT *) sourcePixel); // 0xAABBGGRR
-                            BYTE *destinationPixel = destinationPixelBase + 4 * x;
-                            UINT destination = *((UINT *) destinationPixel); //TODO Assume destinationPixel is 32bit 0xAABBGGRR
-                            sourceColor = (brushColor ^ (destination & (source ^ brushColor))) |
-                                          0xFF000000;
-                        } else if (rop == ROP_PSDPxax) { // P ^ (S & (D ^ P))
-                            UINT source = *((UINT *) sourcePixel);
-                            BYTE *destinationPixel = destinationPixelBase + 4 * x;
-                            UINT destination = *((UINT *) destinationPixel); //TODO Assume destinationPixel is 32bit 0xAABBGGRR
-                            sourceColor =
-                                    brushColor ^ (source & (destination ^ brushColor)) | 0xFF000000;
-                        } else
-                            memcpy(sourceColorPointer, sourcePixel, 4);
+                        BYTE *sourcePixel = sourcePixelBase + 4 * src_curx;
+                        memcpy(sourceColorPointer, sourcePixel, 4);
                         break;
                     }
                     default:
@@ -1825,7 +1847,16 @@ BOOL StretchBlt(HDC hdcDest, int xDest, int yDest, int wDest, int hDest, HDC hdc
                     }
                     case 32: {
                         BYTE * destinationPixel = destinationPixelBase + 4 * x;
-                        *((UINT *)destinationPixel) = sourceColor;
+                        // https://docs.microsoft.com/en-us/windows/desktop/gdi/ternary-raster-operations
+                        // http://www.qnx.com/developers/docs/6.4.1/gf/dev_guide/api/gf_context_set_rop.html
+                        if (rop == ROP_PDSPxax) { // P ^ (D & (S ^ P))
+                            UINT destination = *((UINT *) destinationPixel);
+                            *((UINT *)destinationPixel) = (brushColor ^ (destination & (sourceColor ^ brushColor))) | 0xFF000000;
+                        } else if (rop == ROP_PSDPxax) { // P ^ (S & (D ^ P))
+                            UINT destination = *((UINT *) destinationPixel);
+                            *((UINT *)destinationPixel) = (brushColor ^ (sourceColor & (destination ^ brushColor))) | 0xFF000000;
+                        } else
+                            *((UINT *)destinationPixel) = sourceColor;
                         break;
                     }
                     default:
@@ -2056,14 +2087,16 @@ HDC BeginPaint(HWND hWnd, LPPAINTSTRUCT lpPaint) {
     if(lpPaint) {
         memset(lpPaint, 0, sizeof(PAINTSTRUCT));
         lpPaint->fErase = TRUE;
-        lpPaint->hdc = hWindowDC;
+        lpPaint->hdc = CreateCompatibleDC(NULL); //hWnd->windowDC);
         lpPaint->rcPaint.right = (short) nBackgroundW;
         lpPaint->rcPaint.bottom = (short) nBackgroundH;
+        return lpPaint->hdc;
     }
-    return hWindowDC;
+    return NULL;
 }
 BOOL EndPaint(HWND hWnd, CONST PAINTSTRUCT *lpPaint) {
-    mainViewUpdateCallback();
+    //mainViewUpdateCallback(); //TODO May be not needed
+    DeleteDC(lpPaint->hdc);
     return 0;
 }
 

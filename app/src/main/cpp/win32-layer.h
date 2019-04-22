@@ -59,6 +59,11 @@
 
 #define __forceinline __attribute__((always_inline))
 
+
+#undef abs
+extern int abs(int i);
+
+
 typedef int BOOL;
 typedef unsigned long ULONG;
 typedef short SHORT;
@@ -362,6 +367,132 @@ enum {
 #define FillMemory(p,n,v)   memset(p,v,n*sizeof(*(p)))
 #define CopyMemory(d,src,s) memcpy(d,src,s)
 
+
+// GDI
+typedef struct __attribute__((packed)) tagBITMAP
+{
+	LONG        bmType;
+	LONG        bmWidth;
+	LONG        bmHeight;
+	LONG        bmWidthBytes;
+	WORD        bmPlanes;
+	WORD        bmBitsPixel;
+	LPVOID      bmBits;
+} BITMAP, *PBITMAP, NEAR *NPBITMAP, FAR *LPBITMAP;
+/* constants for the biCompression field */
+#define BI_RGB        0L
+#define BI_RLE8       1L
+#define BI_RLE4       2L
+#define BI_BITFIELDS  3L
+#define BI_JPEG       4L
+#define BI_PNG        5L
+typedef struct __attribute__((packed)) tagBITMAPFILEHEADER {
+	WORD    bfType;
+	DWORD   bfSize;
+	WORD    bfReserved1;
+	WORD    bfReserved2;
+	DWORD   bfOffBits;
+} BITMAPFILEHEADER, FAR *LPBITMAPFILEHEADER, *PBITMAPFILEHEADER;
+typedef struct __attribute__((packed)) tagBITMAPINFOHEADER{
+	DWORD      biSize;
+	LONG       biWidth;
+	LONG       biHeight;
+	WORD       biPlanes;
+	WORD       biBitCount;
+	DWORD      biCompression;
+	DWORD      biSizeImage;
+	LONG       biXPelsPerMeter;
+	LONG       biYPelsPerMeter;
+	DWORD      biClrUsed;
+	DWORD      biClrImportant;
+} BITMAPINFOHEADER, FAR *LPBITMAPINFOHEADER, *PBITMAPINFOHEADER;
+typedef struct __attribute__((packed)) tagBITMAPINFO {
+	BITMAPINFOHEADER    bmiHeader;
+	RGBQUAD             bmiColors[1];
+} BITMAPINFO, FAR *LPBITMAPINFO, *PBITMAPINFO;
+typedef struct __attribute__((packed)) tagPALETTEENTRY {
+	BYTE        peRed;
+	BYTE        peGreen;
+	BYTE        peBlue;
+	BYTE        peFlags;
+} PALETTEENTRY, *PPALETTEENTRY, FAR *LPPALETTEENTRY;
+typedef struct __attribute__((packed)) tagLOGPALETTE {
+	WORD        palVersion;
+	WORD        palNumEntries;
+	PALETTEENTRY        palPalEntry[1];
+} LOGPALETTE, *PLOGPALETTE, NEAR *NPLOGPALETTE, FAR *LPLOGPALETTE;
+typedef DWORD   COLORREF;
+enum HGDIOBJ_TYPE {
+	HGDIOBJ_TYPE_INVALID = 0,
+	HGDIOBJ_TYPE_PEN,
+	HGDIOBJ_TYPE_BRUSH,
+	HGDIOBJ_TYPE_FONT,
+	HGDIOBJ_TYPE_BITMAP,
+	HGDIOBJ_TYPE_REGION,
+	HGDIOBJ_TYPE_PALETTE
+};
+typedef struct {
+	enum HGDIOBJ_TYPE handleType;
+
+	// HGDIOBJ_TYPE_PALETTE
+	PLOGPALETTE paletteLog;
+
+	// HGDIOBJ_TYPE_BITMAP
+	CONST BITMAPINFO *bitmapInfo;
+	/*CONST*/ BITMAPINFOHEADER * bitmapInfoHeader;
+	CONST VOID *bitmapBits;
+
+	// HGDIOBJ_TYPE_BRUSH
+	COLORREF brushColor;
+} _HGDIOBJ;
+typedef _HGDIOBJ * HGDIOBJ;
+//typedef void * HGDIOBJ;
+typedef HGDIOBJ HPALETTE;
+typedef HGDIOBJ HBITMAP;
+typedef HGDIOBJ HFONT;
+typedef HGDIOBJ HBRUSH;
+
+extern int GetObject(HGDIOBJ h, int c, LPVOID pv);
+extern BOOL DeleteObject(HGDIOBJ ho);
+
+#define OBJ_BITMAP          7
+
+#define WHITE_PEN           6
+#define BLACK_PEN           7
+extern HGDIOBJ GetStockObject(int i);
+extern HPALETTE CreatePalette(CONST LOGPALETTE * plpal);
+
+
+// DC
+
+enum DC_TYPE {
+	DC_TYPE_INVALID = 0,
+	DC_TYPE_MEMORY,
+	DC_TYPE_DISPLAY
+};
+enum HDC_TYPE {
+	HDC_TYPE_INVALID = 0,
+	HDC_TYPE_DC
+};
+struct _HDC;
+typedef struct _HDC * HDC;
+struct _HDC {
+	enum HDC_TYPE handleType;
+	HDC hdcCompatible;
+	enum DC_TYPE dcType;
+	HBITMAP selectedBitmap;
+	HPALETTE selectedPalette;
+	HPALETTE realizedPalette;
+	HBRUSH selectedBrushColor;
+	BOOL isBackgroundColorSet;
+	COLORREF backgroundColor;
+	int windowOriginX;
+	int windowOriginY;
+};
+
+
+// Handle
+
 struct _HANDLE;
 typedef struct _HANDLE * HWND;
 
@@ -392,7 +523,8 @@ enum HANDLE_TYPE {
 	HANDLE_TYPE_FILE_MAPPING_CONTENT,
 	HANDLE_TYPE_FILE_MAPPING_ASSET,
     HANDLE_TYPE_EVENT,
-    HANDLE_TYPE_THREAD,
+	HANDLE_TYPE_THREAD,
+	HANDLE_TYPE_WINDOW,
 };
 struct _HANDLE {
     enum HANDLE_TYPE handleType;
@@ -418,6 +550,8 @@ struct _HANDLE {
     pthread_mutex_t eventMutex;
     BOOL eventAutoReset;
     BOOL eventState;
+
+	HDC windowDC;
 };
 typedef struct _HANDLE * HANDLE;
 
@@ -581,128 +715,11 @@ extern void EnterCriticalSection(CRITICAL_SECTION *);
 extern void LeaveCriticalSection(CRITICAL_SECTION *);
 extern void DeleteCriticalSection(CRITICAL_SECTION * lpCriticalSection);
 
-// GDI
-typedef struct __attribute__((packed)) tagBITMAP
-{
-    LONG        bmType;
-    LONG        bmWidth;
-    LONG        bmHeight;
-    LONG        bmWidthBytes;
-    WORD        bmPlanes;
-    WORD        bmBitsPixel;
-    LPVOID      bmBits;
-} BITMAP, *PBITMAP, NEAR *NPBITMAP, FAR *LPBITMAP;
-/* constants for the biCompression field */
-#define BI_RGB        0L
-#define BI_RLE8       1L
-#define BI_RLE4       2L
-#define BI_BITFIELDS  3L
-#define BI_JPEG       4L
-#define BI_PNG        5L
-typedef struct __attribute__((packed)) tagBITMAPFILEHEADER {
-    WORD    bfType;
-    DWORD   bfSize;
-    WORD    bfReserved1;
-    WORD    bfReserved2;
-    DWORD   bfOffBits;
-} BITMAPFILEHEADER, FAR *LPBITMAPFILEHEADER, *PBITMAPFILEHEADER;
-typedef struct __attribute__((packed)) tagBITMAPINFOHEADER{
-    DWORD      biSize;
-    LONG       biWidth;
-    LONG       biHeight;
-    WORD       biPlanes;
-    WORD       biBitCount;
-    DWORD      biCompression;
-    DWORD      biSizeImage;
-    LONG       biXPelsPerMeter;
-    LONG       biYPelsPerMeter;
-    DWORD      biClrUsed;
-    DWORD      biClrImportant;
-} BITMAPINFOHEADER, FAR *LPBITMAPINFOHEADER, *PBITMAPINFOHEADER;
-typedef struct __attribute__((packed)) tagBITMAPINFO {
-    BITMAPINFOHEADER    bmiHeader;
-    RGBQUAD             bmiColors[1];
-} BITMAPINFO, FAR *LPBITMAPINFO, *PBITMAPINFO;
-typedef struct __attribute__((packed)) tagPALETTEENTRY {
-    BYTE        peRed;
-    BYTE        peGreen;
-    BYTE        peBlue;
-    BYTE        peFlags;
-} PALETTEENTRY, *PPALETTEENTRY, FAR *LPPALETTEENTRY;
-typedef struct __attribute__((packed)) tagLOGPALETTE {
-    WORD        palVersion;
-    WORD        palNumEntries;
-    PALETTEENTRY        palPalEntry[1];
-} LOGPALETTE, *PLOGPALETTE, NEAR *NPLOGPALETTE, FAR *LPLOGPALETTE;
-typedef DWORD   COLORREF;
-enum HGDIOBJ_TYPE {
-	HGDIOBJ_TYPE_INVALID = 0,
-	HGDIOBJ_TYPE_PEN,
-	HGDIOBJ_TYPE_BRUSH,
-	HGDIOBJ_TYPE_FONT,
-	HGDIOBJ_TYPE_BITMAP,
-	HGDIOBJ_TYPE_REGION,
-	HGDIOBJ_TYPE_PALETTE
-};
-typedef struct {
-	enum HGDIOBJ_TYPE handleType;
-
-	// HGDIOBJ_TYPE_PALETTE
-	PLOGPALETTE paletteLog;
-
-	// HGDIOBJ_TYPE_BITMAP
-	CONST BITMAPINFO *bitmapInfo;
-	/*CONST*/ BITMAPINFOHEADER * bitmapInfoHeader;
-	CONST VOID *bitmapBits;
-
-	// HGDIOBJ_TYPE_BRUSH
-	COLORREF brushColor;
-} _HGDIOBJ;
-typedef _HGDIOBJ * HGDIOBJ;
-//typedef void * HGDIOBJ;
-typedef HGDIOBJ HPALETTE;
-typedef HGDIOBJ HBITMAP;
-typedef HGDIOBJ HFONT;
-typedef HGDIOBJ HBRUSH;
-
-extern int GetObject(HGDIOBJ h, int c, LPVOID pv);
-extern BOOL DeleteObject(HGDIOBJ ho);
-
-#define OBJ_BITMAP          7
-
-#define WHITE_PEN           6
-#define BLACK_PEN           7
-extern HGDIOBJ GetStockObject(int i);
-extern HPALETTE CreatePalette(CONST LOGPALETTE * plpal);
-
 // DC
 
-enum DC_TYPE {
-    DC_TYPE_INVALID = 0,
-    DC_TYPE_MEMORY,
-    DC_TYPE_DISPLAY
-};
-enum HDC_TYPE {
-    HDC_TYPE_INVALID = 0,
-    HDC_TYPE_DC
-};
-struct _HDC;
-typedef struct _HDC * HDC;
-struct _HDC {
-	enum HDC_TYPE handleType;
-	HDC hdcCompatible;
-    enum DC_TYPE dcType;
-	HBITMAP selectedBitmap;
-    HPALETTE selectedPalette;
-	HPALETTE realizedPalette;
-	HBRUSH selectedBrushColor;
-	BOOL isBackgroundColorSet;
-	COLORREF backgroundColor;
-	int windowOriginX;
-	int windowOriginY;
-};
-
 extern HDC CreateCompatibleDC(HDC hdc);
+extern HDC GetDC(HWND hWnd);
+extern int ReleaseDC(HWND hWnd, HDC hDC);
 extern BOOL DeleteDC(HDC hdc);
 extern HGDIOBJ SelectObject(HDC hdc, HGDIOBJ h);
 extern HGDIOBJ GetCurrentObject(HDC hdc, UINT type);
@@ -902,6 +919,7 @@ typedef struct tagWINDOWPLACEMENT {
 } WINDOWPLACEMENT;
 typedef WINDOWPLACEMENT *PWINDOWPLACEMENT, *LPWINDOWPLACEMENT;
 
+extern HWND CreateWindow();
 extern BOOL DestroyWindow(HWND hWnd);
 extern BOOL GetWindowPlacement(HWND hWnd, WINDOWPLACEMENT *lpwndpl);
 extern BOOL SetWindowPlacement(HWND hWnd, CONST WINDOWPLACEMENT *lpwndpl);
