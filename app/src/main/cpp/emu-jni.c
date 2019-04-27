@@ -853,7 +853,7 @@ JNIEXPORT void JNICALL Java_org_emulator_forty_two_NativeLib_onViewReset(JNIEnv 
     SwitchToState(SM_RUN);
 }
 
-JNIEXPORT int JNICALL Java_org_emulator_forty_two_NativeLib_onViewScript(JNIEnv *env, jobject thisz, jstring kmlFilename) {
+JNIEXPORT jint JNICALL Java_org_emulator_forty_two_NativeLib_onViewScript(JNIEnv *env, jobject thisz, jstring kmlFilename) {
 
     TCHAR szKmlFile[MAX_PATH];
 //    BOOL  bKMLChanged,bSucc;

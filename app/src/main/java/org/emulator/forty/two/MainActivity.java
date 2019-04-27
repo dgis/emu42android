@@ -23,10 +23,18 @@ import android.view.MenuItem;
 import android.view.SubMenu;
 import android.view.View;
 import android.view.ViewGroup;
-import android.view.Window;
-import android.widget.ImageButton;
 import android.widget.TextView;
 import android.widget.Toast;
+
+import androidx.annotation.Nullable;
+import androidx.appcompat.app.ActionBarDrawerToggle;
+import androidx.appcompat.app.AlertDialog;
+import androidx.appcompat.app.AppCompatActivity;
+import androidx.appcompat.widget.Toolbar;
+import androidx.core.content.FileProvider;
+import androidx.core.view.GravityCompat;
+import androidx.documentfile.provider.DocumentFile;
+import androidx.drawerlayout.widget.DrawerLayout;
 
 import com.google.android.material.navigation.NavigationView;
 
@@ -51,17 +59,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
-import androidx.appcompat.app.ActionBarDrawerToggle;
-import androidx.appcompat.app.AlertDialog;
-import androidx.appcompat.app.AppCompatActivity;
-import androidx.appcompat.widget.Toolbar;
-import androidx.core.content.FileProvider;
-import androidx.core.view.GravityCompat;
-import androidx.documentfile.provider.DocumentFile;
-import androidx.drawerlayout.widget.DrawerLayout;
 
 public class MainActivity extends AppCompatActivity implements NavigationView.OnNavigationItemSelectedListener {
 
@@ -245,7 +242,6 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
 
     @Override
     public void onBackPressed() {
-        DrawerLayout drawer = findViewById(R.id.drawer_layout);
         if (drawer.isDrawerOpen(GravityCompat.START)) {
             drawer.closeDrawer(GravityCompat.START);
         } else {
@@ -337,7 +333,6 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
 
         }
 
-        DrawerLayout drawer = findViewById(R.id.drawer_layout);
         drawer.closeDrawer(GravityCompat.START);
         return true;
     }
@@ -1205,7 +1200,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         if(key == null) {
             String[] settingKeys = {
                     "settings_realspeed", "settings_grayscale", "settings_allow_rotation", "settings_fill_screen",
-                    "settings_scale", "settings_allow_sound", "settings_haptic_feedback",
+                    "settings_hide_bar", "settings_scale", "settings_allow_sound", "settings_haptic_feedback",
                     "settings_background_kml_color", "settings_background_fallback_color",
                     "settings_kml", "settings_port1", "settings_port2" };
             for (String settingKey : settingKeys) {
@@ -1228,6 +1223,15 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
                     break;
                 case "settings_fill_screen":
                     mainScreenView.setFillScreen(sharedPreferences.getBoolean("settings_fill_screen", false));
+                    break;
+                case "settings_hide_bar":
+                case "settings_hide_bar_status":
+                case "settings_hide_bar_nav":
+                    if(sharedPreferences.getBoolean("settings_hide_bar_status", false)
+                    || sharedPreferences.getBoolean("settings_hide_bar_nav", false))
+                        hideSystemUI();
+                    else
+                        showSystemUI();
                     break;
                 case "settings_scale":
                     //mainScreenView.setScale(1.0f); //sharedPreferences.getFloat("settings_scale", 0.0f));
@@ -1284,5 +1288,30 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
                     break;
             }
         }
+    }
+
+    @Override
+    public void onWindowFocusChanged(boolean hasFocus) {
+        super.onWindowFocusChanged(hasFocus);
+        if (hasFocus && (
+            sharedPreferences.getBoolean("settings_hide_bar_status", false)
+            || sharedPreferences.getBoolean("settings_hide_bar_nav", false)
+        )) {
+            hideSystemUI();
+        }
+    }
+
+    private void hideSystemUI() {
+        int flags = View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY;
+        if(sharedPreferences.getBoolean("settings_hide_bar_status", false))
+            flags |= View.SYSTEM_UI_FLAG_FULLSCREEN;
+        if(sharedPreferences.getBoolean("settings_hide_bar_nav", false))
+            flags |= View.SYSTEM_UI_FLAG_HIDE_NAVIGATION;
+
+        getWindow().getDecorView().setSystemUiVisibility(flags);
+    }
+
+    private void showSystemUI() {
+        getWindow().getDecorView().setSystemUiVisibility(0);
     }
 }
