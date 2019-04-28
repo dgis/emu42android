@@ -955,6 +955,9 @@ JNIEXPORT void JNICALL Java_org_emulator_forty_two_NativeLib_onBackupSave(JNIEnv
 JNIEXPORT void JNICALL Java_org_emulator_forty_two_NativeLib_onBackupRestore(JNIEnv *env, jobject thisz) {
     SwitchToState(SM_INVALID);
     RestoreBackup();
+    if(hLcdDC && hLcdDC->selectedBitmap) {
+        hLcdDC->selectedBitmap->bitmapInfoHeader->biHeight = -abs(hLcdDC->selectedBitmap->bitmapInfoHeader->biHeight);
+    }
     if (pbyRom) SwitchToState(SM_RUN);
 }
 
