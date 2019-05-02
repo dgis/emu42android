@@ -18,6 +18,7 @@ static jobject viewToUpdate = NULL;
 static jobject mainActivity = NULL;
 jobject bitmapMainScreen;
 AndroidBitmapInfo androidBitmapInfo;
+enum DialogBoxMode currentDialogBoxMode;
 enum ChooseKmlMode  chooseCurrentKmlMode;
 TCHAR szChosenCurrentKml[MAX_PATH];
 TCHAR szKmlLog[10240];
@@ -664,9 +665,72 @@ JNIEXPORT jint JNICALL Java_org_emulator_forty_two_NativeLib_onObjectLoad(JNIEnv
     return TRUE;
 }
 
-JNIEXPORT jint JNICALL Java_org_emulator_forty_two_NativeLib_onObjectSave(JNIEnv *env, jobject thisz, jstring filename) {
-    const char *filenameUTF8 = (*env)->GetStringUTFChars(env, filename , NULL) ;
+JNIEXPORT jobjectArray JNICALL Java_org_emulator_forty_two_NativeLib_getObjectsToSave(JNIEnv *env, jobject thisz) {
+
+    if (nState != SM_RUN)
+    {
+        InfoMessage(_T("The emulator must be running to save an object."));
+        return 0;
+    }
+
+    if (WaitForSleepState())				// wait for cpu SHUTDN then sleep state
+    {
+        InfoMessage(_T("The emulator is busy."));
+        return 0;
+    }
+
+    _ASSERT(nState == SM_SLEEP);
+
+    labels[0] = 0;
+    if (cCurrentRomType == 'N') { // HP32SII
+        currentDialogBoxMode = DialogBoxMode_GET_USRPRG32;
+        OnSelectProgram32();
+    } else if(cCurrentRomType == 'D') { // HP42S
+        currentDialogBoxMode = DialogBoxMode_GET_USRPRG42;
+        OnSelectProgram42();
+    }
+    currentDialogBoxMode = DialogBoxMode_UNKNOWN;
+
+    int labelCount = 0;
+    if(labels[0]) {
+        int i = 0;
+        while(i < MAX_LABEL_SIZE && labels[i]) {
+            if(labels[i] == 9)
+                labelCount++;
+            i++;
+        }
+    }
+
+    jobjectArray objectArray = (jobjectArray)(*env)->NewObjectArray(env,
+       labelCount,
+       (*env)->FindClass(env, "java/lang/String"),
+       (*env)->NewStringUTF(env, ""));
+
+    if(labelCount) {
+        TCHAR * label = labels;
+        int l = 0;
+        int i = 0;
+        while(i < MAX_LABEL_SIZE && labels[i]) {
+            if(labels[i] == 9) {
+                labels[i] = 0;
+                (*env)->SetObjectArrayElement(env, objectArray,
+                        l, (*env)->NewStringUTF(env, label));
+                label = &labels[i + 1];
+                l++;
+            }
+            i++;
+        }
+    }
+
+    SwitchToState(SM_RUN);
+
+    return objectArray;
+}
+
+JNIEXPORT jint JNICALL Java_org_emulator_forty_two_NativeLib_onObjectSave(JNIEnv *env, jobject thisz, jstring filename, jbooleanArray objectsToSaveItemChecked) {
     //OnObjectSave();
+
+    const char *filenameUTF8 = (*env)->GetStringUTFChars(env, filename , NULL);
 
     if (nState != SM_RUN)
     {
@@ -683,14 +747,31 @@ JNIEXPORT jint JNICALL Java_org_emulator_forty_two_NativeLib_onObjectSave(JNIEnv
     _ASSERT(nState == SM_SLEEP);
 
 
-    if (   cCurrentRomType == 'N'			// HP32SII
-           || cCurrentRomType == 'D')			// HP42S
-    {
-        //TODO
-//        if (cCurrentRomType == 'N')
-//            OnSelectProgram32();
-//        else
-//            OnSelectProgram42();
+    if(objectsToSaveItemChecked &&
+        (cCurrentRomType == 'N' // HP32SII
+        || cCurrentRomType == 'D') // HP42S
+    ) {
+        jsize len = (*env)->GetArrayLength(env, objectsToSaveItemChecked);
+        jboolean *body = (*env)->GetBooleanArrayElements(env, objectsToSaveItemChecked, 0);
+        selItemDataCount = 0;
+        for (int i = 0; i < len; i++) {
+            selItemDataIndex[i] = body[i] ? TRUE : FALSE;
+            if(selItemDataIndex[i])
+                selItemDataCount++;
+        }
+        (*env)->ReleaseBooleanArrayElements(env, objectsToSaveItemChecked, body, 0);
+
+        _tcscpy(getSaveObjectFilenameResult, filenameUTF8);
+
+        if (cCurrentRomType == 'N') {
+            currentDialogBoxMode = DialogBoxMode_SET_USRPRG32;
+            OnSelectProgram32();
+        } else {
+            currentDialogBoxMode = DialogBoxMode_SET_USRPRG42;
+            OnSelectProgram42();
+        }
+        getSaveObjectFilenameResult[0] = 0;
+        currentDialogBoxMode = DialogBoxMode_UNKNOWN;
     }
     else									// HP28S
     {

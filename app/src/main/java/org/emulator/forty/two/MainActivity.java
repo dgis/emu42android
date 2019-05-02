@@ -84,6 +84,8 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
     private String kmlFolderURL = "";
     private boolean kmFolderChange = true;
 
+    private boolean[] objectsToSaveItemChecked = null;
+
     private int MRU_ID_START = 10000;
     private int MAX_MRU = 5;
     private LinkedHashMap<String, String> mruLinkedHashMap = new LinkedHashMap<String, String>(5, 1.0f, true) {
@@ -607,17 +609,28 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         int model = NativeLib.getCurrentModel();
         String extension = "e42";
         switch (model) {
-            case 'T': // HP17B # Trader
-                extension = "e17";
+            case 'I': // HP14B # Midas
+                extension = "e14";
                 break;
+            case 'T': // HP17B # Trader
             case 'U': // HP17BII # Trader II
                 extension = "e17";
+                break;
+            case 'Y': // HP19BII # Tycoon II
+                extension = "e19";
+                break;
+            case 'A': // HP22S # Plato
+                extension = "e22";
                 break;
             case 'M': // HP27S # Mentor
                 extension = "e27";
                 break;
             case 'O': // HP28S # Orlando
                 extension = "e28";
+                break;
+            case 'L': // HP32S # Leonardo
+            case 'N': // HP32SII # Nardo
+                extension = "e32";
                 break;
             case 'D': // HP42S # Davinci
                 extension = "e42";
@@ -673,12 +686,40 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         } else
             openDocument();
     }
-    private void OnObjectSave() {
+    private void SaveObject() {
         Intent intent = new Intent(Intent.ACTION_CREATE_DOCUMENT);
         intent.addCategory(Intent.CATEGORY_OPENABLE);
         intent.setType("*/*");
         intent.putExtra(Intent.EXTRA_TITLE, "emu42-object.hp");
         startActivityForResult(intent, INTENT_OBJECT_SAVE);
+    }
+    private void OnObjectSave() {
+        int model = NativeLib.getCurrentModel();
+        if(model == 'N' // HP32SII # Nardo
+        || model == 'D') { // HP42S # Davinci
+            final String[] objectsToSave = NativeLib.getObjectsToSave();
+            objectsToSaveItemChecked = new boolean[objectsToSave.length];
+            new AlertDialog.Builder(MainActivity.this)
+                    .setTitle(getResources().getString(R.string.message_object_save_program))
+                    .setMultiChoiceItems(objectsToSave, null, new DialogInterface.OnMultiChoiceClickListener() {
+                        @Override
+                        public void onClick(DialogInterface dialog, int which, boolean isChecked) {
+                            objectsToSaveItemChecked[which] = isChecked;
+                        }
+                    }).setPositiveButton("OK", new DialogInterface.OnClickListener() {
+                        @Override
+                        public void onClick(DialogInterface dialog, int id) {
+                            //NativeLib.onObjectSave(url);
+                            SaveObject();
+                        }
+                    }).setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
+                        @Override
+                        public void onClick(DialogInterface dialog, int id) {
+                            objectsToSaveItemChecked = null;
+                        }
+                    }).show();
+        } else
+            SaveObject();
     }
     private void OnViewCopy() {
         int width = NativeLib.getScreenWidth();
@@ -765,11 +806,11 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
             kmlScriptsForCurrentModel = kmlScripts;
 
         final int lastIndex = kmlScriptsForCurrentModel.size();
-        final String[] kmlScriptTitles = new String[lastIndex + 2];
+        final String[] kmlScriptTitles = new String[lastIndex + 1 /* 2 */];
         for (int i = 0; i < kmlScriptsForCurrentModel.size(); i++)
             kmlScriptTitles[i] = kmlScriptsForCurrentModel.get(i).title;
         kmlScriptTitles[lastIndex] = getResources().getString(R.string.load_custom_kml);
-        kmlScriptTitles[lastIndex + 1] = getResources().getString(R.string.load_default_kml);
+        //kmlScriptTitles[lastIndex + 1] = getResources().getString(R.string.load_default_kml);
         new AlertDialog.Builder(MainActivity.this)
                 .setTitle(getResources().getString(R.string.pick_calculator))
                 .setItems(kmlScriptTitles, new DialogInterface.OnClickListener() {
@@ -782,7 +823,6 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
                             // Reset to default KML folder
                             SharedPreferences.Editor editor = sharedPreferences.edit();
                             editor.putBoolean("settings_kml_default", true);
-                            //editor.putString("settings_kml_folder", url);
                             editor.apply();
                             updateFromPreferences("settings_kml", true);
                             if(changeKML)
@@ -875,7 +915,8 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
                         }
                         case INTENT_OBJECT_SAVE: {
                             //Log.d(TAG, "onActivityResult INTENT_OBJECT_SAVE " + url);
-                            NativeLib.onObjectSave(url);
+                            NativeLib.onObjectSave(url, objectsToSaveItemChecked);
+                            objectsToSaveItemChecked = null;
                             break;
                         }
                         case INTENT_PICK_KML_FOLDER_FOR_NEW_FILE:

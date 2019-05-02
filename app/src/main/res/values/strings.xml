@@ -44,14 +44,15 @@
     <string name="nav_item_help">Help</string>
     <string name="nav_about">About Emu42...</string>
 
-    <string name="load_custom_kml">[Custom KML script...]</string>
-    <string name="load_default_kml">[Default KML script]</string>
+    <string name="load_custom_kml">[Select a Custom KML script folder...]</string>
+    <string name="load_default_kml">[Default KML script folder]</string>
     <string name="pick_calculator">Pick a calculator</string>
     <string name="message_state_saved">State saved</string>
     <string name="message_do_you_want_to_save">Do you want to save changes?\n(BACK to cancel)</string>
     <string name="message_yes">Yes</string>
     <string name="message_no">No</string>
     <string name="message_object_load">Warning: Trying to load an object while the emulator is busy will certainly result in a memory lost. Before loading an object you should be sure that the calculator is in idle state. Do you want to see this warning next time you try to load an object?</string>
+    <string name="message_object_save_program">Select Program</string>
     <string name="message_screenshot">Emu42 screenshot</string>
     <string name="message_share_screenshot">Share Emu42 screenshot</string>
     <string name="message_press_reset">Are you sure you want to press the Reset Button?</string>

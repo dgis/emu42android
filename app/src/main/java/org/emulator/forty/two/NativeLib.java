@@ -36,7 +36,9 @@ public class NativeLib {
     public static native int onFileSaveAs(String newFilename);
     public static native int onFileClose();
     public static native int onObjectLoad(String filename);
-    public static native int onObjectSave(String filename);
+
+    public static native String[] getObjectsToSave();
+    public static native int onObjectSave(String filename, boolean[] objectsToSaveItemChecked);
     public static native void onViewCopy(Bitmap bitmapScreen);
     public static native void onStackCopy();
     public static native void onStackPaste();
