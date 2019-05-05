@@ -954,7 +954,7 @@ static VOID UpdateDisplayClamshell(VOID)
 			   : 0;
 
 	ZeroMemory(pbyMask, bmiLcd.Lcd_bmih.biWidth * -bmiLcd.Lcd_bmih.biHeight);
-	byContrast=22;
+
 	if ((Chipset.IORam[DSPCTL]&DON) != 0 && dwKMLColor[byContrast] != I)
 	{
 		// scan complete display area of master

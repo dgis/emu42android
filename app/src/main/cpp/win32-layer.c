@@ -1642,6 +1642,12 @@ BOOL PatBlt(HDC hdcDest, int x, int y, int w, int h, DWORD rop) {
                         destinationPixel[2] = palPalEntry[0].peBlue;
                         destinationPixel[3] = 255;
                         break;
+                    case WHITENESS:
+                        destinationPixel[0] = palPalEntry[1].peRed;
+                        destinationPixel[1] = palPalEntry[1].peGreen;
+                        destinationPixel[2] = palPalEntry[1].peBlue;
+                        destinationPixel[3] = 255;
+                        break;
                     case PATCOPY:
                         // 0xAABBGGRR
                         *((UINT *)destinationPixel) = brushColor;

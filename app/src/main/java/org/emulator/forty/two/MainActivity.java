@@ -343,14 +343,21 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         Menu menu = navigationView.getMenu();
         boolean isDocumentAvailable = NativeLib.isDocumentAvailable();
         boolean isBackup = NativeLib.isBackup();
+        int cCurrentRomType = NativeLib.getCurrentModel();
+        //int nState = NativeLib.getState();
+        //boolean bRun          = (nState == 0 /* SM_RUN */ || nState == 3 /* SM_SLEEP */);
+        boolean bObjectEnable = (cCurrentRomType == 'D') || (cCurrentRomType == 'N') || (cCurrentRomType == 'O');
+        boolean bStackCEnable = (cCurrentRomType == 'D') || (cCurrentRomType == 'I') || (cCurrentRomType == 'M') || (cCurrentRomType == 'N') || (cCurrentRomType == 'O') || (cCurrentRomType == 'T') || (cCurrentRomType == 'U') || (cCurrentRomType == 'Y');
+        boolean bStackPEnable = (cCurrentRomType == 'D') || (cCurrentRomType == 'O');
+
         menu.findItem(R.id.nav_save).setEnabled(isDocumentAvailable);
         menu.findItem(R.id.nav_save_as).setEnabled(isDocumentAvailable);
         menu.findItem(R.id.nav_close).setEnabled(isDocumentAvailable);
-        menu.findItem(R.id.nav_load_object).setEnabled(isDocumentAvailable);
-        menu.findItem(R.id.nav_save_object).setEnabled(isDocumentAvailable);
+        menu.findItem(R.id.nav_load_object).setEnabled(isDocumentAvailable && bObjectEnable);
+        menu.findItem(R.id.nav_save_object).setEnabled(isDocumentAvailable && bObjectEnable);
         menu.findItem(R.id.nav_copy_screen).setEnabled(isDocumentAvailable);
-        menu.findItem(R.id.nav_copy_stack).setEnabled(isDocumentAvailable);
-        menu.findItem(R.id.nav_paste_stack).setEnabled(isDocumentAvailable);
+        menu.findItem(R.id.nav_copy_stack).setEnabled(isDocumentAvailable && bStackCEnable);
+        menu.findItem(R.id.nav_paste_stack).setEnabled(isDocumentAvailable && bStackPEnable);
         menu.findItem(R.id.nav_reset_calculator).setEnabled(isDocumentAvailable);
         menu.findItem(R.id.nav_backup_save).setEnabled(isDocumentAvailable);
         menu.findItem(R.id.nav_backup_restore).setEnabled(isDocumentAvailable && isBackup);
