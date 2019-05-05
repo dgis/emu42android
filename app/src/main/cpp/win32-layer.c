@@ -2395,6 +2395,9 @@ PIDLIST_ABSOLUTE SHBrowseForFolderA(LPBROWSEINFOA lpbi) {
     //TODO
     return NULL;
 }
+#ifndef IDD_USERCODE
+#define IDD_USERCODE 121
+#endif
 INT_PTR DialogBoxParam(HINSTANCE hInstance, LPCTSTR lpTemplateName, HWND hWndParent, DLGPROC lpDialogFunc, LPARAM dwInitParam) {
     //TODO
     if(lpTemplateName == MAKEINTRESOURCE(IDD_CHOOSEKML)) {
