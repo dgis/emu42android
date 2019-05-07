@@ -1643,9 +1643,9 @@ BOOL PatBlt(HDC hdcDest, int x, int y, int w, int h, DWORD rop) {
                         destinationPixel[3] = 255;
                         break;
                     case WHITENESS:
-                        destinationPixel[0] = palPalEntry[1].peRed;
-                        destinationPixel[1] = palPalEntry[1].peGreen;
-                        destinationPixel[2] = palPalEntry[1].peBlue;
+                        destinationPixel[0] = 255; //palPalEntry[1].peRed;
+                        destinationPixel[1] = 255; //palPalEntry[1].peGreen;
+                        destinationPixel[2] = 255; //palPalEntry[1].peBlue;
                         destinationPixel[3] = 255;
                         break;
                     case PATCOPY:
