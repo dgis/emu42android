@@ -58,6 +58,9 @@ You should have received a copy of the GNU General Public License along with thi
 
 TODO
 
+- Zoom auto depending of the screen ratio (adjust when rotate)
+- Save the zoom and pan location
+- Show the LCD in the OSD when zooming
 - Improve the access to the menu
 
 

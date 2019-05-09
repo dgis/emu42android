@@ -8,6 +8,7 @@ import android.graphics.Canvas;
 import android.graphics.Color;
 
 import android.graphics.Paint;
+import android.graphics.RectF;
 import android.os.Build;
 import android.util.DisplayMetrics;
 import android.util.Log;
@@ -17,25 +18,30 @@ import android.view.SurfaceView;
 
 import java.util.HashMap;
 
-public class MainScreenView extends SurfaceView {
+public class MainScreenView extends PanAndScaleView {
 
     protected static final String TAG = "MainScreenView";
     private Paint paint = new Paint();
     private Bitmap bitmapMainScreen;
     private HashMap<Integer, Integer> vkmap;
-    private float screenScaleX = 1.0f;
-    private float screenScaleY = 1.0f;
-    private float screenOffsetX = 0.0f;
-    private float screenOffsetY= 0.0f;
-    private boolean fillScreen = false;
+//    private float screenScaleX = 1.0f;
+//    private float screenScaleY = 1.0f;
+//    private float screenOffsetX = 0.0f;
+//    private float screenOffsetY= 0.0f;
+//    private boolean fillScreen = false;
     private float fixScale = 0.0f;
+    private boolean horizontalSwipe = true;
     private int kmlBackgroundColor = Color.BLACK;
     private boolean useKmlBackgroundColor = false;
     private int fallbackBackgroundColorType = 0;
     private int statusBarColor = 0;
+    private boolean viewSized = false;
 
     public MainScreenView(Context context) {
         super(context);
+
+        setShowScaleThumbnail(true);
+        setAllowDoubleTapZoom(false);
 
         paint.setFilterBitmap(true);
         paint.setAntiAlias(true);
@@ -148,17 +154,20 @@ public class MainScreenView extends SurfaceView {
         case MotionEvent.ACTION_DOWN:
         case MotionEvent.ACTION_POINTER_DOWN:
             //Log.d(TAG, "ACTION_DOWN/ACTION_POINTER_DOWN count: " + touchCount + ", actionIndex: " + actionIndex);
-            NativeLib.buttonDown((int)((event.getX(actionIndex) - screenOffsetX) / screenScaleX), (int)((event.getY(actionIndex) - screenOffsetY) / screenScaleY));
+            //NativeLib.buttonDown((int)((event.getX(actionIndex) - screenOffsetX) / screenScaleX), (int)((event.getY(actionIndex) - screenOffsetY) / screenScaleY));
+            NativeLib.buttonDown((int)((event.getX(actionIndex) - viewPanOffsetX) / viewScaleFactorX), (int)((event.getY(actionIndex) - viewPanOffsetY) / viewScaleFactorY));
             break;
         case MotionEvent.ACTION_UP:
         case MotionEvent.ACTION_POINTER_UP:
             //Log.d(TAG, "ACTION_UP/ACTION_POINTER_UP count: " + touchCount + ", actionIndex: " + actionIndex);
-            NativeLib.buttonUp((int)((event.getX(actionIndex) - screenOffsetX) / screenScaleX), (int)((event.getY(actionIndex) - screenOffsetY) / screenScaleY));
+            //NativeLib.buttonUp((int)((event.getX(actionIndex) - screenOffsetX) / screenScaleX), (int)((event.getY(actionIndex) - screenOffsetY) / screenScaleY));
+            NativeLib.buttonUp((int)((event.getX(actionIndex) - viewPanOffsetX) / viewScaleFactorX), (int)((event.getY(actionIndex) - viewPanOffsetY) / viewScaleFactorY));
             break;
         default:
             break;
         }
-        return true;
+        //return true;
+        return super.onTouchEvent(event);
     }
 
     @Override
@@ -189,52 +198,75 @@ public class MainScreenView extends SurfaceView {
     protected void onSizeChanged(int viewWidth, int viewHeight, int oldViewWidth, int oldViewHeight) {
         super.onSizeChanged(viewWidth, viewHeight, oldViewWidth, oldViewHeight);
 
-        calcTranslateAndScale(viewWidth, viewHeight);
-    }
-
-    private void calcTranslateAndScale(int viewWidth, int viewHeight) {
-        float imageSizeX = bitmapMainScreen.getWidth();
-        float imageSizeY = bitmapMainScreen.getHeight();
-
-        if(imageSizeX > 0 && imageSizeY > 0 && viewWidth > 0.0f && viewHeight > 0.0f) {
-            // Find the scale factor and the translate offset to fit and to center the image in the view bounds.
-            float translateX = 0.0f, translateY = 0.0f, scaleX, scaleY;
-            if(fillScreen) {
-                scaleX = viewWidth / imageSizeX;
-                scaleY = viewHeight / imageSizeY;
-            } else {
-                float viewRatio = (float)viewHeight / (float)viewWidth;
-                float imageRatio = imageSizeY / imageSizeX;
-                if(viewRatio > imageRatio) {
-                    scaleX = scaleY = this.fixScale != 0.0f ? this.fixScale : viewWidth / imageSizeX;
-                    translateX = (viewWidth - scaleX * imageSizeX) / 2.0f; //0.0f;
-                    translateY = (viewHeight - scaleY * imageSizeY) / 2.0f;
-                } else {
-                    scaleX = scaleY = this.fixScale != 0.0f ? this.fixScale : viewHeight / imageSizeY;
-                    translateX = (viewWidth - scaleX * imageSizeX) / 2.0f;
-                    translateY = (viewHeight - scaleY * imageSizeY) / 2.0f; //0.0f;
-                }
+        if(!viewSized) {
+            viewSized = true;
+            if (bitmapMainScreen != null) {
+                setVirtualSize(bitmapMainScreen.getWidth(), bitmapMainScreen.getHeight());
+                resetViewport();
             }
-
-            screenScaleX = scaleX;
-            screenScaleY = scaleY;
-            screenOffsetX = translateX;
-            screenOffsetY = translateY;
         }
     }
 
+//    private void calcTranslateAndScale(int viewWidth, int viewHeight) {
+//        float imageSizeX = bitmapMainScreen.getWidth();
+//        float imageSizeY = bitmapMainScreen.getHeight();
+//
+//        if(imageSizeX > 0 && imageSizeY > 0 && viewWidth > 0.0f && viewHeight > 0.0f) {
+//            // Find the scale factor and the translate offset to fit and to center the image in the view bounds.
+//            float translateX = 0.0f, translateY = 0.0f, scaleX = 1.0f, scaleY = 1.0f;
+//
+//            if(fillScreen) {
+//                scaleX = viewWidth / imageSizeX;
+//                scaleY = viewHeight / imageSizeY;
+//            } else {
+//                if(horizontalSwipe) {
+//                    float alpha = Math.max(2.0f, (viewHeight * imageSizeX) / (viewWidth * imageSizeY));
+//                    scaleX = scaleY = alpha * viewWidth / imageSizeX;
+//                } else {
+//                    float viewRatio = (float) viewHeight / (float) viewWidth;
+//                    float imageRatio = imageSizeY / imageSizeX;
+//                    if (viewRatio > imageRatio) {
+//                        scaleX = scaleY = this.fixScale != 0.0f ? this.fixScale : viewWidth / imageSizeX;
+//                        translateX = (viewWidth - scaleX * imageSizeX) / 2.0f; //0.0f;
+//                        translateY = (viewHeight - scaleY * imageSizeY) / 2.0f;
+//                    } else {
+//                        scaleX = scaleY = this.fixScale != 0.0f ? this.fixScale : viewHeight / imageSizeY;
+//                        translateX = (viewWidth - scaleX * imageSizeX) / 2.0f;
+//                        translateY = (viewHeight - scaleY * imageSizeY) / 2.0f; //0.0f;
+//                    }
+//                }
+//            }
+//
+//            screenScaleX = scaleX;
+//            screenScaleY = scaleY;
+//            screenOffsetX = translateX;
+//            screenOffsetY = translateY;
+//        }
+//    }
+
+    /**
+     * Draw the score.
+     * @param canvas The canvas to draw to coming from the View.onDraw() method.
+     */
     @Override
-    protected void onDraw(Canvas canvas) {
-        //Log.d(TAG, "PAINT onDraw() mIsScaling: " + mIsScaling + ", mIsPanning: " + mIsPanning + ", mIsFlinging: " + mIsFlinging);
+    protected void onCustomDraw(Canvas canvas) {
+        //Log.d(TAG, "onCustomDraw()");
 
         canvas.drawColor(getBackgroundColor());
-
-        canvas.save();
-        canvas.translate(screenOffsetX, screenOffsetY);
-        canvas.scale(screenScaleX, screenScaleY);
         canvas.drawBitmap(bitmapMainScreen, 0, 0, paint);
-        canvas.restore();
     }
+//    @Override
+//    protected void onDraw(Canvas canvas) {
+//        //Log.d(TAG, "PAINT onDraw() mIsScaling: " + mIsScaling + ", mIsPanning: " + mIsPanning + ", mIsFlinging: " + mIsFlinging);
+//
+//        canvas.drawColor(getBackgroundColor());
+//
+//        canvas.save();
+//        canvas.translate(screenOffsetX, screenOffsetY);
+//        canvas.scale(screenScaleX, screenScaleY);
+//        canvas.drawBitmap(bitmapMainScreen, 0, 0, paint);
+//        canvas.restore();
+//    }
 
     final int CALLBACK_TYPE_INVALIDATE = 0;
     final int CALLBACK_TYPE_WINDOW_RESIZE = 1;
@@ -260,8 +292,11 @@ public class MainScreenView extends SurfaceView {
                     if(oldBitmapMainScreen != null) {
                         oldBitmapMainScreen.recycle();
                     }
+                    setVirtualSize(bitmapMainScreen.getWidth(), bitmapMainScreen.getHeight());
+                    if(viewSized)
+                        resetViewport();
                 }
-                calcTranslateAndScale(getWidth(), getHeight());
+                //postInvalidate();
                 break;
         }
         return -1;
@@ -272,15 +307,10 @@ public class MainScreenView extends SurfaceView {
     }
 
     public void setFillScreen(boolean fillScreen) {
-        this.fillScreen = fillScreen;
-        calcTranslateAndScale(getWidth(), getHeight());
-        postInvalidate();
-    }
-
-    public void setScale(float scale) {
-        this.fixScale = scale;
-        calcTranslateAndScale(getWidth(), getHeight());
-        postInvalidate();
+        //this.fillScreen = fillScreen;
+        //calcTranslateAndScale(getWidth(), getHeight());
+        //postInvalidate();
+        setFillBounds(fillScreen);
     }
 
     public void setBackgroundKmlColor(boolean useKmlBackgroundColor) {
