@@ -1,6 +1,5 @@
 package org.emulator.forty.two;
 
-import android.annotation.SuppressLint;
 import android.content.Context;
 import android.graphics.Canvas;
 import android.graphics.Color;
@@ -9,6 +8,7 @@ import android.graphics.PointF;
 import android.graphics.RectF;
 import android.os.Handler;
 import android.util.AttributeSet;
+import android.util.Log;
 import android.view.GestureDetector;
 import android.view.InputDevice;
 import android.view.KeyEvent;
@@ -21,10 +21,15 @@ import android.widget.OverScroller;
 import androidx.core.view.ViewCompat;
 
 public class PanAndScaleView extends SurfaceView {
-	
-	protected RectF viewBounds = new RectF();
-    protected PointF virtualSize = new PointF(0f, 0f);
-	
+
+	protected static final String TAG = "PanAndScaleView";
+	protected final boolean debug = false;
+
+	protected float viewSizeWidth = 0.0f;
+	protected float viewSizeHeight = 0.0f;
+	protected float virtualSizeWidth = 0f;
+	protected float virtualSizeHeight = 0f;
+
     protected ScaleGestureDetector scaleDetector;
     protected GestureDetector gestureDetector;
     protected OverScroller scroller;
@@ -47,7 +52,8 @@ public class PanAndScaleView extends SurfaceView {
 	protected boolean fillBounds = false;
 
 	protected Paint paint = null;
-	protected OnClickCoordListener onClickCoordListener;
+	protected OnTapListener onTapDownListener;
+	protected OnTapListener onTapUpListener;
 
 	public float viewPanOffsetX;
 	public float viewPanOffsetY;
@@ -82,31 +88,38 @@ public class PanAndScaleView extends SurfaceView {
 		commonInitialize(context);
 	}
 	
-    /**
-     * Interface definition for a callback to be invoked when a view is clicked.
-     */
-    public interface OnClickCoordListener {
-        /**
-         * Called when a view has been clicked.
-         *
-         * @param v The view that was clicked.
-         */
-        void onClick(View v, float x, float y);
-    }
-	
-    /**
-     * Register a callback to be invoked when this view is clicked. If this view is not
-     * clickable, it becomes clickable.
-     *
-     * @param onClickCoordListener The callback that will run
-     *
-     * @see #setClickable(boolean)
-     */
-    public void setOnClickCoordListener(OnClickCoordListener onClickCoordListener) {
-        this.onClickCoordListener = onClickCoordListener;
-    }
-    
-    public float getMaxZoom() {
+	/**
+	 * Interface definition for a callback to be invoked when a view is tapped.
+	 */
+	public interface OnTapListener {
+		/**
+		 * Called when a view has been tapped.
+		 *
+		 * @param v The view that was clicked.
+		 * @param x The virtual view x coordinate.
+		 * @param y The virtual view y coordinate.
+		 * @return true if onTap is handled.
+		 */
+		boolean onTap(View v, float x, float y);
+	}
+
+	/**
+	 * Register a callback to be invoked when this view is tapped down.
+	 * @param onTapDownListener The callback that will run
+	 */
+	public void setOnTapDownListener(OnTapListener onTapDownListener) {
+		this.onTapDownListener = onTapDownListener;
+	}
+
+	/**
+	 * Register a callback to be invoked when this view is tapped up.
+	 * @param onTapUpListener The callback that will run
+	 */
+	public void setOnTapUpListener(OnTapListener onTapUpListener) {
+		this.onTapUpListener = onTapUpListener;
+	}
+
+	public float getMaxZoom() {
         return maxZoom;
     }
     
@@ -171,32 +184,13 @@ public class PanAndScaleView extends SurfaceView {
 	 */
 	public void setFillBounds(boolean fillBounds) {
 		this.fillBounds = fillBounds;
-		if(fillBounds) {
-			viewPanOffsetX = 0.0f;
-			viewPanOffsetY = 0.0f;
-			viewScaleFactorX = viewBounds.width() / virtualSize.x;
-			viewScaleFactorY = viewBounds.height() / virtualSize.y;
-		} else {
-			resetViewport();
-		}
-		invalidate();
-	}
-
-
-
-	public void resetViewport() {
-		resetViewport(viewBounds.width(), viewBounds.height());
 	}
 
 	public void setVirtualSize(float width, float height) {
-		
-		virtualSize.x = width;
-		virtualSize.y = height;
-		//resetViewport();
+		virtualSizeWidth = width;
+		virtualSizeHeight = height;
 	}
 
-	
-	
 	private void commonInitialize(Context context) {
 
 		paint = new Paint();
@@ -213,15 +207,18 @@ public class PanAndScaleView extends SurfaceView {
 		setPadding(0, 0, 0, 0);
 		
 		scroller = new OverScroller(context);
+		//scroller.setFriction(0.0015f); // ViewConfiguration.getScrollFriction(); // ViewConfiguration.SCROLL_FRICTION = 0.015f;
 		
 		scaleDetector = new ScaleGestureDetector(context, new ScaleGestureDetector.OnScaleGestureListener() {
 		    @Override
 		    public boolean onScaleBegin(ScaleGestureDetector detector) {
+				if(debug) Log.d(TAG, "onScaleBegin()");
 				return true;
 			}
 
 			@Override
 		    public boolean onScale(ScaleGestureDetector detector) {
+				if(debug) Log.d(TAG, "onScale()");
 		    	if(fillBounds)
 		    		return false;
 				float scaleFactorPreviousX = viewScaleFactorX;
@@ -238,6 +235,7 @@ public class PanAndScaleView extends SurfaceView {
 
 		    @Override
 	        public void onScaleEnd(ScaleGestureDetector detector) {
+				if(debug) Log.d(TAG, "onScaleEnd()");
 		    }
 		});
 		
@@ -245,13 +243,39 @@ public class PanAndScaleView extends SurfaceView {
 
 			@Override
 			public boolean onDown(MotionEvent e) {
+				if(debug) Log.d(TAG, "onDown()");
 				scroller.forceFinished(true);
 				ViewCompat.postInvalidateOnAnimation(PanAndScaleView.this);
-				return true;
+				if(onTapDownListener != null) {
+					float scaleAndPanX = (e.getX() - viewPanOffsetX) / viewScaleFactorX;
+					float scaleAndPanY = (e.getY() - viewPanOffsetY) / viewScaleFactorY;
+					if(onTapDownListener.onTap(PanAndScaleView.this, scaleAndPanX, scaleAndPanY))
+						return true;
+				}
+				return super.onDown(e);
+			}
+
+//			@Override
+//			public void onShowPress(MotionEvent e) {
+//				super.onShowPress(e);
+//			}
+
+			@Override
+			public boolean onSingleTapConfirmed(MotionEvent e) {
+				if(debug) Log.d(TAG, "onSingleTapConfirmed()");
+				if(onTapUpListener != null) {
+					float scaleAndPanX = (e.getX() - viewPanOffsetX) / viewScaleFactorX;
+					float scaleAndPanY = (e.getY() - viewPanOffsetY) / viewScaleFactorY;
+					if(onTapUpListener.onTap(PanAndScaleView.this, scaleAndPanX, scaleAndPanY))
+						return true;
+				}
+
+				return super.onSingleTapConfirmed(e);
 			}
 
 			@Override
 			public boolean onDoubleTap(MotionEvent e) {
+				if(debug) Log.d(TAG, "onDoubleTap()");
 				if(!allowDoubleTapZoom || fillBounds)
 					return false;
 				float scaleFactorPreviousX = viewScaleFactorX;
@@ -271,6 +295,7 @@ public class PanAndScaleView extends SurfaceView {
 
 			@Override
 			public boolean onScroll(MotionEvent e1, MotionEvent e2, float distanceX, float distanceY) {
+				if(debug) Log.d(TAG, "onScroll()");
 				if(fillBounds)
 					return false;
 
@@ -280,24 +305,15 @@ public class PanAndScaleView extends SurfaceView {
 
 			@Override
 			public boolean onFling(MotionEvent e1, MotionEvent e2, float velocityX, float velocityY) {
-				float viewPanMinX = viewBounds.width() - virtualSize.x * viewScaleFactorX;
-				float viewPanMinY = viewBounds.height() - virtualSize.y * viewScaleFactorY;
+				if(debug) Log.d(TAG, "onFling(..., velocityX: " + velocityX + ", velocityY: " + velocityY + ")");
+				float viewPanMinX = viewSizeWidth - virtualSizeWidth * viewScaleFactorX;
+				float viewPanMinY = viewSizeHeight - virtualSizeHeight * viewScaleFactorY;
 				
 				scroller.forceFinished(true);
-				scroller.fling((int) viewPanOffsetX, (int) viewPanOffsetY, (int)-velocityX, (int)-velocityY, (int)viewPanMinX, 0, (int)viewPanMinY, 0);
+				float velocityFactor = -1.0f;
+				scroller.fling((int) viewPanOffsetX, (int) viewPanOffsetY, (int)(velocityFactor * velocityX), (int)(velocityFactor * velocityY), (int)viewPanMinX, 0, (int)viewPanMinY, 0);
 				ViewCompat.postInvalidateOnAnimation(PanAndScaleView.this);
 				return true;
-			}
-			
-			@Override
-			public boolean onSingleTapConfirmed(MotionEvent e) {
-				if(onClickCoordListener != null) {
-					float scaleAndPanX = (e.getX() - viewPanOffsetX) / viewScaleFactorX;
-					float scaleAndPanY = (e.getY() - viewPanOffsetY) / viewScaleFactorY;
-					onClickCoordListener.onClick(PanAndScaleView.this, scaleAndPanX, scaleAndPanY);
-				}
-
-				return super.onSingleTapConfirmed(e);
 			}
 		});
 		
@@ -311,10 +327,11 @@ public class PanAndScaleView extends SurfaceView {
 
 	@Override
 	public void computeScroll() {
+		super.computeScroll();
+
 		if (scroller.computeScrollOffset() && !fillBounds) {
-			
-			//Log.i(VIEW_LOG_TAG, "computeScroll()");
-			
+			if(debug) Log.d(TAG, "computeScroll()");
+
 			if (!hasScrolled) {
 				panPrevious.x = scroller.getStartX();
 				panPrevious.y = scroller.getStartY();
@@ -327,12 +344,14 @@ public class PanAndScaleView extends SurfaceView {
 			panPrevious.y = scroller.getCurrY();
 
 			doScroll(deltaX, deltaY);
+
 			hasScrolled = true;
 		} else
 			hasScrolled = false;
 	}    
 
 	public void doScroll(float deltaX, float deltaY) {
+		if(debug) Log.d(TAG, "doScroll(" + deltaX + "," + deltaY + ")");
 
 		viewPanOffsetX -= deltaX;
 		viewPanOffsetY -= deltaY;
@@ -352,70 +371,11 @@ public class PanAndScaleView extends SurfaceView {
 		postInvalidate();
 	}
 
-	@SuppressLint("ClickableViewAccessibility")
 	@Override
 	public boolean onTouchEvent(MotionEvent event) {
-		boolean retValScaleDetector = scaleDetector.onTouchEvent(event);
-		boolean retValGestureDetector = gestureDetector.onTouchEvent(event);
-		boolean retVal = retValGestureDetector || retValScaleDetector;
-
-//	    int touchCount = event.getPointerCount();
-//		if(touchCount == 1) {
-//			int action = event.getAction();
-//			switch (action) {
-//			case MotionEvent.ACTION_DOWN:
-//				
-//			    panPrevious.x = event.getX(0);
-//			    panPrevious.y = event.getY(0);
-//			    mIsPanning = true;
-//
-//			    //Log.i(TAG, "touchesBegan count: " + touchCount + ", PanPrevious: " + panPrevious.toString());
-//				
-//				break;
-//			case MotionEvent.ACTION_MOVE:
-//				float panCurrentX = event.getX(0);
-//				float panCurrentY = event.getY(0);
-//				if(mIsPanning && Math.abs(panCurrentX - panPrevious.x) > 1.0f && Math.abs(panCurrentY - panPrevious.y) > 1.0f) {
-//					mHasPanned = true;
-//					mPanCurrent.x = panCurrentX;
-//					mPanCurrent.y = panCurrentY;
-//					viewPanOffsetX += mPanCurrent.x - panPrevious.x;
-//					viewPanOffsetY += mPanCurrent.y - panPrevious.y;
-//
-////					Log.i(TAG, "Before viewPanOffsetX: " + viewPanOffsetX + ", viewPanOffsetY: " + viewPanOffsetY);
-//					
-//				    constrainScale();
-//				    constrainPan();
-//
-////					Log.i(TAG, "After  viewPanOffsetX: " + viewPanOffsetX + ", viewPanOffsetY: " + viewPanOffsetY);
-//
-//				    //Log.i(TAG, "touchesMoved count: " + touchCount + ", PanOffset: " + mPanOffset.toString() + ", PanPrevious: " + panPrevious.toString() + ", PanCurrent: " + mPanCurrent.toString());
-//					
-//					panPrevious.x = mPanCurrent.x;
-//					panPrevious.y = mPanCurrent.y;
-//					
-//			        invalidate();
-//				}
-//				break;
-//			case MotionEvent.ACTION_UP:
-//				if(!mHasScaled && !mHasPanned && onClickCoordListener != null) {
-//					float scaleAndPanX = (event.getX() - viewPanOffsetX) / viewScaleFactor;
-//					float scaleAndPanY = (event.getY() - viewPanOffsetY) / viewScaleFactor;
-//					onClickCoordListener.onClick(this, scaleAndPanX, scaleAndPanY);
-//				}
-//				mIsPanning = false;
-//				mHasPanned = false;
-//				mHasScaled = false;
-//				break;
-//			case MotionEvent.ACTION_CANCEL:
-//				break;
-//			case MotionEvent.ACTION_OUTSIDE:
-//				break;
-//			default:
-//			}
-//		    return true;
-//		}
-        return retVal || super.onTouchEvent(event);
+		boolean result = scaleDetector.onTouchEvent(event);
+		result = gestureDetector.onTouchEvent(event) || result;
+		return result || super.onTouchEvent(event);
 	}
 	
 	@Override
@@ -482,33 +442,33 @@ public class PanAndScaleView extends SurfaceView {
 		viewPanOffsetY = viewPanOffsetY + (focusY - viewPanOffsetY) - (focusY - viewPanOffsetY) * viewScaleFactorY / scaleFactorPreviousY;
 	}
 
-	private void constrainScale() {
+	protected void constrainScale() {
         // Don't let the object get too small or too large.
 		viewScaleFactorX = Math.max(scaleFactorMin, Math.min(viewScaleFactorX, scaleFactorMax));
 		viewScaleFactorY = Math.max(scaleFactorMin, Math.min(viewScaleFactorY, scaleFactorMax));
 	}
-	private void constrainPan() {
+	protected void constrainPan() {
 		constrainPan(true);
 	}
-	private void constrainPan(boolean center) {
+	protected void constrainPan(boolean center) {
 
         // Keep the panning limits and the image centered.
-		float viewWidth = viewBounds.width();
-		float viewHeight = viewBounds.height();
+		float viewWidth = viewSizeWidth;
+		float viewHeight = viewSizeHeight;
 		if(viewWidth == 0.0f){
 			viewWidth = 1.0f;
 			viewHeight = 1.0f;
 		}
-		float virtualWidth = virtualSize.x;
-		float virtualHeight = virtualSize.y;
+		float virtualWidth = virtualSizeWidth;
+		float virtualHeight = virtualSizeHeight;
 		if(virtualWidth == 0.0f){
 			virtualWidth = 1.0f;
 			virtualHeight = 1.0f;
 		}
 		float viewRatio = viewHeight / viewWidth;
 		float imageRatio = virtualHeight / virtualWidth;
-		float viewPanMinX = viewBounds.width() - virtualWidth * viewScaleFactorX;
-		float viewPanMinY = viewBounds.height() - virtualHeight * viewScaleFactorY;
+		float viewPanMinX = viewSizeWidth - virtualWidth * viewScaleFactorX;
+		float viewPanMinY = viewSizeHeight - virtualHeight * viewScaleFactorY;
 		if(viewRatio > imageRatio) {
 	        // Keep the panning X limits.
 			if(viewPanOffsetX < viewPanMinX)
@@ -544,28 +504,39 @@ public class PanAndScaleView extends SurfaceView {
 		}
 	}
 
-	public void resetViewport(float viewWidth, float viewHeight) {
-		if(virtualSize.x > 0 && virtualSize.y > 0 && viewWidth > 0.0f && viewHeight > 0.0f) {
-	    	// Find the scale factor and the translate offset to fit and to center the vectors in the view bounds. 
-			float translateX, translateY, scale;
-			float viewRatio = viewHeight / viewWidth;
-			float imageRatio = virtualSize.y / virtualSize.x;
-			if(viewRatio > imageRatio) {
-				scale = viewWidth / virtualSize.x;
-				translateX = 0.0f;
-				translateY = (viewHeight - scale * virtualSize.y) / 2.0f;
-			} else {
-				scale = viewHeight / virtualSize.y;
-				translateX = (viewWidth - scale * virtualSize.x) / 2.0f;
-				translateY = 0.0f;
-			}
+	public void resetViewport() {
+		resetViewport(viewSizeWidth, viewSizeHeight);
+	}
 
-			viewScaleFactorX = scale;
-			viewScaleFactorY = scale;
-	    	scaleFactorMin = scale;
-		    scaleFactorMax = maxZoom * scaleFactorMin;
-	    	viewPanOffsetX = translateX;
-	    	viewPanOffsetY = translateY;
+	public void resetViewport(float viewWidth, float viewHeight) {
+		if(virtualSizeWidth > 0 && virtualSizeHeight > 0 && viewWidth > 0.0f && viewHeight > 0.0f) {
+			if(fillBounds) {
+				viewPanOffsetX = 0.0f;
+				viewPanOffsetY = 0.0f;
+				viewScaleFactorX = viewSizeWidth / virtualSizeWidth;
+				viewScaleFactorY = viewSizeHeight / virtualSizeHeight;
+			} else {
+				// Find the scale factor and the translate offset to fit and to center the vectors in the view bounds.
+				float translateX, translateY, scale;
+				float viewRatio = viewHeight / viewWidth;
+				float imageRatio = virtualSizeHeight / virtualSizeWidth;
+				if (viewRatio > imageRatio) {
+					scale = viewWidth / virtualSizeWidth;
+					translateX = 0.0f;
+					translateY = (viewHeight - scale * virtualSizeHeight) / 2.0f;
+				} else {
+					scale = viewHeight / virtualSizeHeight;
+					translateX = (viewWidth - scale * virtualSizeWidth) / 2.0f;
+					translateY = 0.0f;
+				}
+
+				viewScaleFactorX = scale;
+				viewScaleFactorY = scale;
+				scaleFactorMin = scale;
+				scaleFactorMax = maxZoom * scaleFactorMin;
+				viewPanOffsetX = translateX;
+				viewPanOffsetY = translateY;
+			}
 		}
 	}
 
@@ -591,7 +562,8 @@ public class PanAndScaleView extends SurfaceView {
 	protected void onSizeChanged(int viewWidth, int viewHeight, int oldViewWidth, int oldViewHeight) {
 		super.onSizeChanged(viewWidth, viewHeight, oldViewWidth, oldViewHeight);
 		
-		viewBounds.set(0.0f, 0.0f, viewWidth, viewHeight);
+		viewSizeWidth = viewWidth;
+		viewSizeHeight = viewHeight;
 		resetViewport((float)viewWidth, (float)viewHeight);
 	}
 
@@ -625,29 +597,29 @@ public class PanAndScaleView extends SurfaceView {
 			startOSDTimer();
 
 		if(!fillBounds && osdAllowed && showScaleThumbnail
-		&& (viewScaleFactorX > scaleFactorMin || virtualSize.x > viewBounds.width() || virtualSize.y > viewBounds.height())) {
+		&& (viewScaleFactorX > scaleFactorMin || virtualSizeWidth > viewSizeWidth || virtualSizeHeight > viewSizeHeight)) {
 			// Draw the scale thumbnail
-			paint.setColor(Color.RED);
+			paint.setColor(Color.WHITE);
 			
 			float scale = 0.2f;
-			if(virtualSize.x > virtualSize.y)
-				scale *= viewBounds.width() / virtualSize.x;
+			if(virtualSizeWidth > virtualSizeHeight)
+				scale *= viewSizeWidth / virtualSizeWidth;
 			else
-				scale *= viewBounds.height() / virtualSize.y;
+				scale *= viewSizeHeight / virtualSizeHeight;
 			float marginX = 10f * screenDensity, marginY = 10f * screenDensity;
-	    	rectScaleImage.set(viewBounds.right - marginX - scale * virtualSize.x,
-    			viewBounds.bottom - marginY - scale * virtualSize.y,
-    			viewBounds.right - marginX,
-    			viewBounds.bottom - marginY
+	    	rectScaleImage.set(viewSizeWidth - marginX - scale * virtualSizeWidth,
+    			viewSizeHeight - marginY - scale * virtualSizeHeight,
+    			viewSizeWidth - marginX,
+    			viewSizeHeight - marginY
 	    	);
 			canvas.drawRect(rectScaleImage, paint);
-//    		rectBitmapSource.set(0, 0, (int) virtualSize.x, (int) virtualSize.y);
+//    		rectBitmapSource.set(0, 0, (int) virtualSizeWidth, (int) virtualSizeHeight);
 //    		if(mBitmap != null)
 //    			canvas.drawBitmap(mBitmap, rectBitmapSource, rectScaleImage, paint);
     		rectScaleView.set(rectScaleImage.left + scale * (-viewPanOffsetX / viewScaleFactorX),
 				rectScaleImage.top + scale * (-viewPanOffsetY / viewScaleFactorY),
-				rectScaleImage.left + scale * (viewBounds.width() - viewPanOffsetX) / viewScaleFactorX,
-				rectScaleImage.top + scale * (viewBounds.height() - viewPanOffsetY) / viewScaleFactorY
+				rectScaleImage.left + scale * (viewSizeWidth - viewPanOffsetX) / viewScaleFactorX,
+				rectScaleImage.top + scale * (viewSizeHeight - viewPanOffsetY) / viewScaleFactorY
     		);
 			canvas.drawRect(rectScaleView, paint);
 		}

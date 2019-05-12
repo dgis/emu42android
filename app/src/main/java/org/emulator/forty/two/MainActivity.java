@@ -23,6 +23,7 @@ import android.view.MenuItem;
 import android.view.SubMenu;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.ImageButton;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -68,6 +69,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
     private NavigationView navigationView;
     private DrawerLayout drawer;
     private MainScreenView mainScreenView;
+    private ImageButton imageButtonMenu;
 
     public static final int INTENT_GETOPENFILENAME = 1;
     public static final int INTENT_GETSAVEFILENAME = 2;
@@ -78,6 +80,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
     public static final int INTENT_PICK_KML_FOLDER_FOR_NEW_FILE = 7;
     public static final int INTENT_PICK_KML_FOLDER_FOR_CHANGING = 8;
     public static final int INTENT_PICK_KML_FOLDER_FOR_SETTINGS = 9;
+    public static final int INTENT_PICK_KML_FOLDER_FOR_SECURITY = 10;
 
     private String kmlMimeType = "application/vnd.google-earth.kml+xml";
     private boolean kmlFolderUseDefault = true;
@@ -124,6 +127,16 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
 
         toolbar.setVisibility(View.GONE);
         mainScreenContainer.addView(mainScreenView, 0);
+
+        imageButtonMenu = findViewById(R.id.button_menu);
+        imageButtonMenu.setColorFilter(Color.argb(255, 255, 255, 255)); // White Tint
+        imageButtonMenu.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                if(drawer != null)
+                    drawer.openDrawer(GravityCompat.START);
+            }
+        });
 
         AssetManager assetManager = getResources().getAssets();
         NativeLib.start(assetManager, mainScreenView.getBitmapMainScreen(), this, mainScreenView);
@@ -897,9 +910,21 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
                     switch (requestCode) {
                         case INTENT_GETOPENFILENAME: {
                             //Log.d(TAG, "onActivityResult INTENT_GETOPENFILENAME " + url);
-                            if (onFileOpen(url) != 0) {
+                            int openResult = onFileOpen(url);
+                            if (openResult > 0) {
                                 saveLastDocument(url);
                                 makeUriPersistable(data, uri);
+                            } else if(openResult == -2) {
+                                // For security reason, you must select the folder where are the KML and ROM files and then, reopen this file!
+                                new AlertDialog.Builder(this)
+                                        .setTitle(getString(R.string.message_open_security))
+                                        .setMessage(getString(R.string.message_open_security_description))
+                                        .setPositiveButton(android.R.string.ok, new DialogInterface.OnClickListener() {
+                                            public void onClick(DialogInterface dialog, int which) {
+                                                Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT_TREE);
+                                                startActivityForResult(intent, INTENT_PICK_KML_FOLDER_FOR_SECURITY);
+                                            }
+                                        }).show();
                             }
                             break;
                         }
@@ -928,7 +953,8 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
                         }
                         case INTENT_PICK_KML_FOLDER_FOR_NEW_FILE:
                         case INTENT_PICK_KML_FOLDER_FOR_CHANGING:
-                        case INTENT_PICK_KML_FOLDER_FOR_SETTINGS: {
+                        case INTENT_PICK_KML_FOLDER_FOR_SETTINGS:
+                        case INTENT_PICK_KML_FOLDER_FOR_SECURITY: {
                             //Log.d(TAG, "onActivityResult INTENT_PICK_KML_FOLDER " + url);
                             SharedPreferences.Editor editor = sharedPreferences.edit();
                             editor.putBoolean("settings_kml_default", false);
@@ -945,7 +971,15 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
                                     OnViewScript();
                                     break;
                                 case INTENT_PICK_KML_FOLDER_FOR_SETTINGS:
-
+                                    break;
+                                case INTENT_PICK_KML_FOLDER_FOR_SECURITY:
+                                    new AlertDialog.Builder(this)
+                                            .setTitle(getString(R.string.message_open_security_retry))
+                                            .setMessage(getString(R.string.message_open_security_retry_description))
+                                            .setPositiveButton(android.R.string.ok, new DialogInterface.OnClickListener() {
+                                                public void onClick(DialogInterface dialog, int which) {
+                                                }
+                                            }).show();
                                     break;
                             }
                             break;
@@ -1056,6 +1090,9 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
             if((writeAccess & GENERIC_WRITE) == GENERIC_WRITE)
                 mode += "w";
             filePfd = getContentResolver().openFileDescriptor(uri, mode);
+        } catch (SecurityException e) {
+            e.printStackTrace();
+            return -2;
         } catch (Exception e) {
             e.printStackTrace();
             return -1;
@@ -1247,8 +1284,8 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         int isDynamicValue = isDynamic ? 1 : 0;
         if(key == null) {
             String[] settingKeys = {
-                    "settings_realspeed", "settings_grayscale", "settings_allow_rotation", "settings_fill_screen",
-                    "settings_hide_bar", "settings_scale", "settings_allow_sound", "settings_haptic_feedback",
+                    "settings_realspeed", "settings_grayscale", "settings_allow_rotation", "settings_auto_zoom", "settings_fill_screen",
+                    "settings_hide_bar", "settings_hide_button_menu", "settings_scale", "settings_allow_sound", "settings_haptic_feedback",
                     "settings_background_kml_color", "settings_background_fallback_color",
                     "settings_kml", "settings_port1", "settings_port2" };
             for (String settingKey : settingKeys) {
@@ -1269,8 +1306,11 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
                     else
                         setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
                     break;
+                case "settings_auto_zoom":
+                    mainScreenView.setAutoZoom(sharedPreferences.getBoolean("settings_auto_zoom", true), isDynamic);
+                    break;
                 case "settings_fill_screen":
-                    mainScreenView.setFillScreen(sharedPreferences.getBoolean("settings_fill_screen", false));
+                    mainScreenView.setFillScreen(sharedPreferences.getBoolean("settings_fill_screen", false), isDynamic);
                     break;
                 case "settings_hide_bar":
                 case "settings_hide_bar_status":
@@ -1280,6 +1320,9 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
                         hideSystemUI();
                     else
                         showSystemUI();
+                    break;
+                case "settings_hide_button_menu":
+                    imageButtonMenu.setVisibility(sharedPreferences.getBoolean("settings_hide_button_menu", false) ? View.GONE : View.VISIBLE);
                     break;
                 case "settings_scale":
                     //mainScreenView.setScale(1.0f); //sharedPreferences.getFloat("settings_scale", 0.0f));

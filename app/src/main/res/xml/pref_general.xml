@@ -23,6 +23,11 @@
             <SwitchPreference
                 android:key="settings_allow_rotation"
                 android:title="@string/settings_allow_rotation_title"
+                android:defaultValue="true" />
+            <SwitchPreference
+                android:key="settings_auto_zoom"
+                android:title="@string/settings_auto_zoom_title"
+                android:summary="@string/settings_auto_zoom_summary"
                 android:defaultValue="false" />
             <SwitchPreference
                 android:key="settings_fill_screen"
@@ -35,6 +40,10 @@
             <SwitchPreference
                 android:key="settings_hide_bar_nav"
                 android:title="@string/settings_hide_bar_nav"
+                android:defaultValue="false" />
+            <SwitchPreference
+                android:key="settings_hide_button_menu"
+                android:title="@string/settings_hide_button_menu"
                 android:defaultValue="false" />
             <SwitchPreference
                 android:key="settings_allow_sound"

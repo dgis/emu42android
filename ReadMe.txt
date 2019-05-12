@@ -43,7 +43,7 @@ CHANGES
 
 Version 1.0 (2019-05-xx)
 
-- First public version available on the store.
+- First public version available on the store. It is based on Emu42 version 1.22 from Christoph Gießelink.
 
 
 LICENSES
@@ -58,10 +58,25 @@ You should have received a copy of the GNU General Public License along with thi
 
 TODO
 
-- Zoom auto depending of the screen ratio (adjust when rotate)
-- Save the zoom and pan location
-- Show the LCD in the OSD when zooming
-- Improve the access to the menu
+- Touch does not work well anymore
+2/Sometimes when you try to load a kml, the current one has the LCD color go blue, or even the characters reversed, like a mirror. Very strange as well.
+- Implement the macro
+5/It does not seem that macros are implemented ? Would be terrific to import 17/27/19 formulas !
+
+
+DONE
+
+- Improve the access to the menu by adding an optional icon in the top left of the screen.
+- After uninstalling and the installing the application, we lose the permission to read in the KML and ROM folder, so, in this case, we now prompt the user to select again this folder.
+    I thinks it is this issue: 1/Sometimes loading a kml would systematically fail, with an error on loading the .kmi file. I first thought it was a case sensitivity problem in the filename, but this didn't help. But exiting the app and relaunching it made it work. Very strange.
+- Fix the screen issue with the 14B and 32SII.
+- Zoom auto depending of the screen ratio (adjust when rotate).
+- Add the possibility to scroll or swipe the screen.
+    4/Generally speaking the KMLs and skins would need adaptation for Android. The 28S and 19BII are not usable on a phone, too small. Would need to be broken in 2 parts with toggling, like go28s does. Not sure it is possible with KMLs. Even the other calcs have a lot of wasted space, the keys are small.
+- Show the LCD in the OSD when zooming.
+    3/The 32SII and 14B scripts, which work fine on PC, do not work properly. The annunciators are sticky, you never know whether the next key is going to be shifted or not..
+- Fix the issue with the bad screen color (red/blue or event green)!
+- Change the icon.
 
 
 BUILD
@@ -83,7 +98,7 @@ Either use Android Studio:
 Or in the command line, build the signed APK:
 * In the root folder, create a keystore.jks file with:
 ** keytool -genkey -keystore ./keystore.jks -keyalg RSA -validity 9125 -alias key0
-** (keytool -genkeypair -v -keystore ./keystore.jks -keyalg RSA -validity 9125 -alias key0)
+** (or keytool -genkeypair -v -keystore ./keystore.jks -keyalg RSA -validity 9125 -alias key0)
 * create the file ./keystore.properties , with the following properties:
     storeFile=../keystore.jks
     storePassword=myPassword

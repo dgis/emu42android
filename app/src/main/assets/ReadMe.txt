@@ -43,7 +43,7 @@ CHANGES
 
 Version 1.0 (2019-05-xx)
 
-- First public version available on the store.
+- First public version available on the store. It is based on Emu42 version 1.22 from Christoph Gießelink.
 
 
 LICENSES

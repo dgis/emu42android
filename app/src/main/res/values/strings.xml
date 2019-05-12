@@ -47,6 +47,10 @@
     <string name="load_custom_kml">[Select a Custom KML script folder...]</string>
     <string name="load_default_kml">[Default KML script folder]</string>
     <string name="pick_calculator">Pick a calculator</string>
+    <string name="message_open_security">Permission Denied</string>
+    <string name="message_open_security_description">For security reason, you must select the folder where are the KML and ROM files and then, reopen this file!</string>
+    <string name="message_open_security_retry">Please, open again</string>
+    <string name="message_open_security_retry_description">I hope now you could open again the state file.</string>
     <string name="message_state_saved">State saved</string>
     <string name="message_do_you_want_to_save">Do you want to save changes?\n(BACK to cancel)</string>
     <string name="message_yes">Yes</string>
@@ -65,9 +69,12 @@
     <string name="settings_objectloadwarning_title">Show Load Object Warning</string>
     <string name="settings_alwaysdisplog_title">Always Show KML Compilation Result</string>
     <string name="settings_allow_rotation_title">Allow rotation</string>
+    <string name="settings_auto_zoom_title">Auto Zoom</string>
+    <string name="settings_auto_zoom_summary">Automatically zoom to the right side of the calculator in landscape mode when the Android device is in portrait mode.</string>
     <string name="settings_fill_screen_title">Fill screen</string>
     <string name="settings_hide_bar_status">Hide the status bar</string>
     <string name="settings_hide_bar_nav">Hide the navigation bar</string>
+    <string name="settings_hide_button_menu">Hide the button menu</string>
     <string name="settings_allow_sound_title">Allow sounds</string>
     <string name="settings_haptic_feedback_title">Allow haptic feedback</string>
     <string name="settings_category_background_title">Background Color</string>

@@ -24,6 +24,7 @@ TCHAR szChosenCurrentKml[MAX_PATH];
 TCHAR szKmlLog[10240];
 TCHAR szKmlLogBackup[10240];
 TCHAR szKmlTitle[10240];
+BOOL securityExceptionOccured;
 BOOL settingsPort2en;
 BOOL settingsPort2wr;
 BOOL soundAvailable = FALSE;
@@ -34,7 +35,7 @@ BOOL soundEnabled = FALSE;
 extern void win32Init();
 
 extern void draw();
-extern void buttonDown(int x, int y);
+extern BOOL buttonDown(int x, int y);
 extern void buttonUp(int x, int y);
 extern void keyDown(int virtKey);
 extern void keyUp(int virtKey);
@@ -391,8 +392,8 @@ JNIEXPORT void JNICALL Java_org_emulator_forty_two_NativeLib_changeBitmap(JNIEnv
 JNIEXPORT void JNICALL Java_org_emulator_forty_two_NativeLib_draw(JNIEnv *env, jobject thisz) {
     draw();
 }
-JNIEXPORT void JNICALL Java_org_emulator_forty_two_NativeLib_buttonDown(JNIEnv *env, jobject thisz, jint x, jint y) {
-    buttonDown(x, y);
+JNIEXPORT jboolean JNICALL Java_org_emulator_forty_two_NativeLib_buttonDown(JNIEnv *env, jobject thisz, jint x, jint y) {
+    return buttonDown(x, y) ? JNI_TRUE : JNI_FALSE;
 }
 JNIEXPORT void JNICALL Java_org_emulator_forty_two_NativeLib_buttonUp(JNIEnv *env, jobject thisz, jint x, jint y) {
     buttonUp(x, y);
@@ -523,6 +524,10 @@ JNIEXPORT jint JNICALL Java_org_emulator_forty_two_NativeLib_onFileOpen(JNIEnv *
     }
     draw();
     (*env)->ReleaseStringUTFChars(env, stateFilename, stateFilenameUTF8);
+    if(securityExceptionOccured) {
+        securityExceptionOccured = FALSE;
+        result = -2;
+    }
     return result;
 }
 JNIEXPORT jint JNICALL Java_org_emulator_forty_two_NativeLib_onFileSave(JNIEnv *env, jobject thisz) {

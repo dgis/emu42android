@@ -1239,6 +1239,7 @@ enum DialogBoxMode {
 	DialogBoxMode_SET_USRPRG42
 };
 extern enum DialogBoxMode currentDialogBoxMode;
+extern BOOL securityExceptionOccured;
 #define MAX_LABEL_SIZE 5000
 extern TCHAR labels[MAX_LABEL_SIZE];
 #define MAX_ITEMDATA 100

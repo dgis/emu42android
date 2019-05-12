@@ -1,41 +1,32 @@
 package org.emulator.forty.two;
 
-import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.Color;
-
 import android.graphics.Paint;
-import android.graphics.RectF;
-import android.os.Build;
 import android.util.DisplayMetrics;
 import android.util.Log;
 import android.view.KeyEvent;
-import android.view.MotionEvent;
-import android.view.SurfaceView;
+import android.view.View;
 
 import java.util.HashMap;
 
 public class MainScreenView extends PanAndScaleView {
 
     protected static final String TAG = "MainScreenView";
+    protected final boolean debug = false;
+
     private Paint paint = new Paint();
     private Bitmap bitmapMainScreen;
     private HashMap<Integer, Integer> vkmap;
-//    private float screenScaleX = 1.0f;
-//    private float screenScaleY = 1.0f;
-//    private float screenOffsetX = 0.0f;
-//    private float screenOffsetY= 0.0f;
-//    private boolean fillScreen = false;
-    private float fixScale = 0.0f;
-    private boolean horizontalSwipe = true;
     private int kmlBackgroundColor = Color.BLACK;
     private boolean useKmlBackgroundColor = false;
     private int fallbackBackgroundColorType = 0;
     private int statusBarColor = 0;
     private boolean viewSized = false;
+    private boolean autoZoom = true; //false;
 
     public MainScreenView(Context context) {
         super(context);
@@ -144,31 +135,58 @@ public class MainScreenView extends PanAndScaleView {
         // This call is necessary, or else the
         // draw method will not be called.
         setWillNotDraw(false);
+
+
+        setOnTapDownListener(new OnTapListener() {
+            @Override
+            public boolean onTap(View v, float x, float y) {
+                if(NativeLib.buttonDown((int)x, (int)y)) {
+                    if(debug) Log.d(TAG, "onTapDown() true");
+                        //return true;
+                }
+                if(debug) Log.d(TAG, "onTapDown() false");
+                return false;
+            }
+        });
+
+        setOnTapUpListener(new OnTapListener() {
+            @Override
+            public boolean onTap(View v, float x, float y) {
+                if(debug) Log.d(TAG, "onTapUp()");
+                NativeLib.buttonUp((int)x, (int)y);
+                return false;
+            }
+        });
     }
 
-    @SuppressLint("ClickableViewAccessibility")
-    public boolean onTouchEvent(MotionEvent event) {
-        int actionIndex = event.getActionIndex();
-        int action = event.getActionMasked();
-        switch (action) {
-        case MotionEvent.ACTION_DOWN:
-        case MotionEvent.ACTION_POINTER_DOWN:
-            //Log.d(TAG, "ACTION_DOWN/ACTION_POINTER_DOWN count: " + touchCount + ", actionIndex: " + actionIndex);
-            //NativeLib.buttonDown((int)((event.getX(actionIndex) - screenOffsetX) / screenScaleX), (int)((event.getY(actionIndex) - screenOffsetY) / screenScaleY));
-            NativeLib.buttonDown((int)((event.getX(actionIndex) - viewPanOffsetX) / viewScaleFactorX), (int)((event.getY(actionIndex) - viewPanOffsetY) / viewScaleFactorY));
-            break;
-        case MotionEvent.ACTION_UP:
-        case MotionEvent.ACTION_POINTER_UP:
-            //Log.d(TAG, "ACTION_UP/ACTION_POINTER_UP count: " + touchCount + ", actionIndex: " + actionIndex);
-            //NativeLib.buttonUp((int)((event.getX(actionIndex) - screenOffsetX) / screenScaleX), (int)((event.getY(actionIndex) - screenOffsetY) / screenScaleY));
-            NativeLib.buttonUp((int)((event.getX(actionIndex) - viewPanOffsetX) / viewScaleFactorX), (int)((event.getY(actionIndex) - viewPanOffsetY) / viewScaleFactorY));
-            break;
-        default:
-            break;
-        }
-        //return true;
-        return super.onTouchEvent(event);
-    }
+//    @SuppressLint("ClickableViewAccessibility")
+//    public boolean onTouchEvent(MotionEvent event) {
+//        int actionIndex = event.getActionIndex();
+//        int action = event.getActionMasked();
+//        switch (action) {
+//        case MotionEvent.ACTION_DOWN:
+//        case MotionEvent.ACTION_POINTER_DOWN:
+//            //Log.d(TAG, "ACTION_DOWN/ACTION_POINTER_DOWN count: " + touchCount + ", actionIndex: " + actionIndex);
+//            //NativeLib.buttonDown((int)((event.getX(actionIndex) - screenOffsetX) / screenScaleX), (int)((event.getY(actionIndex) - screenOffsetY) / screenScaleY));
+//            if(NativeLib.buttonDown((int)((event.getX(actionIndex) - viewPanOffsetX) / viewScaleFactorX),
+//                (int)((event.getY(actionIndex) - viewPanOffsetY) / viewScaleFactorY))) {
+//                if(debug) Log.d(TAG, "onTouchEvent() ACTION_DOWN true");
+//                return true;
+//            }
+//            if(debug) Log.d(TAG, "onTouchEvent() ACTION_DOWN false");
+//            break;
+//        case MotionEvent.ACTION_UP:
+//        case MotionEvent.ACTION_POINTER_UP:
+//            //Log.d(TAG, "ACTION_UP/ACTION_POINTER_UP count: " + touchCount + ", actionIndex: " + actionIndex);
+//            //NativeLib.buttonUp((int)((event.getX(actionIndex) - screenOffsetX) / screenScaleX), (int)((event.getY(actionIndex) - screenOffsetY) / screenScaleY));
+//            NativeLib.buttonUp((int)((event.getX(actionIndex) - viewPanOffsetX) / viewScaleFactorX), (int)((event.getY(actionIndex) - viewPanOffsetY) / viewScaleFactorY));
+//            if(debug) Log.d(TAG, "onTouchEvent() ACTION_UP");
+//            break;
+//        default:
+//            break;
+//        }
+//        return super.onTouchEvent(event);
+//    }
 
     @Override
     public boolean onKeyDown(int keyCode, KeyEvent event) {
@@ -196,53 +214,49 @@ public class MainScreenView extends PanAndScaleView {
 
     @Override
     protected void onSizeChanged(int viewWidth, int viewHeight, int oldViewWidth, int oldViewHeight) {
-        super.onSizeChanged(viewWidth, viewHeight, oldViewWidth, oldViewHeight);
+//        super.onSizeChanged(viewWidth, viewHeight, oldViewWidth, oldViewHeight);
 
-        if(!viewSized) {
-            viewSized = true;
-            if (bitmapMainScreen != null) {
-                setVirtualSize(bitmapMainScreen.getWidth(), bitmapMainScreen.getHeight());
-                resetViewport();
-            }
-        }
+        viewSizeWidth = viewWidth;
+        viewSizeHeight = viewHeight;
+
+        viewSized = true;
+        updateLayout();
     }
 
-//    private void calcTranslateAndScale(int viewWidth, int viewHeight) {
-//        float imageSizeX = bitmapMainScreen.getWidth();
-//        float imageSizeY = bitmapMainScreen.getHeight();
-//
-//        if(imageSizeX > 0 && imageSizeY > 0 && viewWidth > 0.0f && viewHeight > 0.0f) {
-//            // Find the scale factor and the translate offset to fit and to center the image in the view bounds.
-//            float translateX = 0.0f, translateY = 0.0f, scaleX = 1.0f, scaleY = 1.0f;
-//
-//            if(fillScreen) {
-//                scaleX = viewWidth / imageSizeX;
-//                scaleY = viewHeight / imageSizeY;
-//            } else {
-//                if(horizontalSwipe) {
-//                    float alpha = Math.max(2.0f, (viewHeight * imageSizeX) / (viewWidth * imageSizeY));
-//                    scaleX = scaleY = alpha * viewWidth / imageSizeX;
-//                } else {
-//                    float viewRatio = (float) viewHeight / (float) viewWidth;
-//                    float imageRatio = imageSizeY / imageSizeX;
-//                    if (viewRatio > imageRatio) {
-//                        scaleX = scaleY = this.fixScale != 0.0f ? this.fixScale : viewWidth / imageSizeX;
-//                        translateX = (viewWidth - scaleX * imageSizeX) / 2.0f; //0.0f;
-//                        translateY = (viewHeight - scaleY * imageSizeY) / 2.0f;
-//                    } else {
-//                        scaleX = scaleY = this.fixScale != 0.0f ? this.fixScale : viewHeight / imageSizeY;
-//                        translateX = (viewWidth - scaleX * imageSizeX) / 2.0f;
-//                        translateY = (viewHeight - scaleY * imageSizeY) / 2.0f; //0.0f;
-//                    }
-//                }
-//            }
-//
-//            screenScaleX = scaleX;
-//            screenScaleY = scaleY;
-//            screenOffsetX = translateX;
-//            screenOffsetY = translateY;
-//        }
-//    }
+    protected void updateLayout() {
+        if(bitmapMainScreen != null) {
+            if (virtualSizeWidth > 0.0f && viewSizeWidth > 0.0f && !getFillBounds() && autoZoom) {
+                float imageRatio = virtualSizeHeight / virtualSizeWidth;
+                float viewRatio = viewSizeHeight / viewSizeWidth;
+                if (imageRatio < 1.0f != viewRatio < 1.0f) {
+                    // With have different screens orientations, so we automatically zoom
+                    float translateX, translateY, scale;
+                    if (viewRatio > imageRatio) {
+                        float alpha = viewRatio / imageRatio;
+                        scale = Math.min(2, alpha) * viewSizeWidth / virtualSizeWidth;
+                        translateX = viewSizeWidth - scale * virtualSizeWidth;
+                        translateY = (viewSizeHeight - scale * virtualSizeHeight) / 2.0f;
+                    } else {
+                        scale = viewSizeHeight / virtualSizeHeight;
+                        translateX = (viewSizeWidth - scale * virtualSizeWidth) / 2.0f;
+                        translateY = 0.0f;
+                    }
+
+                    viewScaleFactorX = scale;
+                    viewScaleFactorY = scale;
+                    scaleFactorMin = scale;
+                    scaleFactorMax = maxZoom * scaleFactorMin;
+                    viewPanOffsetX = translateX;
+                    viewPanOffsetY = translateY;
+
+                    constrainPan();
+                    return;
+                }
+            }
+            // Else, the screens orientations are the same, so we set the calculator in fullscreen
+            resetViewport();
+        }
+    }
 
     /**
      * Draw the score.
@@ -255,18 +269,6 @@ public class MainScreenView extends PanAndScaleView {
         canvas.drawColor(getBackgroundColor());
         canvas.drawBitmap(bitmapMainScreen, 0, 0, paint);
     }
-//    @Override
-//    protected void onDraw(Canvas canvas) {
-//        //Log.d(TAG, "PAINT onDraw() mIsScaling: " + mIsScaling + ", mIsPanning: " + mIsPanning + ", mIsFlinging: " + mIsFlinging);
-//
-//        canvas.drawColor(getBackgroundColor());
-//
-//        canvas.save();
-//        canvas.translate(screenOffsetX, screenOffsetY);
-//        canvas.scale(screenScaleX, screenScaleY);
-//        canvas.drawBitmap(bitmapMainScreen, 0, 0, paint);
-//        canvas.restore();
-//    }
 
     final int CALLBACK_TYPE_INVALIDATE = 0;
     final int CALLBACK_TYPE_WINDOW_RESIZE = 1;
@@ -280,7 +282,7 @@ public class MainScreenView extends PanAndScaleView {
             case CALLBACK_TYPE_WINDOW_RESIZE:
                 // New Bitmap size
                 if(bitmapMainScreen == null || bitmapMainScreen.getWidth() != param1 || bitmapMainScreen.getHeight() != param2) {
-                    //Log.d(TAG, "PAINT updateCallback() Bitmap.createBitmap(x: " + Math.max(1, param1) + ", y: " + Math.max(1, param2) + ")");
+                    if(debug) Log.d(TAG, "updateCallback() Bitmap.createBitmap(x: " + Math.max(1, param1) + ", y: " + Math.max(1, param2) + ")");
                     Bitmap  oldBitmapMainScreen = bitmapMainScreen;
                     bitmapMainScreen = Bitmap.createBitmap(Math.max(1, param1), Math.max(1, param2), Bitmap.Config.ARGB_8888);
                     int globalColor = NativeLib.getGlobalColor();
@@ -294,7 +296,7 @@ public class MainScreenView extends PanAndScaleView {
                     }
                     setVirtualSize(bitmapMainScreen.getWidth(), bitmapMainScreen.getHeight());
                     if(viewSized)
-                        resetViewport();
+                        updateLayout();
                 }
                 //postInvalidate();
                 break;
@@ -306,11 +308,20 @@ public class MainScreenView extends PanAndScaleView {
         return bitmapMainScreen;
     }
 
-    public void setFillScreen(boolean fillScreen) {
-        //this.fillScreen = fillScreen;
-        //calcTranslateAndScale(getWidth(), getHeight());
-        //postInvalidate();
+    public void setAutoZoom(boolean autoZoom, boolean isDynamic) {
+        this.autoZoom = autoZoom;
+        if(isDynamic) {
+            updateLayout();
+            invalidate();
+        }
+    }
+
+    public void setFillScreen(boolean fillScreen, boolean isDynamic) {
         setFillBounds(fillScreen);
+        if(isDynamic) {
+            resetViewport();
+            invalidate();
+        }
     }
 
     public void setBackgroundKmlColor(boolean useKmlBackgroundColor) {
