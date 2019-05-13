@@ -9,7 +9,10 @@ import android.graphics.Paint;
 import android.util.DisplayMetrics;
 import android.util.Log;
 import android.view.KeyEvent;
+import android.view.MotionEvent;
 import android.view.View;
+
+import androidx.core.view.ViewCompat;
 
 import java.util.HashMap;
 
@@ -137,56 +140,62 @@ public class MainScreenView extends PanAndScaleView {
         setWillNotDraw(false);
 
 
-        setOnTapDownListener(new OnTapListener() {
-            @Override
-            public boolean onTap(View v, float x, float y) {
-                if(NativeLib.buttonDown((int)x, (int)y)) {
-                    if(debug) Log.d(TAG, "onTapDown() true");
-                        //return true;
-                }
-                if(debug) Log.d(TAG, "onTapDown() false");
-                return false;
-            }
-        });
-
-        setOnTapUpListener(new OnTapListener() {
-            @Override
-            public boolean onTap(View v, float x, float y) {
-                if(debug) Log.d(TAG, "onTapUp()");
-                NativeLib.buttonUp((int)x, (int)y);
-                return false;
-            }
-        });
+//        setOnTapDownListener(new OnTapListener() {
+//            @Override
+//            public boolean onTap(View v, float x, float y) {
+//                if(NativeLib.buttonDown((int)x, (int)y)) {
+//                    if(debug) Log.d(TAG, "onTapDown() true");
+//                        //return true;
+//                }
+//                if(debug) Log.d(TAG, "onTapDown() false");
+//                return false;
+//            }
+//        });
+//
+//        setOnTapUpListener(new OnTapListener() {
+//            @Override
+//            public boolean onTap(View v, float x, float y) {
+//                if(debug) Log.d(TAG, "onTapUp()");
+//                NativeLib.buttonUp((int)x, (int)y);
+//                return false;
+//            }
+//        });
     }
 
-//    @SuppressLint("ClickableViewAccessibility")
-//    public boolean onTouchEvent(MotionEvent event) {
-//        int actionIndex = event.getActionIndex();
-//        int action = event.getActionMasked();
-//        switch (action) {
-//        case MotionEvent.ACTION_DOWN:
-//        case MotionEvent.ACTION_POINTER_DOWN:
-//            //Log.d(TAG, "ACTION_DOWN/ACTION_POINTER_DOWN count: " + touchCount + ", actionIndex: " + actionIndex);
-//            //NativeLib.buttonDown((int)((event.getX(actionIndex) - screenOffsetX) / screenScaleX), (int)((event.getY(actionIndex) - screenOffsetY) / screenScaleY));
-//            if(NativeLib.buttonDown((int)((event.getX(actionIndex) - viewPanOffsetX) / viewScaleFactorX),
-//                (int)((event.getY(actionIndex) - viewPanOffsetY) / viewScaleFactorY))) {
-//                if(debug) Log.d(TAG, "onTouchEvent() ACTION_DOWN true");
-//                return true;
-//            }
-//            if(debug) Log.d(TAG, "onTouchEvent() ACTION_DOWN false");
-//            break;
-//        case MotionEvent.ACTION_UP:
-//        case MotionEvent.ACTION_POINTER_UP:
-//            //Log.d(TAG, "ACTION_UP/ACTION_POINTER_UP count: " + touchCount + ", actionIndex: " + actionIndex);
-//            //NativeLib.buttonUp((int)((event.getX(actionIndex) - screenOffsetX) / screenScaleX), (int)((event.getY(actionIndex) - screenOffsetY) / screenScaleY));
-//            NativeLib.buttonUp((int)((event.getX(actionIndex) - viewPanOffsetX) / viewScaleFactorX), (int)((event.getY(actionIndex) - viewPanOffsetY) / viewScaleFactorY));
-//            if(debug) Log.d(TAG, "onTouchEvent() ACTION_UP");
-//            break;
-//        default:
-//            break;
-//        }
-//        return super.onTouchEvent(event);
-//    }
+    protected int numberOfKeyDown = 0;
+    public boolean onTouchEvent(MotionEvent event) {
+        int actionIndex = event.getActionIndex();
+        int action = event.getActionMasked();
+        switch (action) {
+            case MotionEvent.ACTION_DOWN:
+            case MotionEvent.ACTION_POINTER_DOWN:
+                //Log.d(TAG, "ACTION_DOWN/ACTION_POINTER_DOWN count: " + touchCount + ", actionIndex: " + actionIndex);
+                //NativeLib.buttonDown((int)((event.getX(actionIndex) - screenOffsetX) / screenScaleX), (int)((event.getY(actionIndex) - screenOffsetY) / screenScaleY));
+                if (NativeLib.buttonDown((int) ((event.getX(actionIndex) - viewPanOffsetX) / viewScaleFactorX),
+                        (int) ((event.getY(actionIndex) - viewPanOffsetY) / viewScaleFactorY))) {
+                    numberOfKeyDown++;
+                    if (debug) Log.d(TAG, "onTouchEvent() ACTION_DOWN true, actionIndex: " + actionIndex + ", numberOfKeyDown: " + numberOfKeyDown);
+                    return true;
+                }
+                if (debug)
+                    Log.d(TAG, "onTouchEvent() ACTION_DOWN false, actionIndex: " + actionIndex + ", numberOfKeyDown: " + numberOfKeyDown);
+                break;
+            case MotionEvent.ACTION_UP:
+            case MotionEvent.ACTION_POINTER_UP:
+                //Log.d(TAG, "ACTION_UP/ACTION_POINTER_UP count: " + touchCount + ", actionIndex: " + actionIndex);
+                //NativeLib.buttonUp((int)((event.getX(actionIndex) - screenOffsetX) / screenScaleX), (int)((event.getY(actionIndex) - screenOffsetY) / screenScaleY));
+                if(NativeLib.buttonUp((int) ((event.getX(actionIndex) - viewPanOffsetX) / viewScaleFactorX), (int) ((event.getY(actionIndex) - viewPanOffsetY) / viewScaleFactorY))) {
+                    numberOfKeyDown--;
+                    if (debug) Log.d(TAG, "onTouchEvent() ACTION_UP true, actionIndex: " + actionIndex + ", numberOfKeyDown: " + numberOfKeyDown);
+                    return true;
+                }
+                if (debug) Log.d(TAG, "onTouchEvent() ACTION_UP false, actionIndex: " + actionIndex + ", numberOfKeyDown: " + numberOfKeyDown);
+                break;
+            default:
+                break;
+        }
+        return super.onTouchEvent(event);
+    }
 
     @Override
     public boolean onKeyDown(int keyCode, KeyEvent event) {

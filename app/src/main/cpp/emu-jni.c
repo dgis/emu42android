@@ -36,7 +36,7 @@ extern void win32Init();
 
 extern void draw();
 extern BOOL buttonDown(int x, int y);
-extern void buttonUp(int x, int y);
+extern BOOL buttonUp(int x, int y);
 extern void keyDown(int virtKey);
 extern void keyUp(int virtKey);
 
@@ -395,8 +395,8 @@ JNIEXPORT void JNICALL Java_org_emulator_forty_two_NativeLib_draw(JNIEnv *env, j
 JNIEXPORT jboolean JNICALL Java_org_emulator_forty_two_NativeLib_buttonDown(JNIEnv *env, jobject thisz, jint x, jint y) {
     return buttonDown(x, y) ? JNI_TRUE : JNI_FALSE;
 }
-JNIEXPORT void JNICALL Java_org_emulator_forty_two_NativeLib_buttonUp(JNIEnv *env, jobject thisz, jint x, jint y) {
-    buttonUp(x, y);
+JNIEXPORT jboolean JNICALL Java_org_emulator_forty_two_NativeLib_buttonUp(JNIEnv *env, jobject thisz, jint x, jint y) {
+    return buttonUp(x, y);
 }
 JNIEXPORT void JNICALL Java_org_emulator_forty_two_NativeLib_keyDown(JNIEnv *env, jobject thisz, jint virtKey) {
     keyDown(virtKey);

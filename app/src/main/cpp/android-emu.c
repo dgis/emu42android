@@ -141,7 +141,12 @@ static LRESULT OnLButtonDown(UINT nFlags, WORD x, WORD y)
 static LRESULT OnLButtonUp(UINT nFlags, WORD x, WORD y)
 {
 	if (nMacroState == MACRO_PLAY) return 0; // playing macro
-	if (nState == SM_RUN) MouseButtonUpAt(nFlags, x,y);
+	if (nState == SM_RUN) {
+		MouseButtonUpAt(nFlags, x,y);
+		if(MouseIsButton(x,y)) {
+			return 1;
+		}
+	}
 	return 0;
 }
 
@@ -170,8 +175,8 @@ BOOL buttonDown(int x, int y) {
     return OnLButtonDown(MK_LBUTTON, x, y);
 }
 
-void buttonUp(int x, int y) {
-    OnLButtonUp(MK_LBUTTON, x, y);
+BOOL buttonUp(int x, int y) {
+    return OnLButtonUp(MK_LBUTTON, x, y);
 }
 
 void keyDown(int virtKey) {
