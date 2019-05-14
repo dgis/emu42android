@@ -33,6 +33,7 @@ public class PanAndScaleView extends SurfaceView {
     protected ScaleGestureDetector scaleDetector;
     protected GestureDetector gestureDetector;
     protected OverScroller scroller;
+	protected boolean preventToScroll = false;
 	protected boolean hasScrolled = false;
     protected PointF panPrevious = new PointF(0f, 0f);
 
@@ -207,8 +208,7 @@ public class PanAndScaleView extends SurfaceView {
 		setPadding(0, 0, 0, 0);
 		
 		scroller = new OverScroller(context);
-		//scroller.setFriction(0.0015f); // ViewConfiguration.getScrollFriction(); // ViewConfiguration.SCROLL_FRICTION = 0.015f;
-		
+
 		scaleDetector = new ScaleGestureDetector(context, new ScaleGestureDetector.OnScaleGestureListener() {
 		    @Override
 		    public boolean onScaleBegin(ScaleGestureDetector detector) {
@@ -243,7 +243,7 @@ public class PanAndScaleView extends SurfaceView {
 
 			@Override
 			public boolean onDown(MotionEvent e) {
-				if(debug) Log.d(TAG, "onDown()");
+				if(debug) Log.d(TAG, "onDown() actionIndex: " + e.getActionIndex());
 				scroller.forceFinished(true);
 				ViewCompat.postInvalidateOnAnimation(PanAndScaleView.this);
 				if(onTapDownListener != null) {
@@ -262,7 +262,7 @@ public class PanAndScaleView extends SurfaceView {
 
 			@Override
 			public boolean onSingleTapConfirmed(MotionEvent e) {
-				if(debug) Log.d(TAG, "onSingleTapConfirmed()");
+				if(debug) Log.d(TAG, "onSingleTapConfirmed() actionIndex: " + e.getActionIndex());
 				if(onTapUpListener != null) {
 					float scaleAndPanX = (e.getX() - viewPanOffsetX) / viewScaleFactorX;
 					float scaleAndPanY = (e.getY() - viewPanOffsetY) / viewScaleFactorY;
@@ -275,7 +275,7 @@ public class PanAndScaleView extends SurfaceView {
 
 			@Override
 			public boolean onDoubleTap(MotionEvent e) {
-				if(debug) Log.d(TAG, "onDoubleTap()");
+				if(debug) Log.d(TAG, "onDoubleTap() actionIndex: " + e.getActionIndex());
 				if(!allowDoubleTapZoom || fillBounds)
 					return false;
 				float scaleFactorPreviousX = viewScaleFactorX;
@@ -294,9 +294,9 @@ public class PanAndScaleView extends SurfaceView {
 			}
 
 			@Override
-			public boolean onScroll(MotionEvent e1, MotionEvent e2, float distanceX, float distanceY) {
-				if(debug) Log.d(TAG, "onScroll()");
-				if(fillBounds)
+			public boolean onScroll(MotionEvent downEvent, MotionEvent moveEvent, float distanceX, float distanceY) {
+				if(debug) Log.d(TAG, "onScroll() downEvent.actionIndex: " + (downEvent != null ? downEvent.getActionIndex() : "null") + ", moveEvent.actionIndex: " + (downEvent != null ? moveEvent.getActionIndex() : "null"));
+				if(fillBounds || preventToScroll)
 					return false;
 
 				doScroll(distanceX, distanceY);
@@ -304,14 +304,21 @@ public class PanAndScaleView extends SurfaceView {
 			}
 
 			@Override
-			public boolean onFling(MotionEvent e1, MotionEvent e2, float velocityX, float velocityY) {
-				if(debug) Log.d(TAG, "onFling(..., velocityX: " + velocityX + ", velocityY: " + velocityY + ")");
+			public boolean onFling(MotionEvent downEvent, MotionEvent moveEvent, float velocityX, float velocityY) {
+				if(debug) Log.d(TAG, "onFling(..., velocityX: " + velocityX + ", velocityY: " + velocityY + ") downEvent.actionIndex: " + (downEvent != null ? downEvent.getActionIndex() : "null") + ", moveEvent.actionIndex: " + (downEvent != null ? moveEvent.getActionIndex() : "null"));
+				if(fillBounds || preventToScroll)
+					return false;
+
 				float viewPanMinX = viewSizeWidth - virtualSizeWidth * viewScaleFactorX;
 				float viewPanMinY = viewSizeHeight - virtualSizeHeight * viewScaleFactorY;
-				
+
+				// https://developer.android.com/training/gestures/scroll
 				scroller.forceFinished(true);
 				float velocityFactor = -1.0f;
-				scroller.fling((int) viewPanOffsetX, (int) viewPanOffsetY, (int)(velocityFactor * velocityX), (int)(velocityFactor * velocityY), (int)viewPanMinX, 0, (int)viewPanMinY, 0);
+				scroller.fling((int) viewPanOffsetX, (int) viewPanOffsetY,
+						(int)(velocityFactor * velocityX), (int)(velocityFactor * velocityY),
+						(int)viewPanMinX, 0,
+						(int)viewPanMinY, 0);
 				ViewCompat.postInvalidateOnAnimation(PanAndScaleView.this);
 				return true;
 			}
@@ -328,6 +335,9 @@ public class PanAndScaleView extends SurfaceView {
 	@Override
 	public void computeScroll() {
 		super.computeScroll();
+
+		if(fillBounds || preventToScroll)
+			return;
 
 		if (scroller.computeScrollOffset() && !fillBounds) {
 			if(debug) Log.d(TAG, "computeScroll()");
@@ -597,7 +607,8 @@ public class PanAndScaleView extends SurfaceView {
 			startOSDTimer();
 
 		if(!fillBounds && osdAllowed && showScaleThumbnail
-		&& (viewScaleFactorX > scaleFactorMin || virtualSizeWidth > viewSizeWidth || virtualSizeHeight > viewSizeHeight)) {
+		//&& (viewScaleFactorX > scaleFactorMin || virtualSizeWidth > viewSizeWidth || virtualSizeHeight > viewSizeHeight)
+		) {
 			// Draw the scale thumbnail
 			paint.setColor(Color.WHITE);
 			

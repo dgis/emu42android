@@ -10,11 +10,10 @@ import android.util.DisplayMetrics;
 import android.util.Log;
 import android.view.KeyEvent;
 import android.view.MotionEvent;
-import android.view.View;
-
-import androidx.core.view.ViewCompat;
 
 import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Set;
 
 public class MainScreenView extends PanAndScaleView {
 
@@ -139,19 +138,19 @@ public class MainScreenView extends PanAndScaleView {
         // draw method will not be called.
         setWillNotDraw(false);
 
-
+        //scroller.setFriction(0.0015f); // ViewConfiguration.getScrollFriction(); // ViewConfiguration.SCROLL_FRICTION = 0.015f;
 //        setOnTapDownListener(new OnTapListener() {
 //            @Override
 //            public boolean onTap(View v, float x, float y) {
 //                if(NativeLib.buttonDown((int)x, (int)y)) {
 //                    if(debug) Log.d(TAG, "onTapDown() true");
-//                        //return true;
+//                        return true;
 //                }
 //                if(debug) Log.d(TAG, "onTapDown() false");
 //                return false;
 //            }
 //        });
-//
+
 //        setOnTapUpListener(new OnTapListener() {
 //            @Override
 //            public boolean onTap(View v, float x, float y) {
@@ -162,7 +161,7 @@ public class MainScreenView extends PanAndScaleView {
 //        });
     }
 
-    protected int numberOfKeyDown = 0;
+    protected Set<Integer> currentButtonTouched = new HashSet<Integer>();
     public boolean onTouchEvent(MotionEvent event) {
         int actionIndex = event.getActionIndex();
         int action = event.getActionMasked();
@@ -171,25 +170,33 @@ public class MainScreenView extends PanAndScaleView {
             case MotionEvent.ACTION_POINTER_DOWN:
                 //Log.d(TAG, "ACTION_DOWN/ACTION_POINTER_DOWN count: " + touchCount + ", actionIndex: " + actionIndex);
                 //NativeLib.buttonDown((int)((event.getX(actionIndex) - screenOffsetX) / screenScaleX), (int)((event.getY(actionIndex) - screenOffsetY) / screenScaleY));
+                currentButtonTouched.remove(actionIndex);
+                if(actionIndex == 0 && event.getPointerCount() == 1)
+                    currentButtonTouched.clear();
                 if (NativeLib.buttonDown((int) ((event.getX(actionIndex) - viewPanOffsetX) / viewScaleFactorX),
                         (int) ((event.getY(actionIndex) - viewPanOffsetY) / viewScaleFactorY))) {
-                    numberOfKeyDown++;
-                    if (debug) Log.d(TAG, "onTouchEvent() ACTION_DOWN true, actionIndex: " + actionIndex + ", numberOfKeyDown: " + numberOfKeyDown);
-                    return true;
+                    currentButtonTouched.add(actionIndex);
+                    preventToScroll = true;
+//                    if (debug) Log.d(TAG, "onTouchEvent() ACTION_DOWN true, actionIndex: " + actionIndex + ", currentButtonTouched: " + currentButtonTouched.size());
+//                    return true;
                 }
-                if (debug)
-                    Log.d(TAG, "onTouchEvent() ACTION_DOWN false, actionIndex: " + actionIndex + ", numberOfKeyDown: " + numberOfKeyDown);
+                if (debug) Log.d(TAG, "onTouchEvent() ACTION_DOWN false, actionIndex: " + actionIndex
+                        + ", currentButtonTouched: " + currentButtonTouched.size()
+                        + ", preventToScroll: " + preventToScroll + ", getPointerCount: " + event.getPointerCount());
                 break;
             case MotionEvent.ACTION_UP:
             case MotionEvent.ACTION_POINTER_UP:
                 //Log.d(TAG, "ACTION_UP/ACTION_POINTER_UP count: " + touchCount + ", actionIndex: " + actionIndex);
                 //NativeLib.buttonUp((int)((event.getX(actionIndex) - screenOffsetX) / screenScaleX), (int)((event.getY(actionIndex) - screenOffsetY) / screenScaleY));
-                if(NativeLib.buttonUp((int) ((event.getX(actionIndex) - viewPanOffsetX) / viewScaleFactorX), (int) ((event.getY(actionIndex) - viewPanOffsetY) / viewScaleFactorY))) {
-                    numberOfKeyDown--;
-                    if (debug) Log.d(TAG, "onTouchEvent() ACTION_UP true, actionIndex: " + actionIndex + ", numberOfKeyDown: " + numberOfKeyDown);
-                    return true;
-                }
-                if (debug) Log.d(TAG, "onTouchEvent() ACTION_UP false, actionIndex: " + actionIndex + ", numberOfKeyDown: " + numberOfKeyDown);
+                NativeLib.buttonUp((int) ((event.getX(actionIndex) - viewPanOffsetX) / viewScaleFactorX), (int) ((event.getY(actionIndex) - viewPanOffsetY) / viewScaleFactorY));
+                currentButtonTouched.remove(actionIndex);
+                preventToScroll = currentButtonTouched.size() > 0;
+                if (debug) Log.d(TAG, "onTouchEvent() ACTION_UP, actionIndex: " + actionIndex + ", currentButtonTouched: " + currentButtonTouched.size() + ", preventToScroll: " + preventToScroll);
+                break;
+            case MotionEvent.ACTION_CANCEL:
+                currentButtonTouched.remove(actionIndex);
+                preventToScroll = currentButtonTouched.size() > 0;
+                if (debug) Log.d(TAG, "onTouchEvent() ACTION_CANCEL, actionIndex: " + actionIndex + ", currentButtonTouched: " + currentButtonTouched.size() + ", preventToScroll: " + preventToScroll);
                 break;
             default:
                 break;

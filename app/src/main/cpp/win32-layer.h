@@ -323,6 +323,10 @@ enum FilePointerType {
 	FILE_CURRENT,
 	FILE_END
 };
+#define INVALID_FILE_SIZE ((DWORD)0xFFFFFFFF)
+#define INVALID_SET_FILE_POINTER ((DWORD)-1)
+#define NO_ERROR 0L                                                 // dderror
+extern DWORD GetLastError(VOID);
 
 // Supposedly specifies that Windows use default window coords
 enum { CW_USEDEFAULT };
@@ -1250,3 +1254,5 @@ BOOL getFirstKMLFilenameForType(BYTE chipsetType, TCHAR * firstKMLFilename, size
 void clipboardCopyText(const TCHAR * text);
 const TCHAR * clipboardPasteText();
 void performHapticFeedback();
+
+typedef int SOCKET;

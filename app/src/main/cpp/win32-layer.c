@@ -24,6 +24,14 @@ size_t assetsPrefixLength;
 const TCHAR * contentScheme = _T("content://");
 size_t contentSchemeLength;
 const TCHAR * documentScheme = _T("document:");
+
+
+DWORD GetLastError(VOID) {
+    //TODO
+    return NO_ERROR;
+}
+
+
 struct timerEvent {
     BOOL valid;
     int timerId;

@@ -1285,7 +1285,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         if(key == null) {
             String[] settingKeys = {
                     "settings_realspeed", "settings_grayscale", "settings_allow_rotation", "settings_auto_zoom", "settings_fill_screen",
-                    "settings_hide_bar", "settings_hide_button_menu", "settings_scale", "settings_allow_sound", "settings_haptic_feedback",
+                    "settings_hide_bar", "settings_hide_button_menu", "settings_allow_sound", "settings_haptic_feedback",
                     "settings_background_kml_color", "settings_background_fallback_color",
                     "settings_kml", "settings_port1", "settings_port2" };
             for (String settingKey : settingKeys) {
@@ -1323,9 +1323,6 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
                     break;
                 case "settings_hide_button_menu":
                     imageButtonMenu.setVisibility(sharedPreferences.getBoolean("settings_hide_button_menu", false) ? View.GONE : View.VISIBLE);
-                    break;
-                case "settings_scale":
-                    //mainScreenView.setScale(1.0f); //sharedPreferences.getFloat("settings_scale", 0.0f));
                     break;
 
                 case "settings_allow_sound":

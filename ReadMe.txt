@@ -58,10 +58,8 @@ You should have received a copy of the GNU General Public License along with thi
 
 TODO
 
-- Touch does not work well anymore
-2/Sometimes when you try to load a kml, the current one has the LCD color go blue, or even the characters reversed, like a mirror. Very strange as well.
+- Add an AutoRotate following the ratio
 - Implement the macro
-5/It does not seem that macros are implemented ? Would be terrific to import 17/27/19 formulas !
 
 
 DONE
