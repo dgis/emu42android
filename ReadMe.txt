@@ -22,7 +22,8 @@ QUICK START
 1. From the left side, slide your finger to open the menu.
 2. Touch the "New..." menu item.
 3. "Select a Custom KML script folder..." where you have copied the KML scripts and ROM files.
-4. And the calculator should now be opened.
+4. Pick a calculator.
+5. And the calculator should now be opened.
 
 
 NOTES
@@ -49,7 +50,7 @@ Version 1.0 (2019-05-xx)
 LICENSES
 
 Android version by Régis COSNIER.
-This program is based on Emu42 for Windows version, copyrighted by Christoph Gießelink & Sébastien Carlier, with the addition of a win32 layer to run on Android.
+This program is based on Emu42 for Windows version, copyrighted by Christoph Gießelink & Sébastien Carlier.
 
 This program is free software; you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation; either version 2 of the License, or (at your option) any later version.
 This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.

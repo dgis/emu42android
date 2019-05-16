@@ -65,6 +65,7 @@ public class PanAndScaleView extends SurfaceView {
 	protected float previousViewPanOffsetY;
 	protected float previousViewScaleFactorX;
 	protected float previousViewScaleFactorY;
+	protected boolean firstTime = false;
 
 	protected boolean viewHasChanged() {
 		if(viewPanOffsetX != previousViewPanOffsetX || viewPanOffsetY != previousViewPanOffsetY || viewScaleFactorX != previousViewScaleFactorX || viewScaleFactorY != previousViewScaleFactorY) {
@@ -313,13 +314,20 @@ public class PanAndScaleView extends SurfaceView {
 				float viewPanMinY = viewSizeHeight - virtualSizeHeight * viewScaleFactorY;
 
 				// https://developer.android.com/training/gestures/scroll
-				scroller.forceFinished(true);
+				//scroller.forceFinished(true);
 				float velocityFactor = -1.0f;
+				//scroller.setFriction(0.00001f); // ViewConfiguration.getScrollFriction(); // ViewConfiguration.SCROLL_FRICTION = 0.015f;
+				//scroller.setFriction(0.0015f); // ViewConfiguration.getScrollFriction(); // ViewConfiguration.SCROLL_FRICTION = 0.015f;
+				if(debug) Log.d(TAG, "scroller.fling(startX: " + (int) viewPanOffsetX + ", startY: " + (int) viewPanOffsetY
+						+ ", velocityX: " + (int)(velocityFactor * velocityX) + ", velocityY: " + (int)(velocityFactor * velocityY)
+						+ ", minX: " + viewPanMinX + ", maxX: " + 0
+						+ ", minY: " + viewPanMinY + ", maxY: " + 0
+						+ ")");
 				scroller.fling((int) viewPanOffsetX, (int) viewPanOffsetY,
 						(int)(velocityFactor * velocityX), (int)(velocityFactor * velocityY),
 						(int)viewPanMinX, 0,
 						(int)viewPanMinY, 0);
-				ViewCompat.postInvalidateOnAnimation(PanAndScaleView.this);
+				//ViewCompat.postInvalidateOnAnimation(PanAndScaleView.this);
 				return true;
 			}
 		});
@@ -365,9 +373,11 @@ public class PanAndScaleView extends SurfaceView {
 
 		viewPanOffsetX -= deltaX;
 		viewPanOffsetY -= deltaY;
+		if(debug) Log.d(TAG, "doScroll() before constraint viewPanOffsetX: " + viewPanOffsetX + ", viewPanOffsetY: " + viewPanOffsetY);
 		constrainScale();
 		constrainPan();
-		invalidate();
+		if(debug) Log.d(TAG, "doScroll() after constraint viewPanOffsetX: " + viewPanOffsetX + ", viewPanOffsetY: " + viewPanOffsetY);
+		//invalidate();
 	}
 
 	public void postDoScroll(float deltaX, float deltaY, boolean center) {
@@ -603,8 +613,12 @@ public class PanAndScaleView extends SurfaceView {
        	}
 
 		boolean viewHasChanged = viewHasChanged();
-		if(viewHasChanged)
-			startOSDTimer();
+		if(viewHasChanged) {
+			if(firstTime) {
+				firstTime = false;
+			} else
+				startOSDTimer();
+		}
 
 		if(!fillBounds && osdAllowed && showScaleThumbnail
 		//&& (viewScaleFactorX > scaleFactorMin || virtualSizeWidth > viewSizeWidth || virtualSizeHeight > viewSizeHeight)

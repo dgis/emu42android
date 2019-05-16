@@ -1284,7 +1284,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         int isDynamicValue = isDynamic ? 1 : 0;
         if(key == null) {
             String[] settingKeys = {
-                    "settings_realspeed", "settings_grayscale", "settings_allow_rotation", "settings_auto_zoom", "settings_fill_screen",
+                    "settings_realspeed", "settings_grayscale", /*"settings_allow_rotation",*/ "settings_auto_layout", //"settings_fill_screen",
                     "settings_hide_bar", "settings_hide_button_menu", "settings_allow_sound", "settings_haptic_feedback",
                     "settings_background_kml_color", "settings_background_fallback_color",
                     "settings_kml", "settings_port1", "settings_port2" };
@@ -1300,17 +1300,12 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
                     NativeLib.setConfiguration(key, isDynamicValue, sharedPreferences.getBoolean(key, false) ? 1 : 0, 0, null);
                     break;
 
-                case "settings_allow_rotation":
-                    if(sharedPreferences.getBoolean("settings_allow_rotation", false))
-                        setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED);
-                    else
-                        setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
-                    break;
-                case "settings_auto_zoom":
-                    mainScreenView.setAutoZoom(sharedPreferences.getBoolean("settings_auto_zoom", true), isDynamic);
-                    break;
-                case "settings_fill_screen":
-                    mainScreenView.setFillScreen(sharedPreferences.getBoolean("settings_fill_screen", false), isDynamic);
+                case "settings_auto_layout":
+                    int autoLayoutMode = 1;
+                    try {
+                        autoLayoutMode = Integer.parseInt(sharedPreferences.getString("settings_auto_layout", "1"));
+                    } catch (NumberFormatException ex) {}
+                    mainScreenView.setAutoLayout(autoLayoutMode, isDynamic);
                     break;
                 case "settings_hide_bar":
                 case "settings_hide_bar_status":
