@@ -31,7 +31,7 @@ android {
     compileSdkVersion 28
     defaultConfig {
         applicationId "org.emulator.forty.two"
-        minSdkVersion 19
+        minSdkVersion 21
         targetSdkVersion 28
         versionCode 1
         versionName "1.0"

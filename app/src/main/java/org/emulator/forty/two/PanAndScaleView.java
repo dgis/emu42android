@@ -314,7 +314,7 @@ public class PanAndScaleView extends SurfaceView {
 				float viewPanMinY = viewSizeHeight - virtualSizeHeight * viewScaleFactorY;
 
 				// https://developer.android.com/training/gestures/scroll
-				//scroller.forceFinished(true);
+				scroller.forceFinished(true);
 				float velocityFactor = -1.0f;
 				//scroller.setFriction(0.00001f); // ViewConfiguration.getScrollFriction(); // ViewConfiguration.SCROLL_FRICTION = 0.015f;
 				//scroller.setFriction(0.0015f); // ViewConfiguration.getScrollFriction(); // ViewConfiguration.SCROLL_FRICTION = 0.015f;
@@ -327,7 +327,7 @@ public class PanAndScaleView extends SurfaceView {
 						(int)(velocityFactor * velocityX), (int)(velocityFactor * velocityY),
 						(int)viewPanMinX, 0,
 						(int)viewPanMinY, 0);
-				//ViewCompat.postInvalidateOnAnimation(PanAndScaleView.this);
+				ViewCompat.postInvalidateOnAnimation(PanAndScaleView.this);
 				return true;
 			}
 		});
@@ -377,7 +377,7 @@ public class PanAndScaleView extends SurfaceView {
 		constrainScale();
 		constrainPan();
 		if(debug) Log.d(TAG, "doScroll() after constraint viewPanOffsetX: " + viewPanOffsetX + ", viewPanOffsetY: " + viewPanOffsetY);
-		//invalidate();
+		invalidate();
 	}
 
 	public void postDoScroll(float deltaX, float deltaY, boolean center) {
@@ -568,6 +568,7 @@ public class PanAndScaleView extends SurfaceView {
 		public void run() {
 			// OSD should stop now!
 			osdAllowed = false;
+			invalidate();
 		}
 	};
 
