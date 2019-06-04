@@ -1,7 +1,7 @@
 DESCRIPTION
 
 This project ports the Windows application Emu42 written in C to Android.
-It uses the Android NDK. The former Emu42 source code remains untouched because of a thin win32 emulation layer above Linux/NDK!
+It uses the Android NDK. The former Emu42 source code (written by Christoph Giesselink) remains untouched because of a thin win32 emulation layer above Linux/NDK!
 This win32 layer will allow to easily update from the original Emu42 source code.
 It can open or save the exact same state files (state.e??) than the original Windows application!
 
@@ -28,6 +28,8 @@ QUICK START
 
 NOTES
 
+- For technical reason, this application need the Android 5.0 (API 21).
+- The Help menu displays Emu48's original help HTML page and may not accurately reflect the behavior of this Android version.
 - When using a custom KML script by selecting a folder, you must take care of the case sensitivity of its dependency files.
 - This Emulator does not include the ROM files or the KML files.
 
@@ -42,7 +44,7 @@ NOT WORKING YET
 
 CHANGES
 
-Version 1.0 (2019-05-xx)
+Version 1.0 (2019-06-05)
 
 - First public version available on the store. It is based on Emu42 version 1.22 from Christoph Gießelink.
 
@@ -59,7 +61,9 @@ You should have received a copy of the GNU General Public License along with thi
 
 TODO
 
-- Add an AutoRotate following the ratio
+- Improve the swipe gesture.
+- To have the LCD part stick to the screen when swiping the 2 calc parts (Vincent Weber).
+- Anyway that the layout settings (zoom mode, fill screen...) be part of the saved state, rather than being global to the app (Vincent Weber).
 - Implement the macro
 
 

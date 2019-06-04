@@ -250,7 +250,7 @@ public class MainScreenView extends PanAndScaleView {
                     if(imageRatio > 1.0f)
                         ((Activity)getContext()).setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
                     else
-                        ((Activity)getContext()).setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE);
+                        ((Activity)getContext()).setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE);
                 } else if(autoZoom) {
                     ((Activity)getContext()).setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED);
                     if (imageRatio < 1.0f != viewRatio < 1.0f) {
