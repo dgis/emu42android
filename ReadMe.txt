@@ -29,7 +29,7 @@ QUICK START
 NOTES
 
 - For technical reason, this application need the Android 5.0 (API 21).
-- The Help menu displays Emu48's original help HTML page and may not accurately reflect the behavior of this Android version.
+- The Help menu displays Emu42's original help HTML page and may not accurately reflect the behavior of this Android version.
 - When using a custom KML script by selecting a folder, you must take care of the case sensitivity of its dependency files.
 - This Emulator does not include the ROM files or the KML files.
 
