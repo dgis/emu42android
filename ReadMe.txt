@@ -44,6 +44,12 @@ NOT WORKING YET
 
 CHANGES
 
+Version 1.1 (2019-06-XX)
+
+- Add a volume slider in the settings.
+- Add a rotation option.
+
+
 Version 1.0 (2019-06-05)
 
 - First public version available on the store. It is based on Emu42 version 1.22 from Christoph Gießelink.

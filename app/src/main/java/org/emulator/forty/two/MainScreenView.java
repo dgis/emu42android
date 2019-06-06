@@ -29,6 +29,7 @@ public class MainScreenView extends PanAndScaleView {
     private int fallbackBackgroundColorType = 0;
     private int statusBarColor = 0;
     private boolean viewSized = false;
+    private int rotationMode = 0;
     private boolean autoRotation = false;
     private boolean autoZoom = false;
 
@@ -251,35 +252,45 @@ public class MainScreenView extends PanAndScaleView {
                         ((Activity)getContext()).setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
                     else
                         ((Activity)getContext()).setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE);
-                } else if(autoZoom) {
-                    ((Activity)getContext()).setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED);
-                    if (imageRatio < 1.0f != viewRatio < 1.0f) {
-                        // With have different screens orientations, so we automatically zoom
-                        float translateX, translateY, scale;
-                        if (viewRatio > imageRatio) {
-                            float alpha = viewRatio / imageRatio;
-                            scale = Math.min(2, alpha) * viewSizeWidth / virtualSizeWidth;
-                            translateX = viewSizeWidth - scale * virtualSizeWidth;
-                            translateY = (viewSizeHeight - scale * virtualSizeHeight) / 2.0f;
-                        } else {
-                            float beta = imageRatio / viewRatio;
-                            scale = Math.min(2, beta) * viewSizeHeight / virtualSizeHeight;
-                            translateX = (viewSizeWidth - scale * virtualSizeWidth) / 2.0f;
-                            translateY = 0.0f;
-                        }
-
-                        viewScaleFactorX = scale;
-                        viewScaleFactorY = scale;
-                        scaleFactorMin = scale;
-                        scaleFactorMax = maxZoom * scaleFactorMin;
-                        viewPanOffsetX = translateX;
-                        viewPanOffsetY = translateY;
-
-                        constrainPan();
-                        return;
-                    }
                 } else {
-                    ((Activity)getContext()).setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED);
+
+                    if(rotationMode == 0) // Allow rotation
+                        ((Activity)getContext()).setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED);
+                    else if(rotationMode == 1) // Portrait
+                        ((Activity)getContext()).setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
+                    else if(rotationMode == 2) // Landscape (left or right following the sensor)
+                        ((Activity)getContext()).setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE);
+
+                    if (autoZoom) {
+                        //((Activity) getContext()).setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED);
+                        if (imageRatio < 1.0f != viewRatio < 1.0f) {
+                            // With have different screens orientations, so we automatically zoom
+                            float translateX, translateY, scale;
+                            if (viewRatio > imageRatio) {
+                                float alpha = viewRatio / imageRatio;
+                                scale = Math.min(2, alpha) * viewSizeWidth / virtualSizeWidth;
+                                translateX = viewSizeWidth - scale * virtualSizeWidth;
+                                translateY = (viewSizeHeight - scale * virtualSizeHeight) / 2.0f;
+                            } else {
+                                float beta = imageRatio / viewRatio;
+                                scale = Math.min(2, beta) * viewSizeHeight / virtualSizeHeight;
+                                translateX = (viewSizeWidth - scale * virtualSizeWidth) / 2.0f;
+                                translateY = 0.0f;
+                            }
+
+                            viewScaleFactorX = scale;
+                            viewScaleFactorY = scale;
+                            scaleFactorMin = scale;
+                            scaleFactorMax = maxZoom * scaleFactorMin;
+                            viewPanOffsetX = translateX;
+                            viewPanOffsetY = translateY;
+
+                            constrainPan();
+                            return;
+                        }
+                    } else {
+                        //((Activity) getContext()).setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED);
+                    }
                 }
             }
             // Else, the screens orientations are the same, so we set the calculator in fullscreen
@@ -336,6 +347,14 @@ public class MainScreenView extends PanAndScaleView {
 
     public Bitmap getBitmapMainScreen() {
         return bitmapMainScreen;
+    }
+
+    public void setRotationMode(int rotationMode, boolean isDynamic) {
+        this.rotationMode = rotationMode;
+        if(isDynamic) {
+            updateLayout();
+            invalidate();
+        }
     }
 
     public void setAutoLayout(int layoutMode, boolean isDynamic) {

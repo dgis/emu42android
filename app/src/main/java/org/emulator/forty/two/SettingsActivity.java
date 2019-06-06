@@ -6,6 +6,9 @@ import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.view.MenuItem;
 
+import java.util.HashSet;
+
+import androidx.annotation.Nullable;
 import androidx.appcompat.app.ActionBar;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.preference.Preference;
@@ -87,10 +90,15 @@ public class SettingsActivity extends AppCompatActivity implements SharedPrefere
 
             // Sound settings
 
-            Preference preferenceAllowSound = findPreference("settings_allow_sound");
-            if(preferenceAllowSound != null && !NativeLib.getSoundEnabled()) {
-                preferenceAllowSound.setSummary("Cannot initialize the sound engine.");
-                preferenceAllowSound.setEnabled(false);
+//            Preference preferenceAllowSound = findPreference("settings_allow_sound");
+//            if(preferenceAllowSound != null && !NativeLib.getSoundEnabled()) {
+//                preferenceAllowSound.setSummary("Cannot initialize the sound engine.");
+//                preferenceAllowSound.setEnabled(false);
+//            }
+            Preference preferenceSoundVolume = findPreference("settings_sound_volume");
+            if(preferenceSoundVolume != null && !NativeLib.getSoundEnabled()) {
+                preferenceSoundVolume.setSummary("Cannot initialize the sound engine.");
+                preferenceSoundVolume.setEnabled(false);
             }
 
             // Background color settings
