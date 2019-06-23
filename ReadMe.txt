@@ -39,7 +39,6 @@ NOT WORKING YET
 - Disassembler
 - Debugger
 - Macro
-- Infrared Printer
 
 
 CHANGES
@@ -48,6 +47,9 @@ Version 1.1 (2019-06-XX)
 
 - Add a volume slider in the settings.
 - Add a rotation option.
+- Add the printer simulator.
+- Refactor the code for easier code sharing between Emu48, Emu42 and Emu71.
+- Fix: Bad text characters when copy/paste the stack.
 
 
 Version 1.0 (2019-06-05)

@@ -19,9 +19,6 @@
     <string name="action_settings">Settings</string>
     <string name="navigation_drawer_open">Open navigation drawer</string>
     <string name="navigation_drawer_close">Close navigation drawer</string>
-    <!--<string name="nav_header_title">Emu42</string>-->
-    <!--<string name="nav_header_subtitle">android.studio@android.com</string>-->
-    <!--<string name="nav_header_desc">Navigation header</string>-->
     <string name="nav_new">New...</string>
     <string name="nav_open">Open...</string>
     <string name="nav_save">Save</string>
@@ -40,6 +37,9 @@
     <string name="nav_delete_backup">Delete Backup</string>
     <string name="nav_view">View</string>
     <string name="nav_change_kml_script">Change KML Script...</string>
+    <string name="nav_show_printer">Show the Printer Simulator...</string>
+    <string name="nav_tool">Tool</string>
+    <string name="nav_create_ram_card">Create RAM Card...</string>
     <string name="nav_help">Help</string>
     <string name="nav_item_help">Help</string>
     <string name="nav_about">About Emu42...</string>
@@ -47,6 +47,15 @@
     <string name="load_custom_kml">[Select a Custom KML script folder...]</string>
     <string name="load_default_kml">[Default KML script folder]</string>
     <string name="pick_calculator">Pick a calculator</string>
+
+    <string name="dialog_printer_simulator_title">Printer Simulator</string>
+    <string name="tab_printer_textual">Text</string>
+    <string name="tab_printer_graphical">Graphic</string>
+    <string name="menu_printer_simulator_share_text">Share Text</string>
+    <string name="menu_printer_simulator_share_graphic">Share Graphic</string>
+    <string name="menu_printer_simulator_change_paper">Change Paper (Erase)</string>
+
+    <string name="create_ram_card_title">Create RAM Card</string>
     <string name="message_open_security">Permission Denied</string>
     <string name="message_open_security_description">For security reason, you must select the folder where are the KML and ROM files and then, reopen this file!</string>
     <string name="message_open_security_retry">Please, open again</string>
@@ -62,6 +71,11 @@
     <string name="message_press_reset">Are you sure you want to press the Reset Button?</string>
     <string name="message_change_kml">You cannot change the KML script when Emu42 is not running. Use the File, New menu item to create a new calculator.</string>
     <string name="message_kml_script_compilation_result">KML Script Compilation Result</string>
+    <string name="message_kml_folder_selection_need_api_lollipop">Need Android 5.0</string>
+    <string name="message_kml_folder_selection_need_api_lollipop_description">To select the KML folder, you need at least Android version 5.0</string>
+    <string name="message_printer">Printer Simulator</string>
+    <string name="message_printer_share_text">Save printer paper as text</string>
+    <string name="message_printer_share_graphic">Save printer paper as image</string>
 
     <string name="settings_category_general_title">General</string>
     <string name="settings_realspeed_title">Authentic Calculator Speed</string>
@@ -80,7 +94,6 @@
     <string name="settings_hide_bar_status">Hide the status bar</string>
     <string name="settings_hide_bar_nav">Hide the navigation bar</string>
     <string name="settings_hide_button_menu">Hide the button menu</string>
-    <!--<string name="settings_allow_sound_title">Allow sounds</string>-->
     <string name="settings_sound_volume_title">Sound Volume</string>
     <string name="settings_haptic_feedback_title">Allow haptic feedback</string>
 

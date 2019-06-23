@@ -88,8 +88,22 @@
                 android:id="@+id/nav_change_kml_script"
                 android:icon="@drawable/ic_wallpaper_black_24dp"
                 android:title="@string/nav_change_kml_script" />
+            <item
+                android:id="@+id/nav_show_printer"
+                android:icon="@drawable/ic_print_black_24dp"
+                android:title="@string/nav_show_printer" />
         </menu>
     </item>
+	<!--
+    <item android:title="@string/nav_tool">
+        <menu>
+            <item
+                android:id="@+id/nav_create_ram_card"
+                android:icon="@drawable/ic_memory_black_24dp"
+                android:title="@string/nav_create_ram_card" />
+        </menu>
+    </item>
+	-->
     <item android:title="@string/nav_help">
         <menu>
             <item

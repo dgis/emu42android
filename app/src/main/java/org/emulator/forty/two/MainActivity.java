@@ -1,3 +1,17 @@
+// This program is free software; you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation; either version 2 of the License, or
+// (at your option) any later version.
+//
+// This program is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License along
+// with this program; if not, write to the Free Software Foundation, Inc.,
+// 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+
 package org.emulator.forty.two;
 
 import android.app.Activity;
@@ -7,7 +21,6 @@ import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
-import android.content.pm.ActivityInfo;
 import android.content.res.AssetManager;
 import android.graphics.Bitmap;
 import android.graphics.Color;
@@ -39,14 +52,24 @@ import androidx.drawerlayout.widget.DrawerLayout;
 
 import com.google.android.material.navigation.NavigationView;
 
+import org.emulator.calculator.InfoActivity;
+import org.emulator.calculator.InfoWebActivity;
+import org.emulator.calculator.MainScreenView;
+import org.emulator.calculator.NativeLib;
+import org.emulator.calculator.PrinterSimulator;
+import org.emulator.calculator.PrinterSimulatorFragment;
+import org.emulator.calculator.Utils;
+
 import java.io.BufferedReader;
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.Date;
@@ -81,12 +104,14 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
     public static final int INTENT_PICK_KML_FOLDER_FOR_CHANGING = 8;
     public static final int INTENT_PICK_KML_FOLDER_FOR_SETTINGS = 9;
     public static final int INTENT_PICK_KML_FOLDER_FOR_SECURITY = 10;
+    public static final int INTENT_CREATE_RAM_CARD = 11;
 
     private String kmlMimeType = "application/vnd.google-earth.kml+xml";
     private boolean kmlFolderUseDefault = true;
     private String kmlFolderURL = "";
     private boolean kmFolderChange = true;
 
+    private int selectedRAMSize = -1;
     private boolean[] objectsToSaveItemChecked = null;
 
     private int MRU_ID_START = 10000;
@@ -97,6 +122,10 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
             return size() > MAX_MRU;
         }
     };
+
+    private PrinterSimulator printer = new PrinterSimulator();
+    private PrinterSimulatorFragment fragmentPrinterSimulator = new PrinterSimulatorFragment();
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -157,6 +186,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         updateNavigationDrawerItems();
 
 
+        fragmentPrinterSimulator.setPrinterSimulator(printer);
 
 
         //android.os.Debug.waitForDebugger();
@@ -323,6 +353,10 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
             OnBackupDelete();
         } else if (id == R.id.nav_change_kml_script) {
             OnViewScript();
+        } else if (id == R.id.nav_show_printer) {
+            OnViewPrinter();
+//        } else if (id == R.id.nav_create_ram_card) {
+//            OnCreateRAMCard();
         } else if (id == R.id.nav_help) {
             OnTopics();
         } else if (id == R.id.nav_about) {
@@ -810,6 +844,10 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         showKMLPicker(true);
     }
 
+    private void OnViewPrinter() {
+        fragmentPrinterSimulator.show(getSupportFragmentManager(), "Hello Fragment");
+    }
+
     private void showKMLPicker(final boolean changeKML) {
         extractKMLScripts();
 
@@ -825,20 +863,32 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         } else
             kmlScriptsForCurrentModel = kmlScripts;
 
+        boolean hasEmbeddedKMLs = getPackageName().contains("org.emulator.forty.eight");
         final int lastIndex = kmlScriptsForCurrentModel.size();
-        final String[] kmlScriptTitles = new String[lastIndex + 1 /* 2 */];
+        final String[] kmlScriptTitles = new String[lastIndex + (hasEmbeddedKMLs ? 2 : 1)];
         for (int i = 0; i < kmlScriptsForCurrentModel.size(); i++)
             kmlScriptTitles[i] = kmlScriptsForCurrentModel.get(i).title;
         kmlScriptTitles[lastIndex] = getResources().getString(R.string.load_custom_kml);
-        //kmlScriptTitles[lastIndex + 1] = getResources().getString(R.string.load_default_kml);
+        if(hasEmbeddedKMLs)
+            kmlScriptTitles[lastIndex + 1] = getResources().getString(R.string.load_default_kml);
         new AlertDialog.Builder(MainActivity.this)
                 .setTitle(getResources().getString(R.string.pick_calculator))
                 .setItems(kmlScriptTitles, new DialogInterface.OnClickListener() {
                     @Override
                     public void onClick(DialogInterface dialog, int which) {
                         if(which == lastIndex) {
+                            if (Build.VERSION.SDK_INT < Build.VERSION_CODES.LOLLIPOP) { // < API 21
+                                new AlertDialog.Builder(MainActivity.this)
+                                        .setTitle(getString(R.string.message_kml_folder_selection_need_api_lollipop))
+                                        .setMessage(getString(R.string.message_kml_folder_selection_need_api_lollipop_description))
+                                        .setPositiveButton(android.R.string.ok, new DialogInterface.OnClickListener() {
+                                            public void onClick(DialogInterface dialog, int which) {
+                                            }
+                                        }).show();
+                            } else {
                             Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT_TREE);
                             startActivityForResult(intent, changeKML ? INTENT_PICK_KML_FOLDER_FOR_CHANGING : INTENT_PICK_KML_FOLDER_FOR_NEW_FILE);
+                            }
                         } else if(which == lastIndex + 1) {
                             // Reset to default KML folder
                             SharedPreferences.Editor editor = sharedPreferences.edit();
@@ -862,6 +912,54 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
                             } else
                                 newFileFromKML(kmlScriptFilename);
                         }
+                    }
+                }).show();
+    }
+
+    private void OnCreateRAMCard() {
+        String[] stringArrayRAMCards = getResources().getStringArray(R.array.ram_cards);
+        new AlertDialog.Builder(MainActivity.this)
+                .setTitle(getResources().getString(R.string.create_ram_card_title))
+                .setItems(stringArrayRAMCards, new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+                        Intent intent = new Intent(Intent.ACTION_CREATE_DOCUMENT);
+                        intent.addCategory(Intent.CATEGORY_OPENABLE);
+                        intent.setType("*/*");
+                        String sizeTitle = "2mb";
+                        selectedRAMSize = -1;
+                        switch (which) {
+                            case 0: // 32kb (1 port: 2)
+                                sizeTitle = "32kb";
+                                selectedRAMSize = 32;
+                                break;
+                            case 1: // 128kb (1 port: 2)
+                                sizeTitle = "128kb";
+                                selectedRAMSize = 128;
+                                break;
+                            case 2: // 256kb (2 ports: 2,3)
+                                sizeTitle = "256kb";
+                                selectedRAMSize = 256;
+                                break;
+                            case 3: // 512kb (4 ports: 2 through 5)
+                                sizeTitle = "512kb";
+                                selectedRAMSize = 512;
+                                break;
+                            case 4: // 1mb (8 ports: 2 through 9)
+                                sizeTitle = "1mb";
+                                selectedRAMSize = 1024;
+                                break;
+                            case 5: // 2mb (16 ports: 2 through 17)
+                                sizeTitle = "2mb";
+                                selectedRAMSize = 2048;
+                                break;
+                            case 6: // 4mb (32 ports: 2 through 33)
+                                sizeTitle = "4mb";
+                                selectedRAMSize = 4096;
+                                break;
+                        }
+                        intent.putExtra(Intent.EXTRA_TITLE, "shared-" + sizeTitle + ".bin");
+                        startActivityForResult(intent, INTENT_CREATE_RAM_CARD);
                     }
                 }).show();
     }
@@ -982,6 +1080,30 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
                                             }).show();
                                     break;
                             }
+                            break;
+                        }
+                        case INTENT_CREATE_RAM_CARD: {
+                            //Log.d(TAG, "onActivityResult INTENT_CREATE_RAM_CARD " + url);
+                            if(selectedRAMSize > 0) {
+                                int size = 2 * selectedRAMSize;
+                                FileOutputStream fileOutputStream = null;
+                                try {
+                                    ParcelFileDescriptor pfd = getContentResolver().openFileDescriptor(uri, "w");
+                                    fileOutputStream = new FileOutputStream(pfd.getFileDescriptor());
+                                    byte[] zero = new byte[1024];
+                                    Arrays.fill(zero, (byte) 0);
+                                    for (int i = 0; i < size; i++)
+                                        fileOutputStream.write(zero);
+                                    fileOutputStream.flush();
+                                    fileOutputStream.close();
+                                } catch (FileNotFoundException e) {
+                                    e.printStackTrace();
+                                } catch (IOException e) {
+                                    e.printStackTrace();
+                                }
+                                selectedRAMSize = -1;
+                            }
+
                             break;
                         }
                         default:
@@ -1133,11 +1255,8 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         return -1;
     }
 
-    void showAlert(String text) {
-        Toast toast = Toast.makeText(this, text, Toast.LENGTH_SHORT);
-        //View view = toast.getView();
-        //view.setBackgroundColor(0x80000000);
-        toast.show();
+    public void showAlert(String text) {
+        Utils.showAlert(this, text);
     }
 
     void sendMenuItemCommand(int menuItem) {
@@ -1270,6 +1389,10 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
     void performHapticFeedback() {
         if(sharedPreferences.getBoolean("settings_haptic_feedback", true))
             mainScreenView.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY, HapticFeedbackConstants.FLAG_IGNORE_GLOBAL_SETTING);
+    }
+
+    void sendByteUdp(int byteSent) {
+        printer.write(byteSent);
     }
 
     private void setPort1Settings(boolean port1Plugged, boolean port1Writable) {
