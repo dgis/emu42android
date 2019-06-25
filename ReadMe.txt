@@ -50,6 +50,8 @@ Version 1.1 (2019-06-XX)
 - Add the printer simulator.
 - Refactor the code for easier code sharing between Emu48, Emu42 and Emu71.
 - Fix: Bad text characters when copy/paste the stack.
+- Fix a crash with waveOutClose().
+- Fix an issue with the Pan and zoom which was possible after closing the calc.
 
 
 Version 1.0 (2019-06-05)
