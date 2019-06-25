@@ -17,11 +17,9 @@ package org.emulator.calculator;
 import android.graphics.Bitmap;
 import android.util.Log;
 
-import org.emulator.calculator.Utils;
-
 import java.util.ArrayList;
 
-/*
+/**
  * Based on the free HP82240B Printer Simulator by Christoph Giesselink
  */
 public class PrinterSimulator {
@@ -29,6 +27,7 @@ public class PrinterSimulator {
     private static final String TAG = "PrinterSimulator";
     private ArrayList<Integer> data = new ArrayList<>();
     private StringBuilder m_Text = new StringBuilder();
+    private StringBuilder textUpdate = new StringBuilder();
 
 
     private final int ESC = 27;					// ESC
@@ -57,19 +56,10 @@ public class PrinterSimulator {
 
         maxBitmapHeight = Math.min(maxBitmapHeight, 8192); //32768);
         MAXPRTLINES = maxBitmapHeight / LINE_HEIGHT;
-        mBitmap = Bitmap.createBitmap(LINE_WIDTH, MAXPRTLINES*LINE_HEIGHT, Bitmap.Config.ALPHA_8); //ARGB_8888); //ALPHA_8);
+        mBitmap = Bitmap.createBitmap(LINE_WIDTH, MAXPRTLINES*LINE_HEIGHT, Bitmap.Config.ARGB_8888); //ARGB_8888); //ALPHA_8);
         mBitmap.eraseColor(0xFFFFFFFF);
 
         reset();								// reset printer state machine
-
-//        for (int i = 32; i < 256; i++) {
-//            if(i % 16 == 0) {
-//                addTextData(10);
-//                addGraphData(10, false);
-//            }
-//            addTextData(i);
-//            addGraphData(i, false);
-//        }
     }
 
     /**
@@ -98,17 +88,37 @@ public class PrinterSimulator {
         /**
          * Called when the printer just has print something.
          */
-        void onPrinterUpdate();
+        void onPrinterUpdate(String textAppended);
     }
 
     private OnPrinterUpdateListener onPrinterUpdateListener;
 
     /**
-     * Register a callback to be invoked when this view is tapped down.
+     * Register a callback to be invoked when the printer just has print something.
      * @param onPrinterUpdateListener The callback that will run
      */
     public void setOnPrinterUpdateListener(OnPrinterUpdateListener onPrinterUpdateListener) {
         this.onPrinterUpdateListener = onPrinterUpdateListener;
+    }
+
+    /**
+     * Interface definition for a callback to be invoked when the printer is out of paper.
+     */
+    public interface OnPrinterOutOfPaperListener {
+        /**
+         * Called when the printer just has print something.
+         */
+        void onPrinterOutOfPaper(int currentLine, int maxLine, int currentPixelRow, int maxPixelRow);
+    }
+
+    private OnPrinterOutOfPaperListener onPrinterOutOfPaperListener;
+
+    /**
+     * Register a callback to be invoked when the printer is out of paper.
+     * @param onPrinterOutOfPaperListener The callback that will run
+     */
+    public void setOnPrinterOutOfPaperListener(OnPrinterOutOfPaperListener onPrinterOutOfPaperListener) {
+        this.onPrinterOutOfPaperListener = onPrinterOutOfPaperListener;
     }
 
     /**
@@ -123,6 +133,8 @@ public class PrinterSimulator {
 
         m_bEsc = false;							// not ESC sequence
         m_byGraphLength = 0;					// no remaining graphic bytes
+
+        outOfPaper = false;
     }
 
     /**
@@ -163,6 +175,9 @@ public class PrinterSimulator {
      * @param byData
      */
     public synchronized void write(int byData) {
+
+        textUpdate.setLength(0);
+
         data.add(byData);
 
         do {
@@ -225,7 +240,7 @@ public class PrinterSimulator {
         } while (false);
 
         if(this.onPrinterUpdateListener != null)
-            this.onPrinterUpdateListener.onPrinterUpdate();
+            this.onPrinterUpdateListener.onPrinterUpdate(textUpdate.toString());
     }
 
     // Text Printer
@@ -280,27 +295,29 @@ public class PrinterSimulator {
         do {
             // special LF and LF characters
             if (byData == 0x04 || byData == 0x0A) {
-                m_Text.append('\r');
-                m_Text.append('\n');
+                textUpdate.append('\r');
+                textUpdate.append('\n');
                 break;
             }
 
             // unprintable control codes
             if (byData < ' ')
-                return;							// no print
+                break;							// no print
 
             // normal 7bit ASCII character
             if (byData < 128)
-                m_Text.append((char)byData);
+                textUpdate.append((char)byData);
             else {
                 byData -= 128;					// index to table
 
                 if (m_bEcma94 == false)
-                    m_Text.append((char)wcRoman8[byData]);
+                    textUpdate.append((char)wcRoman8[byData]);
                 else
-                    m_Text.append((char)wcEcma94[byData]);
+                    textUpdate.append((char)wcEcma94[byData]);
             }
         } while (false);
+
+        m_Text.append(textUpdate);
     }
 
     /**
@@ -343,6 +360,8 @@ public class PrinterSimulator {
     private int MAXPRTLINES		= 500; //32768;				// maximum printable lines (out of paper)
     private final int LINE_WIDTH		= 166;
     private final int LINE_HEIGHT		= 8;
+    private boolean   outOfPaper = false;
+
 
     private int    m_nCurCol;						// current column in bitmap
     private int    m_nCurRow;						// current row in bitmap
@@ -395,6 +414,9 @@ public class PrinterSimulator {
     private void addGraphData(int byData, boolean bGraphicData) {
         if (m_nCurRow >= MAXPRTLINES*LINE_HEIGHT) // reached bitmap size
         {
+            if(!outOfPaper && this.onPrinterOutOfPaperListener != null)
+                this.onPrinterOutOfPaperListener.onPrinterOutOfPaper(m_nCurRow / LINE_HEIGHT, MAXPRTLINES, m_nCurRow, MAXPRTLINES*LINE_HEIGHT);
+            outOfPaper = true;
             return;								// paper empty
         }
 

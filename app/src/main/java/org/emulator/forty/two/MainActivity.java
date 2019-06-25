@@ -123,7 +123,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         }
     };
 
-    private PrinterSimulator printer = new PrinterSimulator();
+    private PrinterSimulator printerSimulator = new PrinterSimulator();
     private PrinterSimulatorFragment fragmentPrinterSimulator = new PrinterSimulatorFragment();
 
 
@@ -158,7 +158,6 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         mainScreenContainer.addView(mainScreenView, 0);
 
         imageButtonMenu = findViewById(R.id.button_menu);
-        imageButtonMenu.setColorFilter(Color.argb(255, 255, 255, 255)); // White Tint
         imageButtonMenu.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -166,6 +165,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
                     drawer.openDrawer(GravityCompat.START);
             }
         });
+        showCalculatorView(false);
 
         AssetManager assetManager = getResources().getAssets();
         NativeLib.start(assetManager, mainScreenView.getBitmapMainScreen(), this, mainScreenView);
@@ -186,7 +186,20 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         updateNavigationDrawerItems();
 
 
-        fragmentPrinterSimulator.setPrinterSimulator(printer);
+        fragmentPrinterSimulator.setPrinterSimulator(printerSimulator);
+        printerSimulator.setOnPrinterOutOfPaperListener(new PrinterSimulator.OnPrinterOutOfPaperListener() {
+            @Override
+            public void onPrinterOutOfPaper(final int currentLine, final int maxLine, final int currentPixelRow, final int maxPixelRow) {
+                runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        Toast.makeText(MainActivity.this, String.format(Locale.US,
+                                getString(R.string.message_printer_out_of_paper),
+                                maxLine, maxPixelRow), Toast.LENGTH_LONG).show();
+                    }
+                });
+            }
+        });
 
 
         //android.os.Debug.waitForDebugger();
@@ -634,6 +647,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
     private void newFileFromKML(String kmlScriptFilename) {
         int result = NativeLib.onFileNew(kmlScriptFilename);
         if(result > 0) {
+            showCalculatorView(true);
             displayFilename("");
             showKMLLog();
         } else
@@ -698,6 +712,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
             @Override
             public void run() {
                 NativeLib.onFileClose();
+                showCalculatorView(false);
                 saveLastDocument("");
                 updateNavigationDrawerItems();
                 displayFilename("");
@@ -711,6 +726,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
             }
         }, true);
     }
+
     private void OnSettings() {
         startActivityForResult(new Intent(this, SettingsActivity.class), INTENT_SETTINGS);
     }
@@ -886,8 +902,8 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
                                             }
                                         }).show();
                             } else {
-                            Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT_TREE);
-                            startActivityForResult(intent, changeKML ? INTENT_PICK_KML_FOLDER_FOR_CHANGING : INTENT_PICK_KML_FOLDER_FOR_NEW_FILE);
+                                Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT_TREE);
+                                startActivityForResult(intent, changeKML ? INTENT_PICK_KML_FOLDER_FOR_CHANGING : INTENT_PICK_KML_FOLDER_FOR_NEW_FILE);
                             }
                         } else if(which == lastIndex + 1) {
                             // Reset to default KML folder
@@ -1141,10 +1157,22 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
             getContentResolver().takePersistableUriPermission(uri, takeFlags);
     }
 
+    private void showCalculatorView(boolean show) {
+        if(show) {
+            mainScreenView.setEnablePanAndScale(true);
+            mainScreenView.setVisibility(View.VISIBLE);
+            imageButtonMenu.setColorFilter(Color.argb(255, 255, 255, 255)); // White Tint
+        } else {
+            mainScreenView.setEnablePanAndScale(false);
+            mainScreenView.setVisibility(View.GONE);
+            imageButtonMenu.setColorFilter(Color.argb(255, 0, 0, 0)); // Black Tint
+        }
+    }
 
     private int onFileOpen(String url) {
         int result = NativeLib.onFileOpen(url);
         if(result > 0) {
+            showCalculatorView(true);
             setPort1Settings(NativeLib.getPort1Plugged(), NativeLib.getPort1Writable());
             displayFilename(url);
             showKMLLog();
@@ -1392,7 +1420,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
     }
 
     void sendByteUdp(int byteSent) {
-        printer.write(byteSent);
+        printerSimulator.write(byteSent);
     }
 
     private void setPort1Settings(boolean port1Plugged, boolean port1Writable) {
@@ -1408,8 +1436,8 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         if(key == null) {
             String[] settingKeys = {
                     "settings_realspeed", "settings_grayscale", "settings_rotation", "settings_auto_layout",
-                    "settings_hide_bar", "settings_hide_button_menu", /*"settings_allow_sound",*/ "settings_sound_volume", "settings_haptic_feedback",
-                    "settings_background_kml_color", "settings_background_fallback_color",
+                    "settings_hide_bar", "settings_hide_button_menu", "settings_sound_volume", "settings_haptic_feedback",
+                    "settings_background_kml_color", "settings_background_fallback_color", "settings_printer_model",
                     "settings_kml", "settings_port1", "settings_port2" };
             for (String settingKey : settingKeys) {
                 updateFromPreferences(settingKey, false);
@@ -1450,10 +1478,6 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
                     imageButtonMenu.setVisibility(sharedPreferences.getBoolean("settings_hide_button_menu", false) ? View.GONE : View.VISIBLE);
                     break;
 
-//                case "settings_allow_sound":
-//                    NativeLib.setConfiguration("settings_sound_volume", isDynamicValue,
-//                            sharedPreferences.getBoolean("settings_allow_sound", true) ? 64 : 0, 0, null);
-//                    break;
                 case "settings_sound_volume": {
                     int volumeOption = sharedPreferences.getInt("settings_sound_volume", 64);
                     NativeLib.setConfiguration("settings_sound_volume", isDynamicValue, volumeOption, 0, null);
@@ -1470,6 +1494,12 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
                     String fallbackColor = sharedPreferences.getString("settings_background_fallback_color", "0");
                     try {
                         mainScreenView.setBackgroundFallbackColor(Integer.parseInt(fallbackColor));
+                    } catch (NumberFormatException ex) {}
+                    break;
+                case "settings_printer_model":
+                    String printerModel = sharedPreferences.getString("settings_printer_model", "1");
+                    try {
+                        printerSimulator.setPrinterModel82240A(Integer.parseInt(printerModel) == 0);
                     } catch (NumberFormatException ex) {}
                     break;
 

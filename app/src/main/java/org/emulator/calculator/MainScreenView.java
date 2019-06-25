@@ -280,7 +280,7 @@ public class MainScreenView extends PanAndScaleView {
                         if (imageRatio < 1.0f != viewRatio < 1.0f) {
                             // With have different screens orientations, so we automatically zoom
                             float translateX, translateY, scale;
-                            if (viewRatio > imageRatio) {
+                            if(viewRatio > imageRatio) {
                                 float alpha = viewRatio / imageRatio;
                                 scale = Math.min(2, alpha) * viewSizeWidth / virtualSizeWidth;
                                 translateX = viewSizeWidth - scale * virtualSizeWidth;
@@ -402,7 +402,7 @@ public class MainScreenView extends PanAndScaleView {
             return kmlBackgroundColor;
         } else switch(fallbackBackgroundColorType) {
             case 0:
-                return 0;
+                return 0xFF000000;
             case 1:
                 return statusBarColor;
         }

@@ -19,15 +19,15 @@ import android.app.Activity;
 import android.app.Dialog;
 import android.content.Context;
 import android.content.Intent;
-import android.content.res.Resources;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.ColorMatrixColorFilter;
 import android.graphics.Paint;
+import android.graphics.Rect;
 import android.os.Bundle;
 import android.util.AttributeSet;
-import android.util.TypedValue;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.MenuItem;
 import android.view.View;
@@ -38,7 +38,6 @@ import android.widget.TextView;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatDialogFragment;
 import androidx.appcompat.widget.Toolbar;
-import androidx.core.content.ContextCompat;
 import androidx.core.content.FileProvider;
 import androidx.viewpager.widget.PagerAdapter;
 import androidx.viewpager.widget.ViewPager;
@@ -53,17 +52,18 @@ import java.util.Locale;
 public class PrinterSimulatorFragment extends AppCompatDialogFragment {
 
     private static final String TAG = "PrinterSimulator";
+    private boolean debug = false;
     private PrinterSimulator printerSimulator;
     private Toolbar toolbar;
     private TextView textViewPrinterText;
     private PrinterGraphView printerGraphView;
 
-    ColorMatrixColorFilter colorFilterAlpha8ToRGB = new ColorMatrixColorFilter(new float[]{
-            0, 0, 0, 1, 0,
-            0, 0, 0, 1, 0,
-            0, 0, 0, 1, 0,
-            0, 0, 0, 0, 255
-    });
+//    ColorMatrixColorFilter colorFilterAlpha8ToRGB = new ColorMatrixColorFilter(new float[]{
+//            0, 0, 0, 1, 0,
+//            0, 0, 0, 1, 0,
+//            0, 0, 0, 1, 0,
+//            0, 0, 0, 0, 255
+//    });
 
     public PrinterSimulatorFragment() {
 
@@ -73,22 +73,24 @@ public class PrinterSimulatorFragment extends AppCompatDialogFragment {
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
+        setStyle(AppCompatDialogFragment.STYLE_NO_FRAME, android.R.style.Theme_Holo_Light);
         //setStyle(STYLE_NO_FRAME, android.R.style.Theme_Holo_Light);
+        //setStyle(STYLE_NO_TITLE, android.R.style.Theme_Holo_Light);
+
+        //setStyle(STYLE_NO_TITLE, android.R.style.Theme_Material_Light_Dialog_Alert);
+
         //setStyle(STYLE_NO_FRAME, 0);
-        //setStyle(STYLE_NO_TITLE, android.R.style.Theme_Material_Light_Dialog_Alert); //Theme_Holo_Light);
-        setStyle(STYLE_NO_TITLE, android.R.style.Theme_Holo_Light);
         //setStyle(STYLE_NO_TITLE, 0);
     }
+
 //    @Override
 //    public void onResume() {
-//        ViewGroup.LayoutParams params = getDialog().getWindow().getAttributes();
-//        params.width = WindowManager.LayoutParams.MATCH_PARENT;
-//        params.height = ViewGroup.LayoutParams.MATCH_PARENT;
-//        getDialog().getWindow().setAttributes((WindowManager.LayoutParams) params);
-//        //getDialog().getWindow().setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
 //        super.onResume();
+//        ViewGroup.LayoutParams params = getDialog().getWindow().getAttributes();
+//        params.width = ViewGroup.LayoutParams.MATCH_PARENT;
+//        params.height = ViewGroup.LayoutParams.MATCH_PARENT;
+//        getDialog().getWindow().setAttributes((android.view.WindowManager.LayoutParams) params);
 //    }
-
 
     @Override
     public Dialog onCreateDialog(Bundle savedInstanceState) {
@@ -113,7 +115,7 @@ public class PrinterSimulatorFragment extends AppCompatDialogFragment {
 
         toolbar = view.findViewById(Utils.resId(this, "id", "my_toolbar"));
         toolbar.setTitle(title);
-        toolbar.setOverflowIcon(ContextCompat.getDrawable(getActivity(), Utils.resId(this, "drawable", "ic_more_vert_white_24dp")));
+        //toolbar.setOverflowIcon(ContextCompat.getDrawable(getActivity(), Utils.resId(this, "drawable", "ic_more_vert_white_24dp")));
         //toolbar.setLogo(R.drawable.ic_launcher);
         toolbar.setNavigationIcon(Utils.resId(this, "drawable", "ic_keyboard_backspace_white_24dp"));
         toolbar.setNavigationOnClickListener(
@@ -131,21 +133,17 @@ public class PrinterSimulatorFragment extends AppCompatDialogFragment {
                 if(item.getItemId() == Utils.resId(PrinterSimulatorFragment.this, "id", "menu_printer_simulator_share_text")) {
                     Intent intent = new Intent(android.content.Intent.ACTION_SEND);
                     intent.setType("text/plain");
-                    //intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
                     intent.putExtra(Intent.EXTRA_SUBJECT, Utils.resId(PrinterSimulatorFragment.this, "string", "message_printer_share_text"));
                     intent.putExtra(Intent.EXTRA_TEXT, printerSimulator.getText());
-//                    intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
-//                    intent.putExtra(Intent.EXTRA_STREAM, FileProvider.getUriForFile(getActivity(),getActivity().getPackageName() + ".provider", imageFile));
                     startActivity(Intent.createChooser(intent, getString(Utils.resId(PrinterSimulatorFragment.this, "string", "message_printer_share_text"))));
                 } else if(item.getItemId() == Utils.resId(PrinterSimulatorFragment.this, "id", "menu_printer_simulator_share_graphic")) {
                     String imageFilename = "HPPrinter-" + new SimpleDateFormat("yyyy-MM-dd_HH-mm-ss", Locale.US).format(new Date());
                     try {
                         Bitmap paperBitmap = printerSimulator.getImage();
                         Bitmap croppedPaperBitmap = Bitmap.createBitmap(paperBitmap.getWidth(), printerSimulator.getPaperHeight(), Bitmap.Config.ARGB_8888);
-                        //convertedBitmap.eraseColor(0xFFFFFFFF);
                         Canvas canvas = new Canvas(croppedPaperBitmap);
                         Paint paint = new Paint();
-                        paint.setColorFilter(colorFilterAlpha8ToRGB);
+                        //paint.setColorFilter(colorFilterAlpha8ToRGB);
                         canvas.drawBitmap(paperBitmap, 0, 0, paint);
 
                         File storagePath = new File(getActivity().getExternalCacheDir(), "");
@@ -167,22 +165,16 @@ public class PrinterSimulatorFragment extends AppCompatDialogFragment {
                     }
                 } else if(item.getItemId() == Utils.resId(PrinterSimulatorFragment.this, "id", "menu_printer_simulator_change_paper")) {
                     printerSimulator.changePaper();
-                    printerGraphView.updatePaper();
-                    updatePaper();
+                    printerGraphView.updatePaperLayout();
+                    textViewPrinterText.setText("");
+                    if(printerGraphView != null) {
+                        printerGraphView.updatePaperLayout();
+                        printerGraphView.invalidate();
+                    }
                 }
                 return true;
             }
         });
-        TypedValue tv = new TypedValue();
-        Context context = getContext();
-        if(context != null) {
-            Resources.Theme theme = context.getTheme();
-            if (theme != null) {
-                theme.resolveAttribute(androidx.appcompat.R.attr.actionBarSize, tv, true);
-                int actionBarHeight = getResources().getDimensionPixelSize(tv.resourceId);
-                toolbar.setMinimumHeight(actionBarHeight);
-            }
-        }
         setMenuVisibility(true);
 
         // ViewPager with Text and Graph
@@ -196,7 +188,7 @@ public class PrinterSimulatorFragment extends AppCompatDialogFragment {
                     case 0: {
                         ViewGroup layoutPagePrinterText = container.findViewById(Utils.resId(PrinterSimulatorFragment.this, "id", "page_printer_text"));
                         textViewPrinterText = container.findViewById(Utils.resId(PrinterSimulatorFragment.this, "id", "printer_text"));
-                        addToPrinterText(printerSimulator.getText());
+                        updatePaper(printerSimulator.getText());
                         return layoutPagePrinterText;
                     }
                     case 1: {
@@ -238,62 +230,13 @@ public class PrinterSimulatorFragment extends AppCompatDialogFragment {
         return view;
     }
 
-//    @Override
-//    public void onAttach(Context context) {
-//        super.onAttach(context);
-//    }
-//
-//    @Override
-//    public void onDetach() {
-//        super.onDetach();
-//    }
-
-//    @Override
-//    public void onResume() {
-//        super.onResume();
-//        ViewGroup.LayoutParams params = getDialog().getWindow().getAttributes();
-//        params.width = ViewGroup.LayoutParams.MATCH_PARENT;
-//        params.height = ViewGroup.LayoutParams.MATCH_PARENT;
-//        getDialog().getWindow().setAttributes((android.view.WindowManager.LayoutParams) params);
-//    }
-
-    private void addToPrinterText(String text) {
+    private void updatePaper(String textAppended) {
+        if(debug) Log.d(TAG, "updatePaper(" + textAppended + ")");
         if(textViewPrinterText != null) {
-//            Log.d(TAG, "addToPrinterText() getScrollY: " + textViewPrinterText.getScrollY() + ", getHeight: " + textViewPrinterText.getHeight());
-
-//            boolean needToScroll = false;
-//            Layout layout = textViewPrinterText.getLayout();
-//            if(layout != null) {
-//                int currentScrollPosition = textViewPrinterText.getScrollY();
-//                int maxScrollPosition = layout.getLineTop(textViewPrinterText.getLineCount()) - textViewPrinterText.getHeight();
-//                needToScroll = currentScrollPosition == maxScrollPosition;
-//            }
-            textViewPrinterText.setText(text);
-//            layout = textViewPrinterText.getLayout();
-//            if(layout != null) {
-//                int virtualHeight = layout.getLineTop(textViewPrinterText.getLineCount());
-//                int newScrollPosition = virtualHeight - textViewPrinterText.getHeight();
-//                if (needToScroll && newScrollPosition > 0) {
-//                    Log.d(TAG, "addToPrinterText() NEED to scroll to: " + newScrollPosition);
-//                    textViewPrinterText.scrollTo(0, newScrollPosition);
-//                }
-//            }
-        }
-    }
-
-    Runnable onPrinterUpdate = new Runnable() {
-        @Override
-        public void run() {
-            updatePaper();
-        }
-    };
-
-    private void updatePaper() {
-        if(textViewPrinterText != null) {
-            addToPrinterText(printerSimulator.getText());
+            textViewPrinterText.append(textAppended);
         }
         if(printerGraphView != null) {
-            printerGraphView.updatePaper();
+            printerGraphView.updatePaperLayout();
             printerGraphView.invalidate();
         }
     }
@@ -302,10 +245,16 @@ public class PrinterSimulatorFragment extends AppCompatDialogFragment {
         this.printerSimulator = printerSimulator;
         this.printerSimulator.setOnPrinterUpdateListener(new PrinterSimulator.OnPrinterUpdateListener() {
             @Override
-            public void onPrinterUpdate() {
+            public void onPrinterUpdate(final String textAppended) {
                 Activity activity = getActivity();
                 if(activity != null)
-                    activity.runOnUiThread(onPrinterUpdate);
+                    activity.runOnUiThread(new Runnable() {
+                        @Override
+                        public void run() {
+                            if(debug) Log.d(TAG, "onPrinterUpdate(" + textAppended + ")");
+                            updatePaper(textAppended);
+                        }
+                    });
             }
         });
     }
@@ -327,10 +276,8 @@ public class PrinterSimulatorFragment extends AppCompatDialogFragment {
         }
 
         private void commonInitialization() {
-            //setLayerType(View.LAYER_TYPE_SOFTWARE, null);
             setShowScaleThumbnail(true);
             scaleThumbnailColor = Color.RED;
-            //setWillNotDraw(false);
         }
 
         public void setBitmap(Bitmap bitmap) {
@@ -338,48 +285,95 @@ public class PrinterSimulatorFragment extends AppCompatDialogFragment {
         }
 
         public void updateLayoutView() {
-            if(bitmap != null && virtualSizeHeight > 1) {
-                if (bitmap.getWidth() > 0.0f && getWidth() > 0.0f) {
-                    float translateX, translateY, scale;
-                    scale = viewSizeWidth / virtualSizeWidth;
-                    translateX = 0;
-                    translateY = viewSizeHeight - scale * virtualSizeHeight;
+            if(bitmap != null && virtualSizeHeight > 1 && bitmap.getWidth() > 0.0f && getWidth() > 0.0f) {
+                float translateX, translateY, scale;
+                scale = viewSizeWidth / virtualSizeWidth;
+                translateX = 0;
+                translateY = viewSizeHeight - scale * virtualSizeHeight;
 
-                    viewScaleFactorX = scale;
-                    viewScaleFactorY = scale;
-                    scaleFactorMin = scale;
-                    scaleFactorMax = maxZoom * scaleFactorMin;
-                    viewPanOffsetX = translateX;
-                    viewPanOffsetY = translateY;
-
-                    constrainPan();
-                    return;
-                }
-                // Else, the screens orientations are the same, so we set the calculator in fullscreen
-                resetViewport();
+                viewScaleFactorX = scale;
+                viewScaleFactorY = scale;
+                scaleFactorMin = scale;
+                scaleFactorMax = maxZoom * scaleFactorMin;
+                viewPanOffsetX = translateX;
+                viewPanOffsetY = translateY;
             }
         }
 
-        public void updatePaper() {
-            setVirtualSize(bitmap.getWidth(), printerSimulator.getPaperHeight());
+        protected void constrainPan(boolean center) {
+
+            // Keep the panning limits and the image centered.
+            float viewWidth = viewSizeWidth;
+            float viewHeight = viewSizeHeight;
+            if(viewWidth == 0.0f){
+                viewWidth = 1.0f;
+                viewHeight = 1.0f;
+            }
+            float virtualWidth = virtualSizeWidth;
+            float virtualHeight = virtualSizeHeight;
+            if(virtualWidth == 0.0f){
+                virtualWidth = 1.0f;
+                virtualHeight = 1.0f;
+            }
+            float viewRatio = viewHeight / viewWidth;
+            float imageRatio = virtualHeight / virtualWidth;
+            float viewPanMinX = viewSizeWidth - virtualWidth * viewScaleFactorX;
+            float viewPanMinY = viewSizeHeight - virtualHeight * viewScaleFactorY;
+            if(viewRatio > imageRatio) {
+                // Keep the panning X limits.
+                if(viewPanOffsetX < viewPanMinX)
+                    viewPanOffsetX = viewPanMinX;
+                else if(viewPanOffsetX > 0f)
+                    viewPanOffsetX = 0f;
+
+                if(/*center &&*/ viewPanMinY > 0f)
+                    // Keep the image at the bottom of the view.
+                    viewPanOffsetY = viewPanMinY; // / 2.0f;
+                else {
+                    if(viewPanOffsetY > 0f)
+                        viewPanOffsetY = 0f;
+                    else if(viewPanOffsetY < viewPanMinY)
+                        viewPanOffsetY = viewPanMinY;
+                }
+            } else {
+                // Keep the panning Y limits.
+                if(viewPanOffsetY < viewPanMinY)
+                    viewPanOffsetY = viewPanMinY;
+                else if(viewPanOffsetY > 0f)
+                    viewPanOffsetY = 0f;
+
+                // Keep the image centered horizontally.
+                if(center && viewPanMinX > 0f)
+                    viewPanOffsetX = viewPanMinX / 2.0f;
+                else {
+                    if(viewPanOffsetX > 0f)
+                        viewPanOffsetX = 0f;
+                    else if(viewPanOffsetX < viewPanMinX)
+                        viewPanOffsetX = viewPanMinX;
+                }
+            }
+        }
+
+        public void updatePaperLayout() {
+            int paperHeight = printerSimulator.getPaperHeight();
+            setEnablePanAndScale(paperHeight > 1);
+            setVirtualSize(bitmap.getWidth(), paperHeight);
             updateLayoutView();
         }
 
         @Override
         protected void onSizeChanged(int viewWidth, int viewHeight, int oldViewWidth, int oldViewHeight) {
-            //super.onSizeChanged(viewWidth, viewHeight, oldViewWidth, oldViewHeight);
-
             viewSizeWidth = viewWidth;
             viewSizeHeight = viewHeight;
-
-            updatePaper();
+            updatePaperLayout();
         }
 
         @Override
         protected void onCustomDraw(Canvas canvas) {
-            paintBitmap.setColorFilter(colorFilterAlpha8ToRGB);
+            //paintBitmap.setColorFilter(colorFilterAlpha8ToRGB);
             canvas.drawColor(Color.BLACK); // LTGRAY);
-            canvas.drawBitmap(this.bitmap, 0, 0, paintBitmap);
+            Rect paperclip = new Rect(0, 0, bitmap.getWidth(), printerSimulator.getPaperHeight());
+            canvas.drawBitmap(this.bitmap, paperclip, paperclip, paintBitmap);
         }
     }
 }
