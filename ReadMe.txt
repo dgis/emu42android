@@ -32,6 +32,7 @@ NOTES
 - The Help menu displays Emu42's original help HTML page and may not accurately reflect the behavior of this Android version.
 - When using a custom KML script by selecting a folder, you must take care of the case sensitivity of its dependency files.
 - This Emulator does not include the ROM files or the KML files.
+- To speed up printing, set the 'delay' to 0 in the calculator's print options.
 
 
 NOT WORKING YET
@@ -47,7 +48,7 @@ Version 1.1 (2019-06-XX)
 
 - Add a volume slider in the settings.
 - Add a rotation option.
-- Add the printer simulator.
+- Add the printer simulator (set delay to 0 to speed up!).
 - Refactor the code for easier code sharing between Emu48, Emu42 and Emu71.
 - Fix: Bad text characters when copy/paste the stack.
 - Fix a crash with waveOutClose().
