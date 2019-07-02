@@ -39,20 +39,23 @@ NOT WORKING YET
 
 - Disassembler
 - Debugger
-- Macro
 
 
 CHANGES
 
-Version 1.1 (2019-06-XX)
+Version 1.1 (2019-07-XX)
 
 - Add a volume slider in the settings.
 - Add a rotation option.
-- Add the printer simulator (set delay to 0 to speed up!).
+- Add the Ir printer simulator (set delay to 0 to speed up!).
+- Add the macro support.
 - Refactor the code for easier code sharing between Emu48, Emu42 and Emu71.
 - Fix: Bad text characters when copy/paste the stack.
 - Fix a crash with waveOutClose().
 - Fix an issue with the Pan and zoom which was possible after closing the calc.
+- Prevent the ESC key from leaving the application (Github Fix: #6).
+- Map the keyboard DELETE key like it should (Github Fix: #6).
+- Map the +, -, * and / keys catching the typed character instead of the virtual key (Github Fix: #6).
 
 
 Version 1.0 (2019-06-05)
@@ -75,7 +78,6 @@ TODO
 - Improve the swipe gesture.
 - To have the LCD part stick to the screen when swiping the 2 calc parts (Vincent Weber).
 - Anyway that the layout settings (zoom mode, fill screen...) be part of the saved state, rather than being global to the app (Vincent Weber).
-- Implement the macro
 
 
 DONE
