@@ -47,7 +47,7 @@ Version 1.1 (2019-07-XX)
 
 - Add a volume slider in the settings.
 - Add a rotation option.
-- Add the Ir printer simulator (set delay to 0 to speed up!).
+- Add the Ir printer simulator based on the Christoph Giesselink's HP82240B Printer Simulator for Windows.
 - Add the macro support.
 - Refactor the code for easier code sharing between Emu48, Emu42 and Emu71.
 - Fix: Bad text characters when copy/paste the stack.
