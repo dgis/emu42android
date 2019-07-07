@@ -45,10 +45,10 @@ CHANGES
 
 Version 1.1 (2019-07-XX)
 
-- Add a volume slider in the settings.
-- Add a rotation option.
 - Add the Ir printer simulator based on the Christoph Giesselink's HP82240B Printer Simulator for Windows.
 - Add the macro support.
+- Add a volume slider in the settings.
+- Add a rotation option.
 - Refactor the code for easier code sharing between Emu48, Emu42 and Emu71.
 - Fix: Bad text characters when copy/paste the stack.
 - Fix a crash with waveOutClose().
@@ -56,6 +56,7 @@ Version 1.1 (2019-07-XX)
 - Prevent the ESC key from leaving the application (Github Fix: #6).
 - Map the keyboard DELETE key like it should (Github Fix: #6).
 - Map the +, -, * and / keys catching the typed character instead of the virtual key (Github Fix: #6).
+- Improve the swipe gesture.
 
 
 Version 1.0 (2019-06-05)
@@ -75,7 +76,6 @@ You should have received a copy of the GNU General Public License along with thi
 
 TODO
 
-- Improve the swipe gesture.
 - To have the LCD part stick to the screen when swiping the 2 calc parts (Vincent Weber).
 - Anyway that the layout settings (zoom mode, fill screen...) be part of the saved state, rather than being global to the app (Vincent Weber).
 

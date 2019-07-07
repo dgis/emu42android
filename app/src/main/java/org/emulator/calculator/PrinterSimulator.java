@@ -83,7 +83,7 @@ public class PrinterSimulator {
     /**
      * Change the paper, so we cleanup everything.
      */
-    public void changePaper() {
+    void changePaper() {
         reset();
         m_Text.setLength(0);
         mBitmap.eraseColor(0xFFFFFFFF);
@@ -107,7 +107,7 @@ public class PrinterSimulator {
      * Register a callback to be invoked when the printer just has print something.
      * @param onPrinterUpdateListener The callback that will run
      */
-    public void setOnPrinterUpdateListener(OnPrinterUpdateListener onPrinterUpdateListener) {
+    void setOnPrinterUpdateListener(OnPrinterUpdateListener onPrinterUpdateListener) {
         this.onPrinterUpdateListener = onPrinterUpdateListener;
     }
 
@@ -134,7 +134,7 @@ public class PrinterSimulator {
     /**
      * Reset the printer state machine.
      */
-    void reset() {
+    private void reset() {
         m_bExpChar = false;						// printing normal-width characters
         m_bUnderLined = false;					// printing non underlined characters
 
@@ -150,7 +150,7 @@ public class PrinterSimulator {
     /**
      * Printer self test.
      */
-    void selftest() {
+    private void selftest() {
         // self test normally run in an endless loop, that's very hard to implement,
         // so this implementation printing all characters only one time and then
         // go back to the communication interface
@@ -182,7 +182,7 @@ public class PrinterSimulator {
 
     /**
      * Entry point of the data coming in the printer.
-     * @param byData
+     * @param byData The characters to write to the printer.
      */
     public synchronized void write(int byData) {
 
@@ -260,7 +260,7 @@ public class PrinterSimulator {
     /**
      * ROMAN8 Unicode table
      */
-    static final int[] wcRoman8 = new int[]
+    private static final int[] wcRoman8 = new int[]
     {
         0x00A0, 0x00F7, 0x00D7, 0x221A, 0x222B, 0x03A3, 0x25B6, 0x03C0,
         0x2202, 0x2264, 0x2265, 0x2260, 0x03B1, 0x2192, 0x2190, 0x00B5,
@@ -283,7 +283,7 @@ public class PrinterSimulator {
     /**
      * ECMA94 Unicode table
      */
-    static final int[] wcEcma94 = new int[]
+    private static final int[] wcEcma94 = new int[]
     {
         0x2221, 0x0101, 0x2207, 0x221A, 0x222B, 0x03A3, 0x25B6, 0x03C0,
         0x2202, 0x2264, 0x2265, 0x2260, 0x03B1, 0x2192, 0x2190, 0x2193,
@@ -323,7 +323,7 @@ public class PrinterSimulator {
             else {
                 byData -= 128;					// index to table
 
-                if (m_bEcma94 == false)
+                if (!m_bEcma94)
                     textUpdate.append((char)wcRoman8[byData]);
                 else
                     textUpdate.append((char)wcEcma94[byData]);
@@ -358,7 +358,7 @@ public class PrinterSimulator {
      * Get the current printer head position to know the paper length.
      * @return The current printer head position in pixel from the start of the paper in the bitmap.
      */
-    public int getPaperHeight() {
+    int getPaperHeight() {
         return m_nCurRow + 1;
     }
 
@@ -370,7 +370,7 @@ public class PrinterSimulator {
         return "HP-82240" + (m_bPrinter82240A ? "A" : "B") + " Printer";
     }
 
-    private int MAXPRTLINES		= 500; //32768;				// maximum printable lines (out of paper)
+    private int MAXPRTLINES;				    // maximum printable lines (out of paper)
     private final int LINE_WIDTH		= 166;
     private final int LINE_HEIGHT		= 8;
     private boolean   outOfPaper = false;
@@ -392,9 +392,6 @@ public class PrinterSimulator {
         }
 
         // bitmap is monochrome so only modify 1 bit
-//        int nPos  = m_nCurRow * m_nBytesPerLine + m_nCurCol / 8;
-//        int nMask = 0x80 >> (m_nCurCol % 8);
-
         for (int i = 0; i < 8; ++i)				// draw each bit
         {
             if ((byData & 0x1) == 0x1)			// bit set?
@@ -402,12 +399,10 @@ public class PrinterSimulator {
                 //m_pbyPrt[nPos] |= nMask;		// set bit in bitmap
                 mBitmap.setPixel(m_nCurCol, m_nCurRow + i, 0x00000000);
             }
-//            nPos += m_nBytesPerLine;			// next line
             byData >>= 1;						// next data bit
         }
 
         ++m_nCurCol;
-        return;
     }
 
     private void SetSeparatorColumn()
@@ -421,7 +416,6 @@ public class PrinterSimulator {
         {
             SetColumn(byData);					// set empty column
         }
-        return;
     }
 
     private void addGraphData(int byData, boolean bGraphicData) {
@@ -466,7 +460,7 @@ public class PrinterSimulator {
                     }
                     else						// HP82240B Roman 8 or ECMA 94 character set
                     {
-                        sChar = m_bEcma94 == false
+                        sChar = !m_bEcma94
 						  ? sFontRoman8_B[byData]
 						  : sFontEcma94_B[byData];
                     }
@@ -506,7 +500,7 @@ public class PrinterSimulator {
     /**
      * HP82240A ROMAN8 font table.
      */
-    private static final int sFontRoman8_A[][] =
+    private static final int[][] sFontRoman8_A =
     {
         { 0x00, 0x00, 0x00, 0x00, 0x00 },		// 32
         { 0x00, 0x00, 0x5F, 0x00, 0x00 },		// 33
@@ -737,7 +731,7 @@ public class PrinterSimulator {
     /**
      * HP82240B ROMAN8 font table.
      */
-    private static final int sFontRoman8_B[][] =
+    private static final int[][] sFontRoman8_B =
     {
         { 0x00, 0x00, 0x00, 0x00, 0x00 },		// 32
         { 0x00, 0x00, 0x5F, 0x00, 0x00 },		// 33
@@ -968,7 +962,7 @@ public class PrinterSimulator {
     /**
      * HP82240B ECMA94 font table.
      */
-    private static final int sFontEcma94_B[][] =
+    private static final int[][] sFontEcma94_B =
     {
         { 0x00, 0x00, 0x00, 0x00, 0x00 },		// 32
         { 0x00, 0x00, 0x5F, 0x00, 0x00 },		// 33

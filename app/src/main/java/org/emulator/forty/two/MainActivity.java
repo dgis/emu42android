@@ -30,6 +30,7 @@ import android.os.Bundle;
 import android.os.ParcelFileDescriptor;
 import android.preference.PreferenceManager;
 import android.util.Log;
+import android.util.SparseArray;
 import android.view.HapticFeedbackConstants;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -40,6 +41,7 @@ import android.widget.ImageButton;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.ActionBarDrawerToggle;
 import androidx.appcompat.app.AlertDialog;
@@ -334,9 +336,9 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
     }
 
     @Override
-    public boolean onNavigationItemSelected(MenuItem item) {
+    public boolean onNavigationItemSelected(@NonNull MenuItem item) {
         // Handle navigation view item clicks here.
-        int id = item != null ? item.getItemId() : -1;
+        int id = item.getItemId();
         if (id == R.id.nav_new) {
             OnFileNew();
         } else if (id == R.id.nav_open) {
@@ -544,40 +546,42 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
                             if(documentFile != null) {
 	                            Uri fileUri = documentFile.getUri();
 	                            InputStream inputStream = getContentResolver().openInputStream(fileUri);
-                                reader = new BufferedReader(new InputStreamReader(inputStream, StandardCharsets.UTF_8));
-	                            // do reading, usually loop until end of file reading
-	                            String mLine;
-	                            boolean inGlobal = false;
-	                            String title = null;
-	                            String model = null;
-	                            while ((mLine = reader.readLine()) != null) {
-	                                //process line
-	                                if (mLine.indexOf("Global") == 0) {
-	                                    inGlobal = true;
-	                                    title = null;
-	                                    model = null;
-	                                    continue;
-	                                }
-	                                if (inGlobal) {
-	                                    if (mLine.indexOf("End") == 0) {
-	                                        KMLScriptItem newKMLScriptItem = new KMLScriptItem();
-	                                        newKMLScriptItem.filename = kmlFolderUseDefault ? calculatorFilename : "document:" + kmlFolderURL + "|" + calculatorFilename;
-	                                        newKMLScriptItem.title = title;
-	                                        newKMLScriptItem.model = model;
-	                                        kmlScripts.add(newKMLScriptItem);
-	                                        break;
-	                                    }
-	
-	                                    m = patternGlobalTitle.matcher(mLine);
-	                                    if (m.find()) {
-	                                        title = m.group(1);
-	                                    }
-	                                    m = patternGlobalModel.matcher(mLine);
-	                                    if (m.find()) {
-	                                        model = m.group(1);
-	                                    }
-	                                }
-	                            }
+	                            if(inputStream != null) {
+                                    reader = new BufferedReader(new InputStreamReader(inputStream, StandardCharsets.UTF_8));
+                                    // do reading, usually loop until end of file reading
+                                    String mLine;
+                                    boolean inGlobal = false;
+                                    String title = null;
+                                    String model = null;
+                                    while ((mLine = reader.readLine()) != null) {
+                                        //process line
+                                        if (mLine.indexOf("Global") == 0) {
+                                            inGlobal = true;
+                                            title = null;
+                                            model = null;
+                                            continue;
+                                        }
+                                        if (inGlobal) {
+                                            if (mLine.indexOf("End") == 0) {
+                                                KMLScriptItem newKMLScriptItem = new KMLScriptItem();
+                                                newKMLScriptItem.filename = kmlFolderUseDefault ? calculatorFilename : "document:" + kmlFolderURL + "|" + calculatorFilename;
+                                                newKMLScriptItem.title = title;
+                                                newKMLScriptItem.model = model;
+                                                kmlScripts.add(newKMLScriptItem);
+                                                break;
+                                            }
+
+                                            m = patternGlobalTitle.matcher(mLine);
+                                            if (m.find()) {
+                                                title = m.group(1);
+                                            }
+                                            m = patternGlobalModel.matcher(mLine);
+                                            if (m.find()) {
+                                                model = m.group(1);
+                                            }
+                                        }
+                                    }
+                                }
                             }
                         } catch (IOException e) {
                             //log the exception
@@ -624,7 +628,6 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
                             if (continueCallback != null)
                                 continueCallback.run();
                         } else {
-                            //TODO SaveAs...
                             fileSaveAsCallback = continueCallback;
                             OnFileSaveAs();
                         }
@@ -1286,7 +1289,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
 
     final int GENERIC_READ   = 1;
     final int GENERIC_WRITE  = 2;
-    Map<Integer, ParcelFileDescriptor> parcelFileDescriptorPerFd = null;
+    SparseArray<ParcelFileDescriptor> parcelFileDescriptorPerFd = null;
     public int openFileFromContentResolver(String fileURL, int writeAccess) {
         //https://stackoverflow.com/a/31677287
         Uri uri = Uri.parse(fileURL);
@@ -1307,11 +1310,13 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         }
         int fd = filePfd != null ? filePfd.getFd() : 0;
         if(parcelFileDescriptorPerFd == null) {
-            parcelFileDescriptorPerFd = new HashMap<>();
+            parcelFileDescriptorPerFd = new SparseArray<>();
         }
         parcelFileDescriptorPerFd.put(fd, filePfd);
         return fd;
     }
+
+    @SuppressWarnings("unused")
     public int openFileInFolderFromContentResolver(String filename, String folderURL, int writeAccess) {
         Uri folderURI = Uri.parse(folderURL);
         DocumentFile folderDocumentFile = DocumentFile.fromTreeUri(this, folderURI);
@@ -1327,6 +1332,8 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         }
         return -1;
     }
+
+    @SuppressWarnings("unused")
     public int closeFileFromContentResolver(int fd) {
         if(parcelFileDescriptorPerFd != null) {
             ParcelFileDescriptor filePfd = parcelFileDescriptorPerFd.get(fd);
@@ -1347,6 +1354,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         Utils.showAlert(this, text);
     }
 
+    @SuppressWarnings("unused")
     public void sendMenuItemCommand(int menuItem) {
         switch (menuItem) {
             case 1: // FILE_NEW
@@ -1425,6 +1433,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         }
     }
 
+    @SuppressWarnings("unused")
     public String getFirstKMLFilenameForType(char chipsetType) {
         extractKMLScripts();
 
@@ -1451,6 +1460,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         return null;
     }
 
+    @SuppressWarnings("unused")
     public void clipboardCopyText(String text) {
         // Gets a handle to the clipboard service.
         ClipboardManager clipboard = (ClipboardManager)getSystemService(Context.CLIPBOARD_SERVICE);
@@ -1460,6 +1470,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
             clipboard.setPrimaryClip(clip);
         }
     }
+    @SuppressWarnings("unused")
     public String clipboardPasteText() {
         ClipboardManager clipboard = (ClipboardManager)getSystemService(Context.CLIPBOARD_SERVICE);
         if (clipboard != null && clipboard.hasPrimaryClip()) {
@@ -1475,11 +1486,13 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         return "";
     }
 
+    @SuppressWarnings("unused")
     public void performHapticFeedback() {
         if(sharedPreferences.getBoolean("settings_haptic_feedback", true))
             mainScreenView.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY, HapticFeedbackConstants.FLAG_IGNORE_GLOBAL_SETTING);
     }
 
+    @SuppressWarnings("unused")
     public void sendByteUdp(int byteSent) {
         printerSimulator.write(byteSent);
     }
@@ -1516,9 +1529,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
                 case "settings_rotation":
                     int rotationMode = 0;
                     try {
-                        String rotationModeValue = sharedPreferences.getString("settings_rotation", "0");
-                        if(rotationModeValue != null)
-                            rotationMode = Integer.parseInt(rotationModeValue);
+                        rotationMode = Integer.parseInt(sharedPreferences.getString("settings_rotation", "0"));
                     } catch (NumberFormatException ex) {
                         // Catch bad number format
                     }
@@ -1527,9 +1538,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
                 case "settings_auto_layout":
                     int autoLayoutMode = 1;
                     try {
-                        String autoLayoutModeValue = sharedPreferences.getString("settings_auto_layout", "1");
-                        if(autoLayoutModeValue != null)
-                            autoLayoutMode = Integer.parseInt(autoLayoutModeValue);
+                        autoLayoutMode = Integer.parseInt(sharedPreferences.getString("settings_auto_layout", "1"));
                     } catch (NumberFormatException ex) {
                         // Catch bad number format
                     }
@@ -1561,19 +1570,15 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
                     mainScreenView.setBackgroundKmlColor(sharedPreferences.getBoolean("settings_background_kml_color", false));
                     break;
                 case "settings_background_fallback_color":
-                    String fallbackColor = sharedPreferences.getString("settings_background_fallback_color", "0");
                     try {
-                        if(fallbackColor != null)
-                            mainScreenView.setBackgroundFallbackColor(Integer.parseInt(fallbackColor));
+                        mainScreenView.setBackgroundFallbackColor(Integer.parseInt(sharedPreferences.getString("settings_background_fallback_color", "0")));
                     } catch (NumberFormatException ex) {
                         // Catch bad number format
                     }
                     break;
                 case "settings_printer_model":
-                    String printerModel = sharedPreferences.getString("settings_printer_model", "1");
                     try {
-                        if(printerModel != null)
-                            printerSimulator.setPrinterModel82240A(Integer.parseInt(printerModel) == 0);
+                        printerSimulator.setPrinterModel82240A(Integer.parseInt(sharedPreferences.getString("settings_printer_model", "1")) == 0);
                     } catch (NumberFormatException ex) {
                         // Catch bad number format
                     }

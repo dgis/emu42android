@@ -130,7 +130,7 @@ public class SettingsActivity extends AppCompatActivity implements SharedPrefere
                             int backgroundFallbackColor = -1;
                             try {
                                 backgroundFallbackColor = Integer.parseInt(stringValue);
-                            } catch (NumberFormatException ex) {}
+                            } catch (NumberFormatException ignored) {}
                             if(backgroundFallbackColor >= 0 && backgroundFallbackColor < stringArrayBackgroundFallbackColor.length)
                                 preference.setSummary(stringArrayBackgroundFallbackColor[backgroundFallbackColor]);
 //                            preferenceBackgroundCustomColor.setEnabled(backgroundFallbackColor == 2);
