@@ -142,18 +142,18 @@ public class PrinterSimulatorFragment extends AppCompatDialogFragment {
                         Activity activity = getActivity();
                         if(activity != null) {
                             File storagePath = new File(activity.getExternalCacheDir(), "");
-                        File imageFile = File.createTempFile(imageFilename, ".png", storagePath);
-                        FileOutputStream fileOutputStream = new FileOutputStream(imageFile);
-                        croppedPaperBitmap.compress(Bitmap.CompressFormat.PNG, 90, fileOutputStream);
-                        fileOutputStream.close();
-                        String mimeType = "application/png";
-                        Intent intent = new Intent(android.content.Intent.ACTION_SEND);
-                        intent.setType(mimeType);
-                        intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-                        intent.putExtra(Intent.EXTRA_SUBJECT, Utils.resId(PrinterSimulatorFragment.this, "string", "message_printer_share_graphic"));
-                        intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
-                        intent.putExtra(Intent.EXTRA_STREAM, FileProvider.getUriForFile(getActivity(),getActivity().getPackageName() + ".provider", imageFile));
-                        startActivity(Intent.createChooser(intent, getString(Utils.resId(PrinterSimulatorFragment.this, "string", "message_printer_share_graphic"))));
+                            File imageFile = File.createTempFile(imageFilename, ".png", storagePath);
+                            FileOutputStream fileOutputStream = new FileOutputStream(imageFile);
+                            croppedPaperBitmap.compress(Bitmap.CompressFormat.PNG, 90, fileOutputStream);
+                            fileOutputStream.close();
+                            String mimeType = "application/png";
+                            Intent intent = new Intent(android.content.Intent.ACTION_SEND);
+                            intent.setType(mimeType);
+                            intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                            intent.putExtra(Intent.EXTRA_SUBJECT, Utils.resId(PrinterSimulatorFragment.this, "string", "message_printer_share_graphic"));
+                            intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+                            intent.putExtra(Intent.EXTRA_STREAM, FileProvider.getUriForFile(getActivity(), getActivity().getPackageName() + ".provider", imageFile));
+                            startActivity(Intent.createChooser(intent, getString(Utils.resId(PrinterSimulatorFragment.this, "string", "message_printer_share_graphic"))));
                         }
                     } catch (Exception e) {
                         e.printStackTrace();
@@ -181,20 +181,20 @@ public class PrinterSimulatorFragment extends AppCompatDialogFragment {
             @NonNull
             public Object instantiateItem(@NonNull ViewGroup container, int position) {
                 if (position == 0) {
-                        ViewGroup layoutPagePrinterText = container.findViewById(Utils.resId(PrinterSimulatorFragment.this, "id", "page_printer_text"));
-                        textViewPrinterText = container.findViewById(Utils.resId(PrinterSimulatorFragment.this, "id", "printer_text"));
+                    ViewGroup layoutPagePrinterText = container.findViewById(Utils.resId(PrinterSimulatorFragment.this, "id", "page_printer_text"));
+                    textViewPrinterText = container.findViewById(Utils.resId(PrinterSimulatorFragment.this, "id", "printer_text"));
                     scrollViewPrinterText = container.findViewById(Utils.resId(PrinterSimulatorFragment.this, "id", "printer_text_scroll"));
-                        updatePaper(printerSimulator.getText());
-                        return layoutPagePrinterText;
+                    updatePaper(printerSimulator.getText());
+                    return layoutPagePrinterText;
                 } else {
-                        ViewGroup layoutPagePrinterGraphic = container.findViewById(Utils.resId(PrinterSimulatorFragment.this, "id", "page_printer_graphic"));
-                        ViewGroup pagePrinterGraphicContainer = container.findViewById(Utils.resId(PrinterSimulatorFragment.this, "id", "printer_graphic_container"));
-                        printerGraphView = new PrinterGraphView(getActivity());
-                        printerGraphView.setBitmap(printerSimulator.getImage());
-                        pagePrinterGraphicContainer.addView(printerGraphView);
-                        return layoutPagePrinterGraphic;
-                    }
+                    ViewGroup layoutPagePrinterGraphic = container.findViewById(Utils.resId(PrinterSimulatorFragment.this, "id", "page_printer_graphic"));
+                    ViewGroup pagePrinterGraphicContainer = container.findViewById(Utils.resId(PrinterSimulatorFragment.this, "id", "printer_graphic_container"));
+                    printerGraphView = new PrinterGraphView(getActivity());
+                    printerGraphView.setBitmap(printerSimulator.getImage());
+                    pagePrinterGraphicContainer.addView(printerGraphView);
+                    return layoutPagePrinterGraphic;
                 }
+            }
 
             @Override
             public CharSequence getPageTitle(int position) {

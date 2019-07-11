@@ -56,8 +56,8 @@ public class Utils {
         } catch (Exception e) {
             e.printStackTrace();
         }
-            return -1;
-        }
+        return -1;
+    }
 
     public static String getFileName(Context context, String url) {
         String result = null;

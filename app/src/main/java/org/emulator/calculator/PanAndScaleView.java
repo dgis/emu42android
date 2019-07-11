@@ -151,22 +151,22 @@ public class PanAndScaleView extends View {
 	public float getMaxZoom() {
         return maxZoom;
     }
-    
+
 	@SuppressWarnings("unused")
     public void setMaxZoom(float maxZoom) {
     	this.maxZoom = maxZoom;
     }
-    
+
 	@SuppressWarnings("unused")
     public boolean getShowCursor() {
         return showCursor;
     }
-    
+
 	@SuppressWarnings("unused")
     public void setShowCursor(boolean showCursor) {
         this.showCursor = showCursor;
     }
-    
+
 	@SuppressWarnings("unused")
     public PointF getCursorLocation() {
         return cursorLocation;
@@ -461,10 +461,10 @@ public class PanAndScaleView extends View {
 		if (enablePanAndScale && !fillBounds && (event.getSource() & InputDevice.SOURCE_CLASS_POINTER) != 0) {
 			if (event.getAction() == MotionEvent.ACTION_SCROLL) {
 				float wheelDelta = event.getAxisValue(MotionEvent.AXIS_VSCROLL);
-		    	if(wheelDelta > 0f)
-		    		scaleByStep(scaleStep, event.getX(), event.getY());
-		    	else if(wheelDelta < 0f)
-		    		scaleByStep(1.0f / scaleStep, event.getX(), event.getY());
+				if (wheelDelta > 0f)
+					scaleByStep(scaleStep, event.getX(), event.getY());
+				else if (wheelDelta < 0f)
+					scaleByStep(1.0f / scaleStep, event.getX(), event.getY());
 
 				return true;
 			}
