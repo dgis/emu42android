@@ -145,7 +145,7 @@ static LRESULT OnLButtonDown(UINT nFlags, WORD x, WORD y)
 	if (nState == SM_RUN) {
 		MouseButtonDownAt(nFlags, x,y);
 		if(MouseIsButton(x,y)) {
-			performHapticFeedback();
+            performHapticFeedback();
 			return 1;
 		}
 	}

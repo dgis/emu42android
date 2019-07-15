@@ -122,21 +122,18 @@ public class SettingsActivity extends AppCompatActivity implements SharedPrefere
 //            final ColorPickerPreferenceCompat preferenceBackgroundCustomColor = (ColorPickerPreferenceCompat)findPreference("settings_background_custom_color");
             if(preferenceBackgroundFallbackColor != null /*&& preferenceBackgroundCustomColor != null*/) {
                 final String[] stringArrayBackgroundFallbackColor = getResources().getStringArray(R.array.settings_background_fallback_color_item);
-                Preference.OnPreferenceChangeListener onPreferenceChangeListenerBackgroundFallbackColor = new Preference.OnPreferenceChangeListener() {
-                    @Override
-                    public boolean onPreferenceChange(Preference preference, Object value) {
-                        if(value != null) {
-                            String stringValue = value.toString();
-                            int backgroundFallbackColor = -1;
-                            try {
-                                backgroundFallbackColor = Integer.parseInt(stringValue);
-                            } catch (NumberFormatException ignored) {}
-                            if(backgroundFallbackColor >= 0 && backgroundFallbackColor < stringArrayBackgroundFallbackColor.length)
-                                preference.setSummary(stringArrayBackgroundFallbackColor[backgroundFallbackColor]);
+                Preference.OnPreferenceChangeListener onPreferenceChangeListenerBackgroundFallbackColor = (preference, value) -> {
+                    if(value != null) {
+                        String stringValue = value.toString();
+                        int backgroundFallbackColor = -1;
+                        try {
+                            backgroundFallbackColor = Integer.parseInt(stringValue);
+                        } catch (NumberFormatException ignored) {}
+                        if(backgroundFallbackColor >= 0 && backgroundFallbackColor < stringArrayBackgroundFallbackColor.length)
+                            preference.setSummary(stringArrayBackgroundFallbackColor[backgroundFallbackColor]);
 //                            preferenceBackgroundCustomColor.setEnabled(backgroundFallbackColor == 2);
-                        }
-                        return true;
                     }
+                    return true;
                 };
                 preferenceBackgroundFallbackColor.setOnPreferenceChangeListener(onPreferenceChangeListenerBackgroundFallbackColor);
                 onPreferenceChangeListenerBackgroundFallbackColor.onPreferenceChange(preferenceBackgroundFallbackColor,
@@ -161,15 +158,12 @@ public class SettingsActivity extends AppCompatActivity implements SharedPrefere
             // Macro
 
             Preference preferenceMacroRealSpeed = findPreference("settings_macro_real_speed");
-            final Preference preferenceMacroManualSpeed = findPreference("settings_macro_manual_speed");
+            Preference preferenceMacroManualSpeed = findPreference("settings_macro_manual_speed");
             if(preferenceMacroRealSpeed != null && preferenceMacroManualSpeed != null) {
-                Preference.OnPreferenceChangeListener onPreferenceChangeListenerMacroRealSpeed = new Preference.OnPreferenceChangeListener() {
-                    @Override
-                    public boolean onPreferenceChange(Preference preference, Object value) {
-                        if(value != null)
-                            preferenceMacroManualSpeed.setEnabled(!(Boolean) value);
-                        return true;
-                    }
+                Preference.OnPreferenceChangeListener onPreferenceChangeListenerMacroRealSpeed = (preference, value) -> {
+                    if(value != null)
+                        preferenceMacroManualSpeed.setEnabled(!(Boolean) value);
+                    return true;
                 };
                 preferenceMacroRealSpeed.setOnPreferenceChangeListener(onPreferenceChangeListenerMacroRealSpeed);
                 onPreferenceChangeListenerMacroRealSpeed.onPreferenceChange(preferenceMacroRealSpeed, sharedPreferences.getBoolean(preferenceMacroRealSpeed.getKey(), true));
