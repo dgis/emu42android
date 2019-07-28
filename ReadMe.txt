@@ -83,8 +83,9 @@ You should have received a copy of the GNU General Public License along with thi
 
 TODO
 
-- Sometimes, the calculator seems to lag and finally freeze.
 - To have the LCD part stick to the screen when swiping the 2 calc parts (Vincent Weber).
+    * Need to refresh the layout after a change from manual to auto (and may be after a screen rotation).
+- Sometimes, the calculator seems to lag and finally freeze.
 - Anyway that the layout settings (zoom mode, fill screen...) be part of the saved state, rather than being global to the app (Vincent Weber).
 
 

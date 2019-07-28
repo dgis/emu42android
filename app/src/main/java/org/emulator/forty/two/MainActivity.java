@@ -31,12 +31,14 @@ import android.os.ParcelFileDescriptor;
 import android.preference.PreferenceManager;
 import android.util.Log;
 import android.util.SparseArray;
+import android.view.DragEvent;
 import android.view.HapticFeedbackConstants;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.SubMenu;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.FrameLayout;
 import android.widget.ImageButton;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -56,6 +58,7 @@ import com.google.android.material.navigation.NavigationView;
 
 import org.emulator.calculator.InfoActivity;
 import org.emulator.calculator.InfoWebActivity;
+import org.emulator.calculator.LCDOverlappingView;
 import org.emulator.calculator.MainScreenView;
 import org.emulator.calculator.NativeLib;
 import org.emulator.calculator.PrinterSimulator;
@@ -85,13 +88,14 @@ import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-public class MainActivity extends AppCompatActivity implements NavigationView.OnNavigationItemSelectedListener {
+public class MainActivity extends AppCompatActivity implements NavigationView.OnNavigationItemSelectedListener/*, View.OnDragListener*/ {
 
     private static final String TAG = "MainActivity";
     private SharedPreferences sharedPreferences;
     private NavigationView navigationView;
     private DrawerLayout drawer;
     private MainScreenView mainScreenView;
+    private LCDOverlappingView lcdOverlappingView;
     private ImageButton imageButtonMenu;
 
     public static final int INTENT_GETOPENFILENAME = 1;
@@ -148,26 +152,26 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         sharedPreferences = PreferenceManager.getDefaultSharedPreferences(getApplicationContext());
 
         ViewGroup mainScreenContainer = findViewById(R.id.main_screen_container);
-        mainScreenView = new MainScreenView(this);
+        lcdOverlappingView = new LCDOverlappingView(this);
+        mainScreenView = new MainScreenView(this, lcdOverlappingView);
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP)
             mainScreenView.setStatusBarColor(getWindow().getStatusBarColor());
-        mainScreenView.setLayoutParams(new ViewGroup.LayoutParams(
+        mainScreenContainer.addView(mainScreenView, 0, new ViewGroup.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT,
                 ViewGroup.LayoutParams.MATCH_PARENT));
-        mainScreenContainer.addView(mainScreenView, 0);
+
+        lcdOverlappingView.setVisibility(View.GONE);
+        mainScreenContainer.addView(lcdOverlappingView, 1, new FrameLayout.LayoutParams(0, 0));
 
         imageButtonMenu = findViewById(R.id.button_menu);
-        imageButtonMenu.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                if(drawer != null)
-                    drawer.openDrawer(GravityCompat.START);
-            }
+        imageButtonMenu.setOnClickListener(v -> {
+            if(drawer != null)
+                drawer.openDrawer(GravityCompat.START);
         });
         showCalculatorView(false);
 
         AssetManager assetManager = getResources().getAssets();
-        NativeLib.start(assetManager, mainScreenView.getBitmapMainScreen(), this, mainScreenView);
+        NativeLib.start(assetManager, this);
 
         // By default Port1 is set
         setPort1Settings(true, true);
@@ -277,6 +281,9 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         SharedPreferences.Editor editor = sharedPreferences.edit();
         editor.putStringSet("MRU", mruLinkedHashMap.keySet());
         editor.apply();
+
+        if(lcdOverlappingView != null)
+            lcdOverlappingView.saveViewLayout();
 
         super.onStop();
     }
@@ -420,6 +427,41 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         menu.findItem(R.id.nav_macro_play).setEnabled(uRun && nMacroState == 0 /* MACRO_OFF */);
         menu.findItem(R.id.nav_macro_stop).setEnabled(uRun && nMacroState != 0 /* MACRO_OFF */);
     }
+
+//    @Override
+//    public boolean onDrag(View v, DragEvent event) {
+//        int action = event.getAction();
+//        switch (action) {
+//            case DragEvent.ACTION_DRAG_STARTED:
+//                break;
+//            case DragEvent.ACTION_DRAG_ENTERED:
+//                break;
+//            case DragEvent.ACTION_DRAG_EXITED:
+//                break;
+//            case DragEvent.ACTION_DROP:
+////                // Dropped, reassign View to ViewGroup
+////                View view = (View) event.getLocalState();
+////                ViewGroup owner = (ViewGroup) view.getParent();
+////                owner.removeView(view);
+////                LinearLayout container = (LinearLayout) v;
+////                container.addView(view);
+////                view.setVisibility(View.VISIBLE);
+//
+//                FrameLayout.LayoutParams viewFlowLayout = (FrameLayout.LayoutParams)lcdOverlappingView.getLayoutParams();
+//                viewFlowLayout.leftMargin = (int)event.getX() - lcdOverlappingView.getWidth() / 2;
+//                viewFlowLayout.topMargin = (int)event.getY() - lcdOverlappingView.getHeight() / 2;
+//                lcdOverlappingView.setLayoutParams(viewFlowLayout);
+//                SharedPreferences.Editor editor = sharedPreferences.edit();
+//                editor.putInt("settings_lcd_overlapping_x", viewFlowLayout.leftMargin);
+//                editor.putInt("settings_lcd_overlapping_y", viewFlowLayout.topMargin);
+//                editor.apply();
+//                break;
+//            case DragEvent.ACTION_DRAG_ENDED:
+//            default:
+//                break;
+//        }
+//        return true;
+//    }
 
     class KMLScriptItem {
         public String filename;
@@ -1240,6 +1282,24 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
 
     // Method used from JNI!
 
+    @SuppressWarnings("unused")
+    public int updateCallback(int type, int param1, int param2, String param3, String param4) {
+
+        mainScreenView.updateCallback(type, param1, param2, param3, param4);
+        lcdOverlappingView.updateCallback(type, param1, param2, param3, param4);
+//        switch (type) {
+//            case NativeLib.CALLBACK_TYPE_INVALIDATE:
+//                break;
+//            case NativeLib.CALLBACK_TYPE_WINDOW_RESIZE:
+//                // New Bitmap size
+////                if(mainScreenView.getBitmapMainScreen() == null || bitmapMainScreen.getWidth() != param1 || bitmapMainScreen.getHeight() != param2) {
+////                }
+//                break;
+//        }
+        return -1;
+    }
+
+
     final int GENERIC_READ   = 1;
     final int GENERIC_WRITE  = 2;
     SparseArray<ParcelFileDescriptor> parcelFileDescriptorPerFd = null;
@@ -1462,7 +1522,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         int isDynamicValue = isDynamic ? 1 : 0;
         if(key == null) {
             String[] settingKeys = {
-                    "settings_realspeed", "settings_grayscale", "settings_rotation", "settings_auto_layout", "settings_allow_pinch_zoom",
+                    "settings_realspeed", "settings_grayscale", "settings_rotation", "settings_auto_layout", "settings_allow_pinch_zoom", "settings_lcd_overlapping_mode",
                     "settings_hide_bar", "settings_hide_button_menu", "settings_sound_volume", "settings_haptic_feedback",
                     "settings_background_kml_color", "settings_background_fallback_color",
                     "settings_printer_model", "settings_printer_prevent_line_wrap", "settings_macro",
@@ -1499,6 +1559,15 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
                     break;
                 case "settings_allow_pinch_zoom":
                     mainScreenView.setAllowPinchZoom(sharedPreferences.getBoolean("settings_allow_pinch_zoom", true));
+                    break;
+                case "settings_lcd_overlapping_mode":
+                    int overlappingLCDMode = 1;
+                    try {
+                        overlappingLCDMode = Integer.parseInt(sharedPreferences.getString("settings_lcd_overlapping_mode", "1"));
+                    } catch (NumberFormatException ex) {
+                        // Catch bad number format
+                    }
+                    lcdOverlappingView.setOverlappingLCDMode(overlappingLCDMode, isDynamic);
                     break;
                 case "settings_hide_bar":
                 case "settings_hide_bar_status":
