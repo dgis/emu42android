@@ -23,6 +23,8 @@
 #include "core/resource.h"
 #include "win32-layer.h"
 #include "emu.h"
+#include "core/lodepng.h"
+
 
 extern JavaVM *java_machine;
 extern jobject bitmapMainScreen;
@@ -837,9 +839,276 @@ BOOL GetSaveFileName(LPOPENFILENAME openFilename) {
     return FALSE;
 }
 
+// Almost the same function as the private core function DibNumColors()
+static __inline WORD DibNumColors(BITMAPINFOHEADER CONST *lpbi)
+{
+    if (lpbi->biClrUsed != 0) return (WORD) lpbi->biClrUsed;
+
+    /* a 24 bitcount DIB has no color table */
+    return (lpbi->biBitCount <= 8) ? (1 << lpbi->biBitCount) : 0;
+}
+
+// Almost the same function as the private core function CreateBIPalette()
+static HPALETTE CreateBIPalette(BITMAPINFOHEADER CONST *lpbi)
+{
+    LOGPALETTE* pPal;
+    HPALETTE    hpal = NULL;
+    WORD        wNumColors;
+    BYTE        red;
+    BYTE        green;
+    BYTE        blue;
+    UINT        i;
+    RGBQUAD*    pRgb;
+
+    if (!lpbi)
+        return NULL;
+
+    if (lpbi->biSize != sizeof(BITMAPINFOHEADER))
+        return NULL;
+
+    // Get a pointer to the color table and the number of colors in it
+    pRgb = (RGBQUAD FAR *)((LPBYTE)lpbi + (WORD)lpbi->biSize);
+    wNumColors = DibNumColors(lpbi);
+
+    if (wNumColors)
+    {
+        // Allocate for the logical palette structure
+        pPal = (PLOGPALETTE) malloc(sizeof(LOGPALETTE) + wNumColors * sizeof(PALETTEENTRY));
+        if (!pPal) return NULL;
+
+        pPal->palVersion    = 0x300;
+        pPal->palNumEntries = wNumColors;
+
+        // Fill in the palette entries from the DIB color table and
+        // create a logical color palette.
+        for (i = 0; i < pPal->palNumEntries; i++)
+        {
+            pPal->palPalEntry[i].peRed   = pRgb[i].rgbRed;
+            pPal->palPalEntry[i].peGreen = pRgb[i].rgbGreen;
+            pPal->palPalEntry[i].peBlue  = pRgb[i].rgbBlue;
+            pPal->palPalEntry[i].peFlags = 0;
+        }
+        hpal = CreatePalette(pPal);
+        free(pPal);
+    }
+    else
+    {
+        // create halftone palette for 16, 24 and 32 bitcount bitmaps
+
+        // 16, 24 and 32 bitcount DIB's have no color table entries so, set the
+        // number of to the maximum value (256).
+        wNumColors = 256;
+        pPal = (PLOGPALETTE) malloc(sizeof(LOGPALETTE) + wNumColors * sizeof(PALETTEENTRY));
+        if (!pPal) return NULL;
+
+        pPal->palVersion    = 0x300;
+        pPal->palNumEntries = wNumColors;
+
+        red = green = blue = 0;
+
+        // Generate 256 (= 8*8*4) RGB combinations to fill the palette
+        // entries.
+        for (i = 0; i < pPal->palNumEntries; i++)
+        {
+            pPal->palPalEntry[i].peRed   = red;
+            pPal->palPalEntry[i].peGreen = green;
+            pPal->palPalEntry[i].peBlue  = blue;
+            pPal->palPalEntry[i].peFlags = 0;
+
+            if (!(red += 32))
+                if (!(green += 32))
+                    blue += 64;
+        }
+        hpal = CreatePalette(pPal);
+        free(pPal);
+    }
+    return hpal;
+}
+
+// Almost the same function as the private core function DecodePng()
+static HBITMAP DecodePNG(LPBYTE imageBuffer, size_t imageSize)
+{
+    // this implementation use the PNG image file decoder
+    // engine of Copyright (c) 2005-2018 Lode Vandevenne
+
+    HBITMAP hBitmap;
+
+    UINT    uError,uWidth,uHeight;
+    INT     nWidth,nHeight;
+    LONG    lBytesPerLine;
+
+    LPBYTE  pbyImage;						// PNG RGB image data
+    LPBYTE  pbySrc;							// source buffer pointer
+    LPBYTE  pbyPixels;						// BMP buffer
+
+    BITMAPINFO bmi;
+
+    hBitmap = NULL;
+    pbyImage = NULL;
+
+    // decode PNG image
+    uError = lodepng_decode_memory(&pbyImage,&uWidth,&uHeight,imageBuffer,imageSize,LCT_RGB,8);
+    if (uError) goto quit;
+
+    ZeroMemory(&bmi,sizeof(bmi));			// init bitmap info
+    bmi.bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
+    bmi.bmiHeader.biWidth = (LONG) uWidth;
+    bmi.bmiHeader.biHeight = (LONG) uHeight;
+    bmi.bmiHeader.biPlanes = 1;
+    bmi.bmiHeader.biBitCount = 24;			// create a true color DIB
+    bmi.bmiHeader.biCompression = BI_RGB;
+
+    // bitmap dimensions
+    lBytesPerLine = (((bmi.bmiHeader.biWidth * bmi.bmiHeader.biBitCount) + 31) / 32 * 4);
+    bmi.bmiHeader.biSizeImage = lBytesPerLine * bmi.bmiHeader.biHeight;
+
+    // allocate buffer for pixels
+    VERIFY(hBitmap = CreateDIBSection(hWindowDC,
+                                      &bmi,
+                                      DIB_RGB_COLORS,
+                                      (VOID **)&pbyPixels,
+                                      NULL,
+                                      0));
+    if (hBitmap == NULL) goto quit;
+
+    pbySrc = pbyImage;						// init source loop pointer
+
+    // fill bottom up DIB pixel buffer with color information
+    for (nHeight = bmi.bmiHeader.biHeight - 1; nHeight >= 0; --nHeight)
+    {
+        LPBYTE pbyLine = pbyPixels + nHeight * lBytesPerLine;
+
+        for (nWidth = 0; nWidth < bmi.bmiHeader.biWidth; ++nWidth)
+        {
+            *pbyLine++ = pbySrc[2];			// blue
+            *pbyLine++ = pbySrc[1];			// green
+            *pbyLine++ = pbySrc[0];			// red
+            pbySrc += 3;
+        }
+
+        _ASSERT((DWORD) (pbyLine - pbyPixels) <= bmi.bmiHeader.biSizeImage);
+    }
+
+    if (hPalette == NULL)
+    {
+        hPalette = CreateBIPalette((PBITMAPINFOHEADER) &bmi);
+        // save old palette
+        hOldPalette = SelectPalette(hWindowDC, hPalette, FALSE);
+        RealizePalette(hWindowDC);
+    }
+
+quit:
+    if (pbyImage != NULL)					// buffer for PNG image allocated
+    {
+        free(pbyImage);						// free PNG image data
+    }
+
+    if (hBitmap != NULL && uError != 0)		// creation failed
+    {
+        DeleteObject(hBitmap);				// delete bitmap
+        hBitmap = NULL;
+    }
+    return hBitmap;
+}
+
+// ICO (file format) https://en.wikipedia.org/wiki/ICO_(file_format)
+// https://docs.microsoft.com/en-us/previous-versions/ms997538(v=msdn.10)
+typedef struct {
+    WORD idReserved;
+    WORD idType;
+    WORD idCount;
+} ICONDIR, *LPICONDIR;
+typedef struct ICONDIRENTRY {
+    BYTE bWidth; // Specifies image width in pixels. Can be any number between 0 and 255. Value 0 means image width is 256 pixels.
+    BYTE bHeight; // Specifies image height in pixels. Can be any number between 0 and 255. Value 0 means image height is 256 pixels.
+    BYTE bColorCount; // Specifies number of colors in the color palette. Should be 0 if the image does not use a color palette.
+    BYTE bReserved; // Reserved. Should be 0.
+    WORD wPlanes; // In ICO format: Specifies color planes. Should be 0 or 1.
+    WORD wBitCount; // In ICO format: Specifies bits per pixel.
+    DWORD dwBytesInRes; // Specifies the size of the image's data in bytes
+    DWORD dwImageOffset; // Specifies the offset of BMP or PNG data from the beginning of the ICO/CUR file
+} ICONDIRENTRY, *LPICONDIRENTRY;
+
+typedef struct {
+    BITMAPINFOHEADER   icHeader;      // DIB header
+    RGBQUAD         icColors[1];   // Color table
+    BYTE            icXOR[1];      // DIB bits for XOR mask
+    BYTE            icAND[1];      // DIB bits for AND mask
+} ICONIMAGE, *LPICONIMAGE;
+
 HANDLE LoadImage(HINSTANCE hInst, LPCSTR name, UINT type, int cx, int cy, UINT fuLoad) {
-    //TODO
-    return NULL;
+
+    HANDLE hIconFile = CreateFile(name, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, 0, NULL);
+    if (hIconFile == INVALID_HANDLE_VALUE)
+        return NULL;
+
+    ICONDIR fileHeader;
+    DWORD nNumberOfBytesToRead = 0;
+    if(ReadFile(hIconFile, &fileHeader, sizeof(ICONDIR), &nNumberOfBytesToRead, NULL) == FALSE || sizeof(ICONDIR) != nNumberOfBytesToRead) {
+        CloseHandle(hIconFile);
+        return NULL;
+    }
+
+    size_t iconsBufferSize = fileHeader.idCount * sizeof(ICONDIRENTRY);
+    ICONDIRENTRY * iconHeaderArray = malloc(iconsBufferSize);
+    nNumberOfBytesToRead = 0;
+    if(ReadFile(hIconFile, iconHeaderArray, iconsBufferSize, &nNumberOfBytesToRead, NULL) == FALSE || iconsBufferSize != nNumberOfBytesToRead) {
+        CloseHandle(hIconFile);
+        return NULL;
+    }
+
+    int maxWidth = -1;
+    int maxHeight = -1;
+    int maxBitPerPixel = -1;
+    int maxIconIndex = -1;
+    for (int i = 0; i < fileHeader.idCount; ++i) {
+        ICONDIRENTRY * iconHeader = &(iconHeaderArray[i]);
+        if(iconHeader->bWidth >= maxWidth && iconHeader->bHeight >= maxHeight && iconHeader->wBitCount > maxBitPerPixel) {
+            maxWidth = iconHeader->bWidth;
+            maxHeight = iconHeader->bHeight;
+            maxBitPerPixel = iconHeader->wBitCount;
+            maxIconIndex = i;
+        }
+    }
+    if(maxIconIndex == -1) {
+        CloseHandle(hIconFile);
+        return NULL;
+    }
+
+    DWORD dwBytesInRes = iconHeaderArray[maxIconIndex].dwBytesInRes;
+    LPBYTE iconBuffer = malloc(dwBytesInRes);
+
+    SetFilePointer(hIconFile, iconHeaderArray[maxIconIndex].dwImageOffset, 0, FILE_BEGIN);
+    if(ReadFile(hIconFile, iconBuffer, dwBytesInRes, &nNumberOfBytesToRead, NULL) == FALSE || dwBytesInRes != nNumberOfBytesToRead) {
+        CloseHandle(hIconFile);
+        free(iconHeaderArray);
+        free(iconBuffer);
+        return NULL;
+    }
+    CloseHandle(hIconFile);
+
+    HBITMAP icon = NULL;
+    if (dwBytesInRes >= 8 && memcmp(iconBuffer, "\x89PNG\r\n\x1a\n", 8) == 0) {
+        // It is a PNG image
+        icon = DecodePNG(iconBuffer, dwBytesInRes);
+    } else {
+        // It is a BMP image
+        // TODO
+    }
+
+
+
+    free(iconHeaderArray);
+    free(iconBuffer);
+
+    if(!icon)
+        return NULL;
+
+    HANDLE handle = malloc(sizeof(struct _HANDLE));
+    memset(handle, 0, sizeof(struct _HANDLE));
+    handle->handleType = HANDLE_TYPE_ICON;
+    handle->icon = icon;
+    return handle;
 }
 
 
@@ -869,6 +1138,18 @@ LRESULT SendMessage(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lParam) {
             return selItemDataCount;
         } else if (Msg == LB_GETSEL && wParam < itemDataCount && wParam < MAX_ITEMDATA) {
             return selItemDataIndex[wParam];
+        }
+    }
+    if(Msg == WM_SETICON && wParam == ICON_BIG) {
+        if(lParam != NULL) {
+            HANDLE hIcon = (HANDLE)lParam;
+            if(hIcon->handleType == HANDLE_TYPE_ICON && hIcon->icon != NULL) {
+                HBITMAP icon = hIcon->icon;
+                if(icon && icon->bitmapInfoHeader && icon->bitmapBits)
+                    setKMLIcon(icon->bitmapInfoHeader->biWidth, icon->bitmapInfoHeader->biHeight, icon->bitmapBits, icon->bitmapInfoHeader->biSizeImage);
+            }
+        } else {
+            setKMLIcon(0, 0, NULL, 0);
         }
     }
     return NULL;
@@ -1961,7 +2242,7 @@ BOOL StretchBlt(HDC hdcDest, int xDest, int yDest, int wDest, int hDest, HDC hdc
             }
         }
 
-        if(jniEnv && (ret = AndroidBitmap_unlockPixels(jniEnv, bitmapMainScreen)) < 0) {
+        if(jniEnv && hdcDest->hdcCompatible == NULL && (ret = AndroidBitmap_unlockPixels(jniEnv, bitmapMainScreen)) < 0) {
             LOGD("AndroidBitmap_unlockPixels() failed ! error=%d", ret);
             return FALSE;
         }

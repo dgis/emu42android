@@ -283,6 +283,24 @@ void sendByteUdp(unsigned char byteSent) {
     }
 }
 
+void setKMLIcon(int imageWidth, int imageHeight, LPBYTE buffer, int bufferSize) {
+    JNIEnv *jniEnv = getJNIEnvironment();
+    if(jniEnv) {
+        jclass mainActivityClass = (*jniEnv)->GetObjectClass(jniEnv, mainActivity);
+        if(mainActivityClass) {
+            jmethodID midStr = (*jniEnv)->GetMethodID(jniEnv, mainActivityClass, "setKMLIcon", "(II[B)V");
+
+            jbyteArray pixels = NULL;
+            if(buffer) {
+                pixels = (*jniEnv)->NewByteArray(jniEnv, bufferSize);
+                (*jniEnv)->SetByteArrayRegion(jniEnv, pixels, 0, bufferSize, (jbyte *) buffer);
+            }
+            (*jniEnv)->CallVoidMethod(jniEnv, mainActivity, midStr, imageWidth, imageHeight, pixels);
+            (*jniEnv)->DeleteLocalRef(jniEnv, mainActivityClass);
+        }
+    }
+}
+
 JNIEXPORT void JNICALL Java_org_emulator_calculator_NativeLib_start(JNIEnv *env, jobject thisz, jobject assetMgr, jobject activity) {
 
     chooseCurrentKmlMode = ChooseKmlMode_UNKNOWN;

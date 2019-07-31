@@ -72,6 +72,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -1508,6 +1509,15 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
     @SuppressWarnings("unused")
     public void sendByteUdp(int byteSent) {
         printerSimulator.write(byteSent);
+    }
+
+    @SuppressWarnings("unused")
+    public synchronized void setKMLIcon(int imageWidth, int imageHeight, byte[] pixels) {
+        if(imageWidth > 0 && imageHeight > 0 && pixels != null){
+            Bitmap bmp = Bitmap.createBitmap(imageWidth, imageHeight, Bitmap.Config.ARGB_8888);
+            ByteBuffer buffer = ByteBuffer.wrap(pixels);
+            bmp.copyPixelsFromBuffer(buffer);
+        }
     }
 
     private void setPort1Settings(boolean port1Plugged, boolean port1Writable) {
