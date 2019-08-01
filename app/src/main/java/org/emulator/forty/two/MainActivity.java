@@ -40,6 +40,7 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.FrameLayout;
 import android.widget.ImageButton;
+import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -132,6 +133,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
 
     private PrinterSimulator printerSimulator = new PrinterSimulator();
     private PrinterSimulatorFragment fragmentPrinterSimulator = new PrinterSimulatorFragment();
+    private Bitmap bitmapIcon;
 
 
     @Override
@@ -428,41 +430,6 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         menu.findItem(R.id.nav_macro_play).setEnabled(uRun && nMacroState == 0 /* MACRO_OFF */);
         menu.findItem(R.id.nav_macro_stop).setEnabled(uRun && nMacroState != 0 /* MACRO_OFF */);
     }
-
-//    @Override
-//    public boolean onDrag(View v, DragEvent event) {
-//        int action = event.getAction();
-//        switch (action) {
-//            case DragEvent.ACTION_DRAG_STARTED:
-//                break;
-//            case DragEvent.ACTION_DRAG_ENTERED:
-//                break;
-//            case DragEvent.ACTION_DRAG_EXITED:
-//                break;
-//            case DragEvent.ACTION_DROP:
-////                // Dropped, reassign View to ViewGroup
-////                View view = (View) event.getLocalState();
-////                ViewGroup owner = (ViewGroup) view.getParent();
-////                owner.removeView(view);
-////                LinearLayout container = (LinearLayout) v;
-////                container.addView(view);
-////                view.setVisibility(View.VISIBLE);
-//
-//                FrameLayout.LayoutParams viewFlowLayout = (FrameLayout.LayoutParams)lcdOverlappingView.getLayoutParams();
-//                viewFlowLayout.leftMargin = (int)event.getX() - lcdOverlappingView.getWidth() / 2;
-//                viewFlowLayout.topMargin = (int)event.getY() - lcdOverlappingView.getHeight() / 2;
-//                lcdOverlappingView.setLayoutParams(viewFlowLayout);
-//                SharedPreferences.Editor editor = sharedPreferences.edit();
-//                editor.putInt("settings_lcd_overlapping_x", viewFlowLayout.leftMargin);
-//                editor.putInt("settings_lcd_overlapping_y", viewFlowLayout.topMargin);
-//                editor.apply();
-//                break;
-//            case DragEvent.ACTION_DRAG_ENDED:
-//            default:
-//                break;
-//        }
-//        return true;
-//    }
 
     class KMLScriptItem {
         public String filename;
@@ -1261,6 +1228,9 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         TextView textViewTitle = header.findViewById(R.id.nav_header_title);
         if(textViewTitle != null)
             textViewTitle.setText(NativeLib.getKMLTitle());
+        ImageView imageViewIcon = header.findViewById(R.id.nav_header_icon);
+        if(imageViewIcon != null && bitmapIcon != null)
+            imageViewIcon.setImageBitmap(bitmapIcon);
         return header;
     }
 
@@ -1514,9 +1484,12 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
     @SuppressWarnings("unused")
     public synchronized void setKMLIcon(int imageWidth, int imageHeight, byte[] pixels) {
         if(imageWidth > 0 && imageHeight > 0 && pixels != null){
-            Bitmap bmp = Bitmap.createBitmap(imageWidth, imageHeight, Bitmap.Config.ARGB_8888);
+            bitmapIcon = Bitmap.createBitmap(imageWidth, imageHeight, Bitmap.Config.ARGB_8888);
             ByteBuffer buffer = ByteBuffer.wrap(pixels);
-            bmp.copyPixelsFromBuffer(buffer);
+            bitmapIcon.copyPixelsFromBuffer(buffer);
+        } else if(bitmapIcon != null) {
+            bitmapIcon.recycle();
+            bitmapIcon = null;
         }
     }
 

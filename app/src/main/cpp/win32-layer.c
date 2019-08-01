@@ -848,166 +848,66 @@ static __inline WORD DibNumColors(BITMAPINFOHEADER CONST *lpbi)
     return (lpbi->biBitCount <= 8) ? (1 << lpbi->biBitCount) : 0;
 }
 
-// Almost the same function as the private core function CreateBIPalette()
-static HPALETTE CreateBIPalette(BITMAPINFOHEADER CONST *lpbi)
-{
-    LOGPALETTE* pPal;
-    HPALETTE    hpal = NULL;
-    WORD        wNumColors;
-    BYTE        red;
-    BYTE        green;
-    BYTE        blue;
-    UINT        i;
-    RGBQUAD*    pRgb;
-
-    if (!lpbi)
+static HBITMAP DecodeBMPIcon(LPBYTE imageBuffer, size_t imageSize) {
+    // size of bitmap header information
+    DWORD dwFileSize = sizeof(BITMAPINFOHEADER);
+    if (imageSize < dwFileSize)
         return NULL;
 
-    if (lpbi->biSize != sizeof(BITMAPINFOHEADER))
-        return NULL;
+    LPBITMAPINFO pBmi = (LPBITMAPINFO)imageBuffer;
 
-    // Get a pointer to the color table and the number of colors in it
-    pRgb = (RGBQUAD FAR *)((LPBYTE)lpbi + (WORD)lpbi->biSize);
-    wNumColors = DibNumColors(lpbi);
-
-    if (wNumColors)
-    {
-        // Allocate for the logical palette structure
-        pPal = (PLOGPALETTE) malloc(sizeof(LOGPALETTE) + wNumColors * sizeof(PALETTEENTRY));
-        if (!pPal) return NULL;
-
-        pPal->palVersion    = 0x300;
-        pPal->palNumEntries = wNumColors;
-
-        // Fill in the palette entries from the DIB color table and
-        // create a logical color palette.
-        for (i = 0; i < pPal->palNumEntries; i++)
-        {
-            pPal->palPalEntry[i].peRed   = pRgb[i].rgbRed;
-            pPal->palPalEntry[i].peGreen = pRgb[i].rgbGreen;
-            pPal->palPalEntry[i].peBlue  = pRgb[i].rgbBlue;
-            pPal->palPalEntry[i].peFlags = 0;
-        }
-        hpal = CreatePalette(pPal);
-        free(pPal);
-    }
+    // size with color table
+    if (pBmi->bmiHeader.biCompression == BI_BITFIELDS)
+        dwFileSize += 3 * sizeof(DWORD);
     else
-    {
-        // create halftone palette for 16, 24 and 32 bitcount bitmaps
+        dwFileSize += DibNumColors(&pBmi->bmiHeader) * sizeof(RGBQUAD);
 
-        // 16, 24 and 32 bitcount DIB's have no color table entries so, set the
-        // number of to the maximum value (256).
-        wNumColors = 256;
-        pPal = (PLOGPALETTE) malloc(sizeof(LOGPALETTE) + wNumColors * sizeof(PALETTEENTRY));
-        if (!pPal) return NULL;
+    pBmi->bmiHeader.biHeight /= 2;
 
-        pPal->palVersion    = 0x300;
-        pPal->palNumEntries = wNumColors;
-
-        red = green = blue = 0;
-
-        // Generate 256 (= 8*8*4) RGB combinations to fill the palette
-        // entries.
-        for (i = 0; i < pPal->palNumEntries; i++)
-        {
-            pPal->palPalEntry[i].peRed   = red;
-            pPal->palPalEntry[i].peGreen = green;
-            pPal->palPalEntry[i].peBlue  = blue;
-            pPal->palPalEntry[i].peFlags = 0;
-
-            if (!(red += 32))
-                if (!(green += 32))
-                    blue += 64;
-        }
-        hpal = CreatePalette(pPal);
-        free(pPal);
+    // size with bitmap data
+    if (pBmi->bmiHeader.biCompression != BI_RGB)
+        dwFileSize += pBmi->bmiHeader.biSizeImage;
+    else {
+        pBmi->bmiHeader.biSizeImage = (((pBmi->bmiHeader.biWidth * pBmi->bmiHeader.biBitCount) + 31) / 32 * 4) *
+                                       labs(pBmi->bmiHeader.biHeight);
+        dwFileSize += pBmi->bmiHeader.biSizeImage;
     }
-    return hpal;
+    if (imageSize < dwFileSize)
+        return NULL;
+
+    HBITMAP hBitmap = CreateDIBitmap(hWindowDC, &pBmi->bmiHeader, CBM_INIT, imageBuffer, pBmi, DIB_RGB_COLORS);
+
+    return hBitmap;
 }
 
-// Almost the same function as the private core function DecodePng()
-static HBITMAP DecodePNG(LPBYTE imageBuffer, size_t imageSize)
-{
-    // this implementation use the PNG image file decoder
-    // engine of Copyright (c) 2005-2018 Lode Vandevenne
+static HBITMAP DecodePNGIcon(LPBYTE imageBuffer, size_t imageSize) {
+    HBITMAP hBitmap = NULL;
+    UINT uWidth,uHeight;
+    LPBYTE pbyImage = NULL;
+    UINT uError = lodepng_decode_memory(&pbyImage, &uWidth, &uHeight, imageBuffer, imageSize, LCT_RGBA, 8);
+    if (uError == 0) {
+        BITMAPINFO bmi;
+        ZeroMemory(&bmi, sizeof(bmi));			// init bitmap info
+        bmi.bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
+        bmi.bmiHeader.biWidth = (LONG) uWidth;
+        bmi.bmiHeader.biHeight = (LONG) uHeight;
+        bmi.bmiHeader.biPlanes = 1;
+        bmi.bmiHeader.biBitCount = 32;			// create a true color DIB
+        bmi.bmiHeader.biCompression = BI_RGB;
 
-    HBITMAP hBitmap;
+        // bitmap dimensions
+        LONG lBytesPerLine = (((bmi.bmiHeader.biWidth * bmi.bmiHeader.biBitCount) + 31) / 32 * 4);
+        bmi.bmiHeader.biSizeImage = (DWORD) (lBytesPerLine * bmi.bmiHeader.biHeight);
 
-    UINT    uError,uWidth,uHeight;
-    INT     nWidth,nHeight;
-    LONG    lBytesPerLine;
-
-    LPBYTE  pbyImage;						// PNG RGB image data
-    LPBYTE  pbySrc;							// source buffer pointer
-    LPBYTE  pbyPixels;						// BMP buffer
-
-    BITMAPINFO bmi;
-
-    hBitmap = NULL;
-    pbyImage = NULL;
-
-    // decode PNG image
-    uError = lodepng_decode_memory(&pbyImage,&uWidth,&uHeight,imageBuffer,imageSize,LCT_RGB,8);
-    if (uError) goto quit;
-
-    ZeroMemory(&bmi,sizeof(bmi));			// init bitmap info
-    bmi.bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
-    bmi.bmiHeader.biWidth = (LONG) uWidth;
-    bmi.bmiHeader.biHeight = (LONG) uHeight;
-    bmi.bmiHeader.biPlanes = 1;
-    bmi.bmiHeader.biBitCount = 24;			// create a true color DIB
-    bmi.bmiHeader.biCompression = BI_RGB;
-
-    // bitmap dimensions
-    lBytesPerLine = (((bmi.bmiHeader.biWidth * bmi.bmiHeader.biBitCount) + 31) / 32 * 4);
-    bmi.bmiHeader.biSizeImage = lBytesPerLine * bmi.bmiHeader.biHeight;
-
-    // allocate buffer for pixels
-    VERIFY(hBitmap = CreateDIBSection(hWindowDC,
-                                      &bmi,
-                                      DIB_RGB_COLORS,
-                                      (VOID **)&pbyPixels,
-                                      NULL,
-                                      0));
-    if (hBitmap == NULL) goto quit;
-
-    pbySrc = pbyImage;						// init source loop pointer
-
-    // fill bottom up DIB pixel buffer with color information
-    for (nHeight = bmi.bmiHeader.biHeight - 1; nHeight >= 0; --nHeight)
-    {
-        LPBYTE pbyLine = pbyPixels + nHeight * lBytesPerLine;
-
-        for (nWidth = 0; nWidth < bmi.bmiHeader.biWidth; ++nWidth)
-        {
-            *pbyLine++ = pbySrc[2];			// blue
-            *pbyLine++ = pbySrc[1];			// green
-            *pbyLine++ = pbySrc[0];			// red
-            pbySrc += 3;
-        }
-
-        _ASSERT((DWORD) (pbyLine - pbyPixels) <= bmi.bmiHeader.biSizeImage);
+        // allocate buffer for pixels
+        LPBYTE  pbyPixels;						// BMP buffer
+        HBITMAP hBitmap = CreateDIBSection(hWindowDC, &bmi, DIB_RGB_COLORS, (VOID **)&pbyPixels, NULL, 0);
+        if (hBitmap)
+            memcpy(pbyPixels, pbyImage, bmi.bmiHeader.biSizeImage);
     }
 
-    if (hPalette == NULL)
-    {
-        hPalette = CreateBIPalette((PBITMAPINFOHEADER) &bmi);
-        // save old palette
-        hOldPalette = SelectPalette(hWindowDC, hPalette, FALSE);
-        RealizePalette(hWindowDC);
-    }
-
-quit:
-    if (pbyImage != NULL)					// buffer for PNG image allocated
-    {
-        free(pbyImage);						// free PNG image data
-    }
-
-    if (hBitmap != NULL && uError != 0)		// creation failed
-    {
-        DeleteObject(hBitmap);				// delete bitmap
-        hBitmap = NULL;
-    }
+    if (pbyImage != NULL)
+        free(pbyImage);
     return hBitmap;
 }
 
@@ -1063,13 +963,16 @@ HANDLE LoadImage(HINSTANCE hInst, LPCSTR name, UINT type, int cx, int cy, UINT f
     int maxIconIndex = -1;
     for (int i = 0; i < fileHeader.idCount; ++i) {
         ICONDIRENTRY * iconHeader = &(iconHeaderArray[i]);
-        if(iconHeader->bWidth >= maxWidth && iconHeader->bHeight >= maxHeight && iconHeader->wBitCount > maxBitPerPixel) {
-            maxWidth = iconHeader->bWidth;
-            maxHeight = iconHeader->bHeight;
+        int width = iconHeader->bWidth == 0 ? 256 : iconHeader->bWidth;
+        int height = iconHeader->bHeight == 0 ? 256 : iconHeader->bHeight;
+        if(width >= maxWidth && height >= maxHeight && iconHeader->wBitCount > maxBitPerPixel) {
+            maxWidth = width;
+            maxHeight = height;
             maxBitPerPixel = iconHeader->wBitCount;
             maxIconIndex = i;
         }
     }
+    maxIconIndex = 1; // To test BMP
     if(maxIconIndex == -1) {
         CloseHandle(hIconFile);
         return NULL;
@@ -1090,10 +993,10 @@ HANDLE LoadImage(HINSTANCE hInst, LPCSTR name, UINT type, int cx, int cy, UINT f
     HBITMAP icon = NULL;
     if (dwBytesInRes >= 8 && memcmp(iconBuffer, "\x89PNG\r\n\x1a\n", 8) == 0) {
         // It is a PNG image
-        icon = DecodePNG(iconBuffer, dwBytesInRes);
+        icon = DecodePNGIcon(iconBuffer, dwBytesInRes);
     } else {
         // It is a BMP image
-        // TODO
+        icon = DecodeBMPIcon(iconBuffer, dwBytesInRes);
     }
 
 
@@ -2274,8 +2177,7 @@ HBITMAP CreateBitmap( int nWidth, int nHeight, UINT nPlanes, UINT nBitCount, CON
 
     BITMAPINFO * newBitmapInfo = malloc(sizeof(BITMAPINFO));
     memset(newBitmapInfo, 0, sizeof(BITMAPINFO));
-    //newBitmapInfo->bmiHeader.biBitCount = 32; //TODO should be nBitCount
-    newBitmapInfo->bmiHeader.biBitCount = nBitCount; //TODO should be nBitCount
+    newBitmapInfo->bmiHeader.biBitCount = (WORD) nBitCount;
     newBitmapInfo->bmiHeader.biClrUsed = 0;
     newBitmapInfo->bmiHeader.biWidth = nWidth;
     newBitmapInfo->bmiHeader.biHeight = -nHeight;

@@ -90,21 +90,6 @@ TODO
 - Anyway that the layout settings (zoom mode, fill screen...) be part of the saved state, rather than being global to the app (Vincent Weber).
 
 
-DONE
-
-- Improve the access to the menu by adding an optional icon in the top left of the screen.
-- After uninstalling and the installing the application, we lose the permission to read in the KML and ROM folder, so, in this case, we now prompt the user to select again this folder.
-    I thinks it is this issue: 1/Sometimes loading a kml would systematically fail, with an error on loading the .kmi file. I first thought it was a case sensitivity problem in the filename, but this didn't help. But exiting the app and relaunching it made it work. Very strange.
-- Fix the screen issue with the 14B and 32SII.
-- Zoom auto depending of the screen ratio (adjust when rotate).
-- Add the possibility to scroll or swipe the screen.
-    4/Generally speaking the KMLs and skins would need adaptation for Android. The 28S and 19BII are not usable on a phone, too small. Would need to be broken in 2 parts with toggling, like go28s does. Not sure it is possible with KMLs. Even the other calcs have a lot of wasted space, the keys are small.
-- Show the LCD in the OSD when zooming.
-    3/The 32SII and 14B scripts, which work fine on PC, do not work properly. The annunciators are sticky, you never know whether the next key is going to be shifted or not..
-- Fix the issue with the bad screen color (red/blue or event green)!
-- Change the icon.
-
-
 BUILD
 
 Emu42 for Android is built with Android Studio 3.4 (2019).
