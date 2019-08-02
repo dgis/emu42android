@@ -864,19 +864,31 @@ static HBITMAP DecodeBMPIcon(LPBYTE imageBuffer, size_t imageSize) {
 
     pBmi->bmiHeader.biHeight /= 2;
 
+    DWORD stride = (((pBmi->bmiHeader.biWidth * (DWORD)pBmi->bmiHeader.biBitCount) + 31) / 32 * 4);
+    DWORD height = (DWORD) abs(pBmi->bmiHeader.biHeight);
+
     // size with bitmap data
     if (pBmi->bmiHeader.biCompression != BI_RGB)
         dwFileSize += pBmi->bmiHeader.biSizeImage;
     else {
-        pBmi->bmiHeader.biSizeImage = (((pBmi->bmiHeader.biWidth * pBmi->bmiHeader.biBitCount) + 31) / 32 * 4) *
-                                       labs(pBmi->bmiHeader.biHeight);
+        pBmi->bmiHeader.biSizeImage =  stride * height;
         dwFileSize += pBmi->bmiHeader.biSizeImage;
     }
     if (imageSize < dwFileSize)
         return NULL;
 
     HBITMAP hBitmap = CreateDIBitmap(hWindowDC, &pBmi->bmiHeader, CBM_INIT, imageBuffer, pBmi, DIB_RGB_COLORS);
-
+    if(hBitmap) {
+        // Inverse the height
+        BYTE *source = imageBuffer + dwFileSize - stride;
+        BYTE *destination = hBitmap->bitmapBits;
+        for (int i = 0; i < height; ++i) {
+            memcpy(destination, source, stride);
+            source -= stride;
+            destination += stride;
+        }
+    }
+    // Only support 32bits RGBA BMP for now.
     return hBitmap;
 }
 
@@ -901,7 +913,7 @@ static HBITMAP DecodePNGIcon(LPBYTE imageBuffer, size_t imageSize) {
 
         // allocate buffer for pixels
         LPBYTE  pbyPixels;						// BMP buffer
-        HBITMAP hBitmap = CreateDIBSection(hWindowDC, &bmi, DIB_RGB_COLORS, (VOID **)&pbyPixels, NULL, 0);
+        hBitmap = CreateDIBSection(hWindowDC, &bmi, DIB_RGB_COLORS, (VOID **)&pbyPixels, NULL, 0);
         if (hBitmap)
             memcpy(pbyPixels, pbyImage, bmi.bmiHeader.biSizeImage);
     }
@@ -991,14 +1003,12 @@ HANDLE LoadImage(HINSTANCE hInst, LPCSTR name, UINT type, int cx, int cy, UINT f
     CloseHandle(hIconFile);
 
     HBITMAP icon = NULL;
-    if (dwBytesInRes >= 8 && memcmp(iconBuffer, "\x89PNG\r\n\x1a\n", 8) == 0) {
+    if (dwBytesInRes >= 8 && memcmp(iconBuffer, "\x89PNG\r\n\x1a\n", 8) == 0)
         // It is a PNG image
         icon = DecodePNGIcon(iconBuffer, dwBytesInRes);
-    } else {
+    else
         // It is a BMP image
         icon = DecodeBMPIcon(iconBuffer, dwBytesInRes);
-    }
-
 
 
     free(iconHeaderArray);

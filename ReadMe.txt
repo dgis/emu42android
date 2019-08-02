@@ -48,6 +48,7 @@ Version 1.2 (2019-07-XX)
 - Add option to prevent the pinch zoom.
 - Prevent the white bottom bar when both options "Hide the status/navigations bar" and "Hide the menu button" are set (Github Fix: #9).
 - Prevent the BACK/ESCAPE key to end the application only from a hardware keyboard (Github Fix: #10).
+- Add the KML Icon if present in the navigation menu header (only support PNG or 32bits BMP in the ICO file).
 
 
 Version 1.1 (2019-07-11)
