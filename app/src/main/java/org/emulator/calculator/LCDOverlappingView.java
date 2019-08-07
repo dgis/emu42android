@@ -14,10 +14,12 @@ import android.view.MotionEvent;
 import android.view.View;
 import android.widget.FrameLayout;
 
+import org.emulator.forty.two.R;
+
 public class LCDOverlappingView extends View {
 
     protected static final String TAG = "LCDOverlappingView";
-    protected final boolean debug = true;
+    protected final boolean debug = false;
 
     private SharedPreferences sharedPreferences;
     private Paint paint = new Paint();
@@ -25,9 +27,13 @@ public class LCDOverlappingView extends View {
     private float bitmapRatio = -1;
     private float minViewSize = 200.0f;
     private int overlappingLCDMode = 1;
+    private MainScreenView mainScreenView;
 
-    public LCDOverlappingView(Context context) {
+    public LCDOverlappingView(Context context, MainScreenView mainScreenView) {
         super(context);
+
+        this.mainScreenView = mainScreenView;
+        this.mainScreenView.setOnUpdateLayoutListener(() -> this.updateLayout(this.mainScreenView.viewPanOffsetX, this.mainScreenView.viewPanOffsetY, this.mainScreenView.viewScaleFactorX, this.mainScreenView.viewScaleFactorY));
 
         sharedPreferences = PreferenceManager.getDefaultSharedPreferences(context.getApplicationContext());
 
@@ -95,8 +101,6 @@ public class LCDOverlappingView extends View {
                 } else if (touchCount == 2) {
                     if(previousX0 != -1.0f) {
                         FrameLayout.LayoutParams viewFlowLayout = (FrameLayout.LayoutParams)getLayoutParams();
-//                        float detectorScaleFactor = distanceBetweenTwoPoints(previousX0, previousY0, previousX1, previousY1)
-//                                - distanceBetweenTwoPoints(currentX0, currentY0, currentX1, currentY1);
                         float scaleFactor = distanceBetweenTwoPoints(currentX0, currentY0, currentX1, currentY1) / distanceBetweenTwoPoints(previousX0, previousY0, previousX1, previousY1);
                         float scaledViewWidth = (float)viewFlowLayout.width * scaleFactor;
                         float scaledViewHeight = (float)viewFlowLayout.height * scaleFactor;
@@ -160,8 +164,6 @@ public class LCDOverlappingView extends View {
             default:
         }
         return true; // processed
-
-        //return super.onTouchEvent(event);
     }
 
     @Override
@@ -200,12 +202,11 @@ public class LCDOverlappingView extends View {
                     if(debug) Log.d(TAG, "updateCallback() Bitmap.createBitmap(x: " + newWidth + ", y: " + newHeight + ")");
                     Bitmap  oldBitmapLCD = bitmapLCD;
                     bitmapLCD = Bitmap.createBitmap(newWidth, newHeight, Bitmap.Config.ARGB_8888);
-                    bitmapRatio = newWidth > 0 ? (float)newHeight / (float)newWidth: -1;
+                    bitmapRatio = (float)newHeight / (float)newWidth;
                     if(oldBitmapLCD != null)
                         oldBitmapLCD.recycle();
 
-                    boolean overlappingLCDAutoPositioning = sharedPreferences.getBoolean("settings_lcd_overlapping_auto", true);
-                    if(!overlappingLCDAutoPositioning) {
+                    if(this.overlappingLCDMode != 1) {
                         setVisibility(View.VISIBLE);
                         float scale = sharedPreferences.getFloat("settings_lcd_overlapping_scale", 1.0f);
                         if (scale < 0.01f)
@@ -251,10 +252,9 @@ public class LCDOverlappingView extends View {
 
     public void updateLayout(float viewPanOffsetX, float viewPanOffsetY, float viewScaleFactorX, float viewScaleFactorY) {
         if(debug) Log.d(TAG, "updateLayout()");
-        if(this.overlappingLCDMode == 0)
+        if(this.overlappingLCDMode == 0) // No Overlapping LCD
             return;
-        boolean overlappingLCDAutoPositioning = sharedPreferences.getBoolean("settings_lcd_overlapping_auto", true);
-        if(overlappingLCDAutoPositioning) {
+        if(this.overlappingLCDMode == 1) { // Auto
             int newLCDWidth = NativeLib.getScreenWidth();
             int newLCDHeight = NativeLib.getScreenHeight();
             int newWidth = Math.max(1, newLCDWidth);
@@ -290,17 +290,29 @@ public class LCDOverlappingView extends View {
             SharedPreferences.Editor editor = sharedPreferences.edit();
             editor.putString("settings_lcd_overlapping_mode", Integer.toString(this.overlappingLCDMode));
             editor.apply();
+            Context context = getContext();
+            if(context != null)
+                Utils.showAlert(context, context.getString(R.string.message_change_overlapping_lcd_mode_to_manual));
         }
     }
 
     public void setOverlappingLCDMode(int overlappingLCDMode, boolean isDynamic) {
         if(debug) Log.d(TAG, "setOverlappingLCDMode(" + overlappingLCDMode + ")");
-        if(overlappingLCDMode > 0 && this.overlappingLCDMode == 0)
-            setVisibility(VISIBLE);
-        else if(overlappingLCDMode == 1 && this.overlappingLCDMode == 2) {
-            // We where in model Manual and we set it to Auto, so we need to update
-        } else if(overlappingLCDMode == 0 && this.overlappingLCDMode > 0)
-            setVisibility(GONE);
+        int previousOverlappingLCDMode = this.overlappingLCDMode;
         this.overlappingLCDMode = overlappingLCDMode;
+        if(previousOverlappingLCDMode == 0) {          // Off 0
+            if(overlappingLCDMode == 1)                 // Auto 1
+                this.updateLayout(this.mainScreenView.viewPanOffsetX, this.mainScreenView.viewPanOffsetY, this.mainScreenView.viewScaleFactorX, this.mainScreenView.viewScaleFactorY);
+            else if(overlappingLCDMode == 2)           // Manual 2
+                setVisibility(VISIBLE);
+        } else if(previousOverlappingLCDMode == 1) {   // Auto 1
+            if(overlappingLCDMode == 0)                 // Off 0
+                setVisibility(GONE);
+        } else if(previousOverlappingLCDMode == 2) {   // Manual 2
+            if(overlappingLCDMode == 0)                 // Off 0
+                setVisibility(GONE);
+            else if(overlappingLCDMode == 1)            // Auto 1
+                this.updateLayout(this.mainScreenView.viewPanOffsetX, this.mainScreenView.viewPanOffsetY, this.mainScreenView.viewScaleFactorX, this.mainScreenView.viewScaleFactorY);
+        }
     }
 }

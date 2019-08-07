@@ -49,12 +49,9 @@ public class MainScreenView extends PanAndScaleView {
     private int rotationMode = 0;
     private boolean autoRotation = false;
     private boolean autoZoom = false;
-    private LCDOverlappingView lcdOverlappingView;
 
-    public MainScreenView(Context context, LCDOverlappingView lcdOverlappingView) {
+    public MainScreenView(Context context) {
         super(context);
-
-        this.lcdOverlappingView = lcdOverlappingView;
 
         setShowScaleThumbnail(true);
         setAllowDoubleTapZoom(false);
@@ -156,10 +153,6 @@ public class MainScreenView extends PanAndScaleView {
 
         this.setFocusable(true);
         this.setFocusableInTouchMode(true);
-
-        // This call is necessary, or else the
-        // draw method will not be called.
-        //setWillNotDraw(false);
     }
 
     // Prevent accidental scroll when taping a calc button
@@ -288,7 +281,8 @@ public class MainScreenView extends PanAndScaleView {
                             viewPanOffsetY = translateY;
 
                             constrainPan();
-                            lcdOverlappingView.updateLayout(viewPanOffsetX, viewPanOffsetY, viewScaleFactorX, viewScaleFactorY);
+                            if(this.onUpdateLayoutListener != null)
+                                this.onUpdateLayoutListener.run();
                             return;
                         }
                     }
@@ -297,9 +291,17 @@ public class MainScreenView extends PanAndScaleView {
             // Else, the screens orientations are the same, so we set the calculator in fullscreen
             resetViewport();
 
-            lcdOverlappingView.updateLayout(viewPanOffsetX, viewPanOffsetY, viewScaleFactorX, viewScaleFactorY);
+            if(this.onUpdateLayoutListener != null)
+                this.onUpdateLayoutListener.run();
         }
     }
+
+    private Runnable onUpdateLayoutListener = null;
+
+    public void setOnUpdateLayoutListener(Runnable onUpdateLayoutListener) {
+        this.onUpdateLayoutListener = onUpdateLayoutListener;
+    }
+
 
     @Override
     protected void onCustomDraw(Canvas canvas) {
@@ -335,14 +337,9 @@ public class MainScreenView extends PanAndScaleView {
                     if(viewSized)
                         updateLayout();
                 }
-                //postInvalidate();
                 break;
         }
         return -1;
-    }
-
-    public Bitmap getBitmapMainScreen() {
-        return bitmapMainScreen;
     }
 
     public void setRotationMode(int rotationMode, boolean isDynamic) {

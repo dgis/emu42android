@@ -31,7 +31,6 @@ import android.os.ParcelFileDescriptor;
 import android.preference.PreferenceManager;
 import android.util.Log;
 import android.util.SparseArray;
-import android.view.DragEvent;
 import android.view.HapticFeedbackConstants;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -90,7 +89,7 @@ import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-public class MainActivity extends AppCompatActivity implements NavigationView.OnNavigationItemSelectedListener/*, View.OnDragListener*/ {
+public class MainActivity extends AppCompatActivity implements NavigationView.OnNavigationItemSelectedListener {
 
     private static final String TAG = "MainActivity";
     private SharedPreferences sharedPreferences;
@@ -155,14 +154,14 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         sharedPreferences = PreferenceManager.getDefaultSharedPreferences(getApplicationContext());
 
         ViewGroup mainScreenContainer = findViewById(R.id.main_screen_container);
-        lcdOverlappingView = new LCDOverlappingView(this);
-        mainScreenView = new MainScreenView(this, lcdOverlappingView);
+        mainScreenView = new MainScreenView(this);
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP)
             mainScreenView.setStatusBarColor(getWindow().getStatusBarColor());
         mainScreenContainer.addView(mainScreenView, 0, new ViewGroup.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT,
                 ViewGroup.LayoutParams.MATCH_PARENT));
 
+        lcdOverlappingView = new LCDOverlappingView(this, mainScreenView);
         lcdOverlappingView.setVisibility(View.GONE);
         mainScreenContainer.addView(lcdOverlappingView, 1, new FrameLayout.LayoutParams(0, 0));
 
@@ -761,12 +760,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
                     .setMultiChoiceItems(objectsToSave, null, (dialog, which, isChecked) -> objectsToSaveItemChecked[which] = isChecked).setPositiveButton("OK", (dialog, id) -> {
                         //NativeLib.onObjectSave(url);
                         SaveObject();
-                    }).setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
-                        @Override
-                        public void onClick(DialogInterface dialog, int id) {
-                            objectsToSaveItemChecked = null;
-                        }
-                    }).show();
+                    }).setNegativeButton("Cancel", (dialog, id) -> objectsToSaveItemChecked = null).show();
         } else
             SaveObject();
     }
@@ -1251,15 +1245,6 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
 
         mainScreenView.updateCallback(type, param1, param2, param3, param4);
         lcdOverlappingView.updateCallback(type, param1, param2, param3, param4);
-//        switch (type) {
-//            case NativeLib.CALLBACK_TYPE_INVALIDATE:
-//                break;
-//            case NativeLib.CALLBACK_TYPE_WINDOW_RESIZE:
-//                // New Bitmap size
-////                if(mainScreenView.getBitmapMainScreen() == null || bitmapMainScreen.getWidth() != param1 || bitmapMainScreen.getHeight() != param2) {
-////                }
-//                break;
-//        }
         return -1;
     }
 

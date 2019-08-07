@@ -46,9 +46,10 @@ CHANGES
 Version 1.2 (2019-07-XX)
 
 - Add option to prevent the pinch zoom.
-- Prevent the white bottom bar when both options "Hide the status/navigations bar" and "Hide the menu button" are set (Github Fix: #9).
+- Prevent the white bottom bar when both options "Hide the status/navigation bar" and "Hide the menu button" are set (Github Fix: #9).
 - Prevent the BACK/ESCAPE key to end the application only from a hardware keyboard (Github Fix: #10).
 - Add the KML Icon if present in the navigation menu header (only support PNG or 32bits BMP in the ICO file).
+- Allow an optional overlapping LCD part stuck to the screen when swiping the 2 calc parts.
 
 
 Version 1.1 (2019-07-11)
@@ -85,8 +86,6 @@ You should have received a copy of the GNU General Public License along with thi
 TODO
 
 - Try to include the KML files without the ROMs.
-- To have the LCD part stick to the screen when swiping the 2 calc parts (Vincent Weber).
-    * Need to refresh the layout after a change from manual to auto (and may be after a screen rotation).
 - Sometimes, the calculator seems to lag and finally freeze.
 - Anyway that the layout settings (zoom mode, fill screen...) be part of the saved state, rather than being global to the app (Vincent Weber).
 
