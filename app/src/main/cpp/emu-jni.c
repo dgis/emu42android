@@ -25,7 +25,6 @@
 #include "win32-layer.h"
 
 extern AAssetManager * assetManager;
-//static jobject viewToUpdate = NULL;
 static jobject mainActivity = NULL;
 jobject bitmapMainScreen = NULL;
 AndroidBitmapInfo androidBitmapInfo;
@@ -306,15 +305,7 @@ JNIEXPORT void JNICALL Java_org_emulator_calculator_NativeLib_start(JNIEnv *env,
     chooseCurrentKmlMode = ChooseKmlMode_UNKNOWN;
     szChosenCurrentKml[0] = '\0';
 
-    //bitmapMainScreen = (*env)->NewGlobalRef(env, bitmapMainScreen0);
     mainActivity = (*env)->NewGlobalRef(env, activity);
-    //viewToUpdate = (*env)->NewGlobalRef(env, view);
-
-
-//    int ret = AndroidBitmap_getInfo(env, bitmapMainScreen, &androidBitmapInfo);
-//    if (ret < 0) {
-//        LOGE("AndroidBitmap_getInfo() failed ! error=%d", ret);
-//    }
 
     assetManager = AAssetManager_fromJava(env, assetMgr);
 
@@ -410,10 +401,6 @@ JNIEXPORT void JNICALL Java_org_emulator_calculator_NativeLib_stop(JNIEnv *env, 
     SoundClose();							// close waveform-audio output device
     soundEnabled = FALSE;
 
-//    if (viewToUpdate) {
-//        (*env)->DeleteGlobalRef(env, viewToUpdate);
-//        viewToUpdate = NULL;
-//    }
     if(bitmapMainScreen) {
         (*env)->DeleteGlobalRef(env, bitmapMainScreen);
         bitmapMainScreen = NULL;
