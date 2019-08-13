@@ -24,6 +24,8 @@ import android.content.SharedPreferences;
 import android.content.res.AssetManager;
 import android.graphics.Bitmap;
 import android.graphics.Color;
+import android.graphics.drawable.BitmapDrawable;
+import android.graphics.drawable.Drawable;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
@@ -349,6 +351,8 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
             OnObjectLoad();
         } else if (id == R.id.nav_save_object) {
             OnObjectSave();
+        } else if (id == R.id.nav_copy_fullscreen) {
+            OnViewCopyFullscreen();
         } else if (id == R.id.nav_copy_screen) {
             OnViewCopy();
         } else if (id == R.id.nav_copy_stack) {
@@ -763,6 +767,31 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
                     }).setNegativeButton("Cancel", (dialog, id) -> objectsToSaveItemChecked = null).show();
         } else
             SaveObject();
+    }
+    
+    private void OnViewCopyFullscreen() {
+        Bitmap bitmapScreen = mainScreenView.getBitmap();
+        if(bitmapScreen == null)
+            return;
+        String imageFilename = getString(R.string.filename) + "-" + new SimpleDateFormat("yyyy-MM-dd_HH-mm-ss", Locale.US).format(new Date());
+        try {
+            File storagePath = new File(this.getExternalCacheDir(), "");
+            File imageFile = File.createTempFile(imageFilename, ".png", storagePath);
+            FileOutputStream fileOutputStream = new FileOutputStream(imageFile);
+            bitmapScreen.compress(Bitmap.CompressFormat.PNG, 90, fileOutputStream);
+            fileOutputStream.close();
+            String mimeType = "application/png";
+            Intent intent = new Intent(android.content.Intent.ACTION_SEND);
+            intent.setType(mimeType);
+            intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            intent.putExtra(Intent.EXTRA_SUBJECT, R.string.message_screenshot);
+            intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+            intent.putExtra(Intent.EXTRA_STREAM, FileProvider.getUriForFile(this,this.getPackageName() + ".provider", imageFile));
+            startActivity(Intent.createChooser(intent, getString(R.string.message_share_screenshot)));
+        } catch (Exception e) {
+            e.printStackTrace();
+            showAlert(e.getMessage());
+        }
     }
     private void OnViewCopy() {
         int width = NativeLib.getScreenWidth();
@@ -1468,14 +1497,31 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
                 bitmapIcon.copyPixelsFromBuffer(buffer);
             } catch (Exception ex) {
                 // Cannot load the icon
-                bitmapIcon.recycle();
+//                bitmapIcon.recycle();
                 bitmapIcon = null;
             }
         } else if(bitmapIcon != null) {
-            bitmapIcon.recycle();
+//            bitmapIcon.recycle();
             bitmapIcon = null;
         }
+        if(bitmapIcon == null)
+            // Try to load the app icon
+            bitmapIcon = getApplicationIconBitmap();
         changeHeaderIcon();
+    }
+
+    private Bitmap getApplicationIconBitmap() {
+        Drawable drawable = getApplicationInfo().loadIcon(getPackageManager());
+        if (drawable instanceof BitmapDrawable) {
+            BitmapDrawable bitmapDrawable = (BitmapDrawable) drawable;
+            if (bitmapDrawable.getBitmap() != null)
+                return bitmapDrawable.getBitmap();
+        }
+
+        if (drawable.getIntrinsicWidth() <= 0 || drawable.getIntrinsicHeight() <= 0)
+            return Bitmap.createBitmap(1, 1, Bitmap.Config.ARGB_8888); // Single color bitmap will be created of 1x1 pixel
+        else
+            return Bitmap.createBitmap(drawable.getIntrinsicWidth(), drawable.getIntrinsicHeight(), Bitmap.Config.ARGB_8888);
     }
 
     private void setPort1Settings(boolean port1Plugged, boolean port1Writable) {
@@ -1529,9 +1575,9 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
                     mainScreenView.setAllowPinchZoom(sharedPreferences.getBoolean("settings_allow_pinch_zoom", true));
                     break;
                 case "settings_lcd_overlapping_mode":
-                    int overlappingLCDMode = 1;
+                    int overlappingLCDMode = 0;
                     try {
-                        overlappingLCDMode = Integer.parseInt(sharedPreferences.getString("settings_lcd_overlapping_mode", "1"));
+                        overlappingLCDMode = Integer.parseInt(sharedPreferences.getString("settings_lcd_overlapping_mode", "0"));
                     } catch (NumberFormatException ex) {
                         // Catch bad number format
                     }
