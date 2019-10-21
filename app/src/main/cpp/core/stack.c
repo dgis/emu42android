@@ -374,6 +374,12 @@ static TCHAR GetRadix(VOID)
 	// get calculator decimal point
 	switch (cCurrentRomType)
 	{
+	case 'C': // HP21S (Monte Carlo)
+	case 'E': // HP10B (Ernst)
+	case 'F': // HP20S (Erni)
+		Npeek(&byFlag,F_SysFlags,sizeof(byFlag));
+		bPoint = (byFlag & (1 << F_nRadix)) == 0;
+		break;
 	case 'D': // HP42S (Davinci)
 		Npeek(&byFlag,D_CALCLFLAGS,sizeof(byFlag));
 		bPoint = (byFlag & D_sRADIX) != 0;
@@ -415,6 +421,53 @@ static TCHAR GetRadix(VOID)
 		bPoint = TRUE;
 	}
 	return bPoint ? _T('.') : _T(',');
+}
+
+static INT DoReal42(DWORD dwAddress,LPTSTR cp,INT nSize)
+{
+	BYTE byNumber[16];
+	INT  nLength;
+
+	// get real object content
+	Npeek(byNumber,dwAddress,ARRAYSIZEOF(byNumber));
+
+	/*
+	* ALPHA DATA:
+	* In the HP-41/42 ALPHA DATA is a real number object,
+	* where the Mantissa sign is 1.
+	* 6 characters fit in one ALPHA DATA object
+	* followed by "01" for original HP-41 Mantissa sign 
+	* and "x1" where x = no. of characters for the HP-42
+	*/
+	if (byNumber[15] == 1)					// ALPHA DATA
+	{
+		nLength = 0;
+
+		if (nSize > 6)						// result fits into buffer
+		{
+			LPTSTR c;
+			INT i;
+
+			c = cp;							// target buffer
+			for (i = 0; i < 2 * 6; ++c)		// decode all 6 characters
+			{
+				*c =  byNumber[i++];		// LSB
+				*c |= byNumber[i++] << 4;	// MSB
+			}
+			*c = 0;							// EOS
+
+			// marker for HP41 ALPHA DATA
+			_ASSERT(byNumber[12] == 0 && byNumber[13] == 1);
+
+			nLength = byNumber[14];			// no. of characters
+		}
+	}
+	else									// BCD float
+	{
+		// decode real object number
+		nLength = RPL_GetBcd(byNumber,12,3,GetRadix(),cp,nSize);
+	}
+	return nLength;
 }
 
 static INT DoReal(DWORD dwAddress,LPTSTR cp,INT nSize)
@@ -464,10 +517,19 @@ LRESULT OnStackCopy(VOID)					// copy data to clipboard
 
 	switch (cCurrentRomType)
 	{
+	case 'C': // HP21S (Monte Carlo)
+	case 'F': // HP20S (Erni)
+		dwAddress = F_X;					// x register object
+		dwObject = D_DOREAL;				// interpret object as real
+		break;
 	case 'D': // HP42S (Davinci)
 		dwAddress = Read5(D_StackX);		// pick address of x register object
 		dwObject = Read5(dwAddress);		// object prolog
 		dwAddress += 5;						// skip prolog
+		break;
+	case 'E': // HP10B (Ernst)
+		dwAddress = E_X;					// x register object
+		dwObject = D_DOREAL;				// interpret object as real
 		break;
 	case 'I': // HP14B (Midas)
 		dwAddress = I_X;					// x register object
@@ -513,7 +575,9 @@ LRESULT OnStackCopy(VOID)					// copy data to clipboard
 		{
 		case O_DOREAL: // real object
 			// get real object content and decode it
-			dwSize = DoReal(dwAddress,cBuffer,ARRAYSIZEOF(cBuffer));
+			dwSize = (cCurrentRomType == 'D')	// HP42S (Davinci)
+				   ? DoReal42(dwAddress,cBuffer,ARRAYSIZEOF(cBuffer))
+				   : DoReal(dwAddress,cBuffer,ARRAYSIZEOF(cBuffer));
 			break;
 		case O_DOCMP: // complex object
 			// get complex object content and decode it

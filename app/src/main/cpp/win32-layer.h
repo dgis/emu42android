@@ -711,6 +711,7 @@ HBRUSH  CreateSolidBrush(COLORREF color);
 extern BOOL MoveToEx(HDC hdc, int x, int y, LPPOINT lppt);
 extern BOOL LineTo(HDC hdc, int x, int y);
 #define SRCCOPY             (DWORD)0x00CC0020 /* dest = source                   */
+#define SRCAND              (DWORD)0x008800C6 /* dest = source AND dest          */
 #define PATCOPY             (DWORD)0x00F00021 /* dest = pattern                  */
 #define DSTINVERT           (DWORD)0x00550009 /* dest = (NOT dest)               */
 #define BLACKNESS           (DWORD)0x00000042 /* dest = BLACK                    */

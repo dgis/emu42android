@@ -177,6 +177,73 @@ VOID SetWindowPathTitle(LPCTSTR szFileName)
 
 //################
 //#
+//#    BEEP Patch check
+//#
+//################
+
+BOOL CheckForBeepPatch(VOID)
+{
+	typedef struct beeppatch
+	{
+		const DWORD dwAddress;				// patch address
+		const BYTE  byPattern[4];			// patch pattern
+	} BEEPPATCH, *PBEEPPATCH;
+
+	// known beep patches
+	const BEEPPATCH s17[]   = { { 0x02194, { 0x8, 0x1, 0xB, 0x0 } } };
+	const BEEPPATCH s17_2[] = { { 0x02284, { 0x8, 0x1, 0xB, 0x0 } } };
+	const BEEPPATCH s19_2[] = { { 0x01F46, { 0x8, 0x1, 0xB, 0x0 } } };
+	const BEEPPATCH s27[]   = { { 0x0224A, { 0x8, 0x1, 0xB, 0x0 } } };
+	const BEEPPATCH s28[]   = { { 0x22AED, { 0x8, 0x1, 0xB, 0x1 } } };
+
+	const BEEPPATCH *psData;
+	UINT nDataItems;
+	BOOL bMatch;
+
+	switch (cCurrentRomType)
+	{
+	case 'M':								// HP27S
+		psData = s27;
+		nDataItems = ARRAYSIZEOF(s27);
+		break;
+	case 'O':								// HP28S
+		psData = s28;
+		nDataItems = ARRAYSIZEOF(s28);
+		break;
+	case 'T':								// HP17B
+		psData = s17;
+		nDataItems = ARRAYSIZEOF(s17);
+		break;
+	case 'U':								// HP17BII
+		psData = s17_2;
+		nDataItems = ARRAYSIZEOF(s17_2);
+		break;
+	case 'Y':								// HP19BII
+		psData = s19_2;
+		nDataItems = ARRAYSIZEOF(s19_2);
+		break;
+	default:
+		psData = NULL;
+		nDataItems = 0;
+	}
+
+	// check if one data set match
+	for (bMatch = FALSE; !bMatch && nDataItems > 0; --nDataItems)
+	{
+		_ASSERT(pbyRom != NULL && psData != NULL);
+
+		// pattern matching?
+		bMatch =  (psData->dwAddress + ARRAYSIZEOF(psData->byPattern) < dwRomSize)
+			   && (memcmp(&pbyRom[psData->dwAddress],psData->byPattern,ARRAYSIZEOF(psData->byPattern))) == 0;
+		++psData;							// next data set
+	}
+	return bMatch;
+}
+
+
+
+//################
+//#
 //#    Patch
 //#
 //################
@@ -558,6 +625,26 @@ BOOL NewDocument(VOID)
 	if (!DisplayChooseKml(0)) goto restore;
 	if (!InitKML(szCurrentKml,FALSE)) goto restore;
 	Chipset.type = cCurrentRomType;
+	CrcRom(&Chipset.wRomCrc);				// save fingerprint of loaded ROM
+
+	if (isModelBert(Chipset.type))			// Pioneer series base on Bert chip
+	{
+		// MMU mappings default settings
+		Chipset.RegBase  = 0x00000;			// MMU Registers (16 bits)
+		Chipset.RegMask  = 0x00000;			// n-island mask
+		Chipset.DispBase = 0x00000;			// MMU Display/Timer (11 bits)
+		Chipset.DispMask = 0x00000;			// n-island mask
+		Chipset.NCE2Base = 0x00000;			// MMU NCE2 Memory (11 bits)
+		Chipset.NCE2Mask = 0x00000;			// n-island mask
+		Chipset.NCE3Base = 0x00000;			// MMU NCE3 Memory (11 bits)
+		Chipset.NCE3Mask = 0x00000;			// n-island mask
+		Chipset.RomBase  = 0x00000;			// MMU ROM (6 bits)
+		Chipset.RomMask  = 0x08000;			// n-island mask
+
+		Chipset.RomSize  = dwRomSize;		// size of ROM
+
+		Chipset.b.IORam[BSYSTEM_CTRL] = RST; // set ReSeT bit at power up
+	}
 
 	if (isModelSaca(Chipset.type))			// Pioneer series base on Sacajawea chip
 	{
@@ -1206,11 +1293,14 @@ BOOL GetOpenFilename(VOID)
 
 	InitializeOFN(&ofn);
 	ofn.lpstrFilter =
-		_T("Emu42 Files (*.e14;*.e17;*.e19;*.e22;*.e27;*.e28;*.e32;*.e42)\0")
-		  _T("*.e14;*.e17;*.e19;*.e22;*.e27;*.e28;*.e32;*.e42\0")
+		_T("Emu42 Files (*.e10;*.e14;*.e17;*.e19;*.e20;*.e21;*.e22;*.e27;*.e28;*.e32;*.e42)\0")
+		  _T("*.e10;*.e14;*.e17;*.e19;*.e20;*.e21;*.e22;*.e27;*.e28;*.e32;*.e42\0")
+		_T("HP-10B Files (*.e10)\0*.e10\0")
 		_T("HP-14B Files (*.e14)\0*.e14\0")
 		_T("HP-17B/17BII Files (*.e17)\0*.e17\0")
 		_T("HP-19BII Files (*.e19)\0*.e19\0")
+		_T("HP-20S Files (*.e20)\0*.e20\0")
+		_T("HP-21S Files (*.e21)\0*.e21\0")
 		_T("HP-22S Files (*.e22)\0*.e22\0")
 		_T("HP-27S Files (*.e27)\0*.e27\0")
 		_T("HP-28S Files (*.e28)\0*.e28\0")
@@ -1235,57 +1325,75 @@ BOOL GetSaveAsFilename(VOID)
 
 	InitializeOFN(&ofn);
 	ofn.lpstrFilter =
+		_T("HP-10B Files (*.e10)\0*.e10\0")
 		_T("HP-14B Files (*.e14)\0*.e14\0")
 		_T("HP-17B/17BII Files (*.e17)\0*.e17\0")
 		_T("HP-19BII Files (*.e19)\0*.e19\0")
+		_T("HP-20S Files (*.e20)\0*.e20\0")
+		_T("HP-21S Files (*.e21)\0*.e21\0")
 		_T("HP-22S Files (*.e22)\0*.e22\0")
 		_T("HP-27S Files (*.e27)\0*.e27\0")
 		_T("HP-28S Files (*.e28)\0*.e28\0")
 		_T("HP-32S/32SII Files (*.e32)\0*.e32\0")
 		_T("HP-42S Files (*.e42)\0*.e42\0")
 		_T("All Files (*.*)\0*.*\0");
-	ofn.nFilterIndex = 9;					// default
+	ofn.nFilterIndex = 12;					// default
+	if (cCurrentRomType == 'E')				// Ernst, HP10B
+	{
+		ofn.lpstrDefExt = _T("e10");
+		ofn.nFilterIndex = 1;
+	}
 	if (cCurrentRomType == 'I')				// Midas, HP14B
 	{
 		ofn.lpstrDefExt = _T("e14");
-		ofn.nFilterIndex = 1;
+		ofn.nFilterIndex = 2;
 	}
 	if (   cCurrentRomType == 'T'			// Trader,    HP17B
 		|| cCurrentRomType == 'U')			// Trader II, HP17BII
 	{
 		ofn.lpstrDefExt = _T("e17");
-		ofn.nFilterIndex = 2;
+		ofn.nFilterIndex = 3;
 	}
 	if (cCurrentRomType == 'Y')				// Tycoon II, HP19BII
 	{
 		ofn.lpstrDefExt = _T("e19");
-		ofn.nFilterIndex = 3;
+		ofn.nFilterIndex = 4;
+	}
+	if (cCurrentRomType == 'F')				// Erni, HP20S
+	{
+		ofn.lpstrDefExt = _T("e20");
+		ofn.nFilterIndex = 5;
+	}
+	if (cCurrentRomType == 'C')				// Monte Carlo, HP20S
+	{
+		ofn.lpstrDefExt = _T("e21");
+		ofn.nFilterIndex = 6;
 	}
 	if (cCurrentRomType == 'A')				// Plato, HP22S
 	{
 		ofn.lpstrDefExt = _T("e22");
-		ofn.nFilterIndex = 4;
+		ofn.nFilterIndex = 7;
 	}
 	if (cCurrentRomType == 'M')				// Mentor, HP27S
 	{
 		ofn.lpstrDefExt = _T("e27");
-		ofn.nFilterIndex = 5;
+		ofn.nFilterIndex = 8;
 	}
 	if (cCurrentRomType == 'O')				// Orlando, HP28S
 	{
 		ofn.lpstrDefExt = _T("e28");
-		ofn.nFilterIndex = 6;
+		ofn.nFilterIndex = 9;
 	}
 	if (   cCurrentRomType == 'L'			// Leonardo, HP32S
 		|| cCurrentRomType == 'N')			// Nardo,    HP32SII
 	{
 		ofn.lpstrDefExt = _T("e32");
-		ofn.nFilterIndex = 7;
+		ofn.nFilterIndex = 10;
 	}
 	if (cCurrentRomType == 'D')				// Davinci, HP42S
 	{
 		ofn.lpstrDefExt = _T("e42");
-		ofn.nFilterIndex = 8;
+		ofn.nFilterIndex = 11;
 	}
 	ofn.lpstrFile = szBuffer;
 	ofn.lpstrFile[0] = 0;
@@ -1616,7 +1724,7 @@ static HPALETTE CreateBIPalette(BITMAPINFOHEADER CONST *lpbi)
 	return hpal;
 }
 
-static HBITMAP DecodeBmp(LPBMPFILE pBmp)
+static HBITMAP DecodeBmp(LPBMPFILE pBmp,BOOL bPalette)
 {
 	LPBITMAPFILEHEADER pBmfh;
 	LPBITMAPINFO pBmi;
@@ -1666,7 +1774,7 @@ static HBITMAP DecodeBmp(LPBMPFILE pBmp)
 		pBmi, DIB_RGB_COLORS));
 	if (hBitmap == NULL) return NULL;
 
-	if (hPalette == NULL)
+	if (bPalette && hPalette == NULL)
 	{
 		hPalette = CreateBIPalette(&pBmi->bmiHeader);
 		// save old palette
@@ -1697,7 +1805,7 @@ static BOOL ReadGifWord(LPBMPFILE pGif, INT *n)
 	return FALSE;
 }
 
-static HBITMAP DecodeGif(LPBMPFILE pBmp,DWORD *pdwTransparentColor)
+static HBITMAP DecodeGif(LPBMPFILE pBmp,DWORD *pdwTransparentColor,BOOL bPalette)
 {
 	// this implementation base on the GIF image file
 	// decoder engine of Free42 (c) by Thomas Okken
@@ -2191,7 +2299,7 @@ static HBITMAP DecodeGif(LPBMPFILE pBmp,DWORD *pdwTransparentColor)
 	_ASSERT(bDecoding == FALSE);			// decoding successful
 
 	// normal decoding exit
-	if (hPalette == NULL)
+	if (bPalette && hPalette == NULL)
 	{
 		hPalette = CreateBIPalette((PBITMAPINFOHEADER) &bmi);
 		// save old palette
@@ -2208,7 +2316,7 @@ quit:
 	return hBitmap;
 }
 
-static HBITMAP DecodePng(LPBMPFILE pBmp)
+static HBITMAP DecodePng(LPBMPFILE pBmp,BOOL bPalette)
 {
 	// this implementation use the PNG image file decoder
 	// engine of Copyright (c) 2005-2018 Lode Vandevenne
@@ -2271,7 +2379,7 @@ static HBITMAP DecodePng(LPBMPFILE pBmp)
 		_ASSERT((DWORD) (pbyLine - pbyPixels) <= bmi.bmiHeader.biSizeImage);
 	}
 
-	if (hPalette == NULL)
+	if (bPalette && hPalette == NULL)
 	{
 		hPalette = CreateBIPalette((PBITMAPINFOHEADER) &bmi);
 		// save old palette
@@ -2293,7 +2401,7 @@ quit:
 	return hBitmap;
 }
 
-HBITMAP LoadBitmapFile(LPCTSTR szFilename)
+HBITMAP LoadBitmapFile(LPCTSTR szFilename,BOOL bPalette)
 {
 	HANDLE  hFile;
 	HANDLE  hMap;
@@ -2324,7 +2432,7 @@ HBITMAP LoadBitmapFile(LPCTSTR szFilename)
 		// check for bitmap file header "BM"
 		if (Bmp.dwFileSize >= 2 && *(WORD *) Bmp.pbyFile == 0x4D42)
 		{
-			hBitmap = DecodeBmp(&Bmp);
+			hBitmap = DecodeBmp(&Bmp,bPalette);
 			break;
 		}
 
@@ -2332,14 +2440,14 @@ HBITMAP LoadBitmapFile(LPCTSTR szFilename)
 		if (   Bmp.dwFileSize >= 6
 			&& (memcmp(Bmp.pbyFile,"GIF87a",6) == 0 || memcmp(Bmp.pbyFile,"GIF89a",6) == 0))
 		{
-			hBitmap = DecodeGif(&Bmp,&dwTColor);
+			hBitmap = DecodeGif(&Bmp,&dwTColor,bPalette);
 			break;
 		}
 
 		// check for PNG file header
 		if (Bmp.dwFileSize >= 8 && memcmp(Bmp.pbyFile,"\x89PNG\r\n\x1a\n",8) == 0)
 		{
-			hBitmap = DecodePng(&Bmp);
+			hBitmap = DecodePng(&Bmp,bPalette);
 			break;
 		}
 

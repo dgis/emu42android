@@ -288,20 +288,23 @@ VOID o0F(LPBYTE I) // RTI
 		INTERRUPT;							// restart interrupt handler
 	}
 
-	// restart interrupt handler when timer interrupt
-	if (w.IORam[TIMERCTL_1]&INTR)			// INT bit of master timer1 is set
-		ReadT1(MASTER);						// check for int
-
-	if (w.IORam[TIMERCTL_2]&INTR)			// INT bit of timer2 is set
-		ReadT2(MASTER);						// check for int
-
-	if (w.bSlave)							// slave controller
+	if (nCurrentHardware != HDW_BERT)		// Lewis or Sacajawea
 	{
-		if (wS.IORam[TIMERCTL_1]&INTR)		// INT bit of slave timer1 is set
-			ReadT1(SLAVE);					// check for int
+		// restart interrupt handler when timer interrupt
+		if (w.IORam[TIMERCTL_1]&INTR)		// INT bit of master timer1 is set
+			ReadT1(MASTER);					// check for int
 
-		if (wS.IORam[TIMERCTL_2]&INTR)		// INT bit of timer2 is set
-			ReadT2(SLAVE);					// check for int
+		if (w.IORam[TIMERCTL_2]&INTR)		// INT bit of timer2 is set
+			ReadT2(MASTER);					// check for int
+
+		if (w.bSlave)						// slave controller
+		{
+			if (wS.IORam[TIMERCTL_1]&INTR)	// INT bit of slave timer1 is set
+				ReadT1(SLAVE);				// check for int
+
+			if (wS.IORam[TIMERCTL_2]&INTR)	// INT bit of timer2 is set
+				ReadT2(SLAVE);				// check for int
+		}
 	}
 	return;
 }
@@ -1017,43 +1020,47 @@ VOID o807(LPBYTE I) // SHUTDN
 {
 	BOOL bShutdn = TRUE;					// shut down
 
-	// only shut down when no timer wake up
-	if (w.IORam[TIMERCTL_1]&WKE)			// WKE bit of master timer1 is set
+	if (nCurrentHardware != HDW_BERT)		// Lewis or Sacajawea
 	{
-		if (ReadT1(MASTER)&0x08)			// and MSB of master timer1 is set
+		// only shut down when no timer wake up
+		if (w.IORam[TIMERCTL_1]&WKE)		// WKE bit of master timer1 is set
 		{
-			w.IORam[TIMERCTL_1] &= ~WKE;	// clear WKE
-			bShutdn = FALSE;				// don't shut down
+			if (ReadT1(MASTER)&0x08)		// and MSB of master timer1 is set
+			{
+				w.IORam[TIMERCTL_1] &= ~WKE; // clear WKE
+				bShutdn = FALSE;			// don't shut down
+			}
 		}
-	}
-	if (w.IORam[TIMERCTL_2]&WKE)			// WKE bit of timer2 is set
-	{
-		if (ReadT2(MASTER)&0x80000000)		// and MSB of timer2 is set
+		if (w.IORam[TIMERCTL_2]&WKE)		// WKE bit of timer2 is set
 		{
-			w.IORam[TIMERCTL_2] &= ~WKE;	// clear WKE
-			bShutdn = FALSE;				// don't shut down
+			if (ReadT2(MASTER)&0x80000000)	// and MSB of timer2 is set
+			{
+				w.IORam[TIMERCTL_2] &= ~WKE; // clear WKE
+				bShutdn = FALSE;			// don't shut down
+			}
+		}
+
+		if (w.bSlave)						// slave controller
+		{
+			if (wS.IORam[TIMERCTL_1]&WKE)	// WKE bit of slave timer1 is set
+			{
+				if (ReadT1(SLAVE)&0x08)		// and MSB of slave timer1 is set
+				{
+					wS.IORam[TIMERCTL_1] &= ~WKE; // clear WKE
+					bShutdn = FALSE;		// don't shut down
+				}
+			}
+			if (wS.IORam[TIMERCTL_2]&WKE)	// WKE bit of timer2 is set
+			{
+				if (ReadT2(SLAVE)&0x80000000) // and MSB of timer2 is set
+				{
+					wS.IORam[TIMERCTL_2] &= ~WKE; // clear WKE
+					bShutdn = FALSE;		// don't shut down
+				}
+			}
 		}
 	}
 
-	if (w.bSlave)							// slave controller
-	{
-		if (wS.IORam[TIMERCTL_1]&WKE)		// WKE bit of slave timer1 is set
-		{
-			if (ReadT1(SLAVE)&0x08)			// and MSB of slave timer1 is set
-			{
-				wS.IORam[TIMERCTL_1] &= ~WKE; // clear WKE
-				bShutdn = FALSE;			// don't shut down
-			}
-		}
-		if (wS.IORam[TIMERCTL_2]&WKE)		// WKE bit of timer2 is set
-		{
-			if (ReadT2(SLAVE)&0x80000000)	// and MSB of timer2 is set
-			{
-				wS.IORam[TIMERCTL_2] &= ~WKE; // clear WKE
-				bShutdn = FALSE;			// don't shut down
-			}
-		}
-	}
 
 	ScanKeyboard(TRUE,FALSE);				// update Chipset.in register (direct)
 	// out register going low during shutdown, so normal keys produce a rising
@@ -1063,6 +1070,11 @@ VOID o807(LPBYTE I) // SHUTDN
 	{
 		w.Shutdn = TRUE;					// set mode before exit emulation loop
 		bInterrupt = TRUE;
+		if (nCurrentHardware == HDW_BERT)	// Bert timer handling
+		{
+			w.SReq = 0;						// no respond of timer
+			StartTimerBert();				// start timer if enabled
+		}
 	}
 	w.cycles+=6;
 	w.pc+=3;
@@ -1268,10 +1280,17 @@ VOID o80E(LPBYTE I) // SREQ?
 	w.cycles+=7;
 	w.pc+=3;
 	// timer responds with BUS[0] = high
-	w.C[0] = ((w.IORam[TIMERCTL_1] | w.IORam[TIMERCTL_2]) & SRQ) != 0;
-	if (w.bSlave)							// slave timer?
+	if (nCurrentHardware == HDW_BERT)
 	{
-		w.C[0] |= ((wS.IORam[TIMERCTL_1] | wS.IORam[TIMERCTL_2]) & SRQ) != 0;
+		w.C[0]=w.SReq;
+	}
+	else
+	{
+		w.C[0] = ((w.IORam[TIMERCTL_1] | w.IORam[TIMERCTL_2]) & SRQ) != 0;
+		if (w.bSlave)							// slave timer?
+		{
+			w.C[0] |= ((wS.IORam[TIMERCTL_1] | wS.IORam[TIMERCTL_2]) & SRQ) != 0;
+		}
 	}
 	if (w.C[0]) w.HST |= SR;
 	return;

@@ -13,7 +13,7 @@
 #include "kml.h"
 #include "debugger.h"
 
-#define VERSION   "1.22"
+#define VERSION   "1.23"
 
 #ifdef _DEBUG
 LPCTSTR szNoTitle = _T("Emu42 ")_T(VERSION)_T(" Debug");
@@ -41,6 +41,7 @@ static const LPCTSTR szLicence =
 
 static BOOL bOwnCursor = FALSE;
 static BOOL bTitleBar = TRUE;
+static BOOL bMouseButton = FALSE;
 
 
 CRITICAL_SECTION csGDILock;					// critical section for hWindowDC
@@ -559,19 +560,9 @@ static LRESULT OnPaint(HWND hWindow)
 static LRESULT OnInitMenu(HMENU hMenu)
 {
 	// enable stack loading on HP28S and User Code loading on HP32SII and HP42S
-	BOOL bObjectEnable =    (cCurrentRomType == 'D')
-						 || (cCurrentRomType == 'N')
-						 || (cCurrentRomType == 'O');
-	BOOL bStackCEnable =    (cCurrentRomType == 'D')
-						 || (cCurrentRomType == 'I')
-						 || (cCurrentRomType == 'M')
-						 || (cCurrentRomType == 'N')
-						 || (cCurrentRomType == 'O')
-						 || (cCurrentRomType == 'T')
-						 || (cCurrentRomType == 'U')
-						 || (cCurrentRomType == 'Y');
-	BOOL bStackPEnable =    (cCurrentRomType == 'D')
-						 || (cCurrentRomType == 'O');
+	BOOL bObjectEnable = isObjectEn(cCurrentRomType);
+	BOOL bStackCEnable = isStackCEn(cCurrentRomType);
+	BOOL bStackPEnable = isStackPEn(cCurrentRomType);
 	BOOL bRun          = nState == SM_RUN || nState == SM_SLEEP;
 
 	UINT uObjectEnable = (bRun && bObjectEnable) ? MF_ENABLED : MF_GRAYED;
@@ -854,13 +845,16 @@ static LRESULT OnViewCopy(VOID)
 			nxO = nyO = 0;					// origin in HDC
 			hSrcDC = hLcdDC;				// use display HDC as source
 
-			if (nCurrentHardware == HDW_SACA)
+			if (nCurrentHardware == HDW_SACA || nCurrentHardware == HDW_BERT)
 			{
 				TCHAR cBuffer[32];			// temp. buffer for text
 				MSG msg;
 
-				// Text
-				GetLcdNumberSaca(cBuffer);	// get display string
+				// get text display string
+				if (nCurrentHardware == HDW_SACA)
+					GetLcdNumberSaca(cBuffer);
+				else
+					GetLcdNumberBert(cBuffer);
 				dwLen = (lstrlen(cBuffer) + 1) * sizeof(cBuffer[0]);
 				// memory allocation for clipboard data
 				if ((hClipObj = GlobalAlloc(GMEM_MOVEABLE, dwLen)) != NULL)
@@ -1398,28 +1392,19 @@ static VOID OnContextMenu(LPARAM lParam)
 	return;
 }
 
-static BOOL OnNcHitTest(LPARAM lParam)
-{
-	if (!bTitleBar || bClientWinMove)		// no title bar or window movement over client enabled
-	{
-		POINT pt;
-
-		POINTSTOPOINT(pt,MAKEPOINTS(lParam)); // mouse position
-		VERIFY(ScreenToClient(hWnd,&pt));	// convert mouse into client position
-
-		if (pt.y >= 0)						// client area
-		{
-			// hit area not over a button
-			return !MouseIsButton(pt.x,pt.y);
-		}
-	}
-	return FALSE;
-}
-
 static LRESULT OnLButtonDown(UINT nFlags, WORD x, WORD y)
 {
 	if (nMacroState == MACRO_PLAY) return 0; // playing macro
 	if (nState == SM_RUN) MouseButtonDownAt(nFlags, x,y);
+
+	bMouseButton = MouseIsButton(x,y);		// mouse is over button hit area
+
+	// no title bar or window movement over client enabled and hit area not over a button
+	if ((!bTitleBar || bClientWinMove) && nFlags == MK_LBUTTON && !bMouseButton)
+	{
+		// move window while holding the left mouse button
+		PostMessage(hWnd,WM_NCLBUTTONDOWN,HTCAPTION,MAKELPARAM(x,y));
+	}
 	return 0;
 }
 
@@ -1427,6 +1412,7 @@ static LRESULT OnLButtonUp(UINT nFlags, WORD x, WORD y)
 {
 	if (nMacroState == MACRO_PLAY) return 0; // playing macro
 	if (nState == SM_RUN) MouseButtonUpAt(nFlags, x,y);
+	bMouseButton = FALSE;
 	return 0;
 }
 
@@ -1462,6 +1448,7 @@ static LRESULT OnKeyDown(int nVirtKey, LPARAM lKeyData)
 	// call RunKey() only once (suppress autorepeat feature)
 	if (nState == SM_RUN && (lKeyData & 0x40000000) == 0)
 		RunKey((BYTE)nVirtKey, TRUE);
+	bMouseButton = FALSE;
 	return 0;
 }
 
@@ -1605,12 +1592,18 @@ LRESULT CALLBACK MainWndProc(HWND hWindow, UINT uMsg, WPARAM wParam, LPARAM lPar
 		case SC_CLOSE: return OnFileExit();
 		}
 		break;
-	case WM_CONTEXTMENU:
-	case WM_NCRBUTTONUP:
-		OnContextMenu(lParam);
+	case WM_ENDSESSION:
+		// session will end and any auto saving is enabled
+		if (wParam == TRUE && (bAutoSave || bAutoSaveOnExit))
+		{
+			SwitchToState(SM_INVALID);		// hold emulation thread
+			if (szCurrentFilename[0] != 0)	// has current filename
+				SaveDocument();
+			SwitchToState(SM_RUN);			// on cancel restart emulation thread
+		}
 		break;
-	case WM_NCHITTEST:
-		if (OnNcHitTest(lParam)) return HTCAPTION;
+	case WM_CONTEXTMENU:
+		if (!bMouseButton) OnContextMenu(lParam);
 		break;
 	case WM_RBUTTONDOWN:
 	case WM_LBUTTONDOWN:  return OnLButtonDown((UINT) wParam, LOWORD(lParam), HIWORD(lParam));

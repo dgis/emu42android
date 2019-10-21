@@ -118,11 +118,23 @@
 #define D_AVMEM			0x50117
 #define D_CALCLFLAGS	0x5046B
 
+// HP10B RAM entry
+#define E_nRadix		0			// nRadix,
+
+#define E_SysFlags		0x0800E
+#define E_X				0x08016
+
 // HP14B RAM entry
 #define I_nRadix		2			// nRadix,
 
 #define I_SysFlags		0x2006B
 #define I_X				0x20355
+
+// HP20S, HP21S RAM entry
+#define F_nRadix		0			// nRadix,
+
+#define F_SysFlags		0x0800E
+#define F_X				0x08187
 
 // HP32SII RAM entries
 #define N_nRadix		4			// nRadix,

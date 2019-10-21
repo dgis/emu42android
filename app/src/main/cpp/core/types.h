@@ -49,6 +49,7 @@ typedef struct
 	BOOL	intd;							// keyboard interrupt pending (TRUE = int pending)
 	BOOL	carry;
 	WORD	crc;							// CRC content
+	BYTE	SReq;							// respond to SREQ? command
 
 	BOOL	bShutdnWake;					// flag for wake up from SHUTDN mode
 
@@ -69,7 +70,16 @@ typedef struct
 	DWORD	NCE3Base, NCE3Mask;				// MMU NCE3 Memory (10 bits)
 	DWORD	RomBase,  RomMask;				// MMU ROM (6 bits)
 
-	BYTE	IORam[0x400];					// display/timer/control registers
+	union 
+	{
+		BYTE	IORam[0x400];				// display/timer/control registers
+		struct								// Bert
+		{
+			BYTE	DRam[0x200];			// User RAM
+			BYTE	DspRam[0x40];			// Display bit map
+			BYTE	IORam[0x04];			// control registers
+		} b;
+	};
 
 	BOOL	NCE2Ram;						// type of memory (FALSE = ROM | TRUE = RAM)
 	DWORD	NCE2Size;						// real size of module in Nibbles

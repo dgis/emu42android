@@ -9,6 +9,7 @@
 #include "pch.h"
 #include "resource.h"
 #include "Emu42.h"
+#include "stegano.h"
 #include "kml.h"
 
 #define ROP_PSDPxax 0x00B8074A				// ternary ROP
@@ -47,6 +48,7 @@ static UINT      nButtons = 0;
 static UINT      nScancodes = 0;
 static UINT      nAnnunciators = 0;
 static BOOL      bDebug = TRUE;
+static BOOL      bBitmapROM = FALSE;
 static WORD      wKeybLocId = 0;
 static BOOL      bLocaleInc = FALSE;		// no locale block content included
 static UINT      nLexLine;
@@ -1266,6 +1268,13 @@ static VOID InitGlobal(KmlBlock* pBlock)
 					break;
 				}
 
+				// Bert
+				if (isModelBert(cCurrentRomType))
+				{
+					nCurrentHardware = HDW_BERT;
+					break;
+				}
+
 				// default
 				nCurrentHardware = HDW_UNKNOWN;
 				_ASSERT(FALSE);
@@ -1292,11 +1301,32 @@ static VOID InitGlobal(KmlBlock* pBlock)
 		case TOK_ROM:
 			if (pbyRom != NULL)
 			{
-				PrintfToLog(_T("Rom %s ignored."), (LPTSTR)pLine->nParam[0]);
-				AddToLog(_T("Please put only one Rom command in the Global block."));
-				break;
+				if (bBitmapROM)				// loaded ROM from background bitmap
+				{
+					UnmapRom();				// ignore this ROM
+				}
+				else
+				{
+					PrintfToLog(_T("Rom %s ignored."), (LPTSTR)pLine->nParam[0]);
+					AddToLog(_T("Please put only one Rom command in the Global block."));
+					break;
+				}
 			}
-			if (!MapRom((LPTSTR)pLine->nParam[0]))
+			_ASSERT(pbyRom == NULL);
+
+			// try to load as ROM image bitmap
+			{
+				// use LoadBitmapFile() for decoding BMP and PNG images
+				HBITMAP hBmp = LoadBitmapFile((LPTSTR)pLine->nParam[0],FALSE);
+				if (hBmp != NULL)
+				{
+					SteganoDecodeHBm(&pbyRom,&dwRomSize,4,hBmp);
+					DeleteObject(hBmp);
+				}
+			}
+
+			// load as normal ROM image file
+			if (pbyRom == NULL && !MapRom((LPTSTR)pLine->nParam[0]))
 			{
 				PrintfToLog(_T("Cannot open Rom %s."), (LPTSTR)pLine->nParam[0]);
 				break;
@@ -1328,6 +1358,11 @@ static VOID InitGlobal(KmlBlock* pBlock)
 				break;
 			}
 			PrintfToLog(_T("Bitmap %s loaded."), (LPTSTR)pLine->nParam[0]);
+			if (pbyRom == NULL)				// no ROM image loaded so far
+			{
+				// look for an integrated ROM image
+				bBitmapROM = SteganoDecodeHBm(&pbyRom, &dwRomSize, 4, (HBITMAP)GetCurrentObject(hMainDC,OBJ_BITMAP)) == STG_NOERROR;
+			}
 			break;
 		case TOK_COLOR:
 			dwTColorTol = (DWORD) pLine->nParam[0];
@@ -1763,6 +1798,7 @@ VOID KillKML(VOID)
 	nScancodes = 0;
 	nAnnunciators = 0;
 	bDebug = TRUE;
+	bBitmapROM = FALSE;
 	wKeybLocId = 0;
 	bLocaleInc = FALSE;
 	nKMLFlags = 0;
@@ -1874,7 +1910,7 @@ static VOID AdjustPixel(LPBYTE pbyPixel, BYTE byOffset)
 {
 	INT i = 3;								// BGR colors
 
-	while (--i >= 0)					
+	while (--i >= 0)
 	{
 		WORD wColor = (WORD) *pbyPixel + byOffset;
 		// jumpless saturation to 0xFF
@@ -2506,30 +2542,6 @@ static VOID ResizeMainBitmap(INT nMul, INT nDiv)
 		nLcdX = MulDiv(nLcdX,nMul,nDiv);
 		nLcdY = MulDiv(nLcdY,nMul,nDiv);
 
-		// Lewis hardware
-		if (nCurrentHardware == HDW_LEWIS)
-		{
-			// adjust LCD zoom factors
-			_ASSERT(nCurrentHardware == HDW_LEWIS);
-			nLcdZoom = MulDiv(nLcdZoom,nMul,nDiv);
-			if (nLcdyZoom != (UINT) -1)		// initialized
-			{
-				nLcdyZoom = MulDiv(nLcdyZoom,nMul,nDiv);
-			}
-		}
-
-		// Sacajawea hardware with no external LCD bitmap
-		if (nCurrentHardware == HDW_SACA && hAnnunDC == NULL)			
-		{
-			// adjust LCD settings defined for the background bitmap
-			_ASSERT(nCurrentHardware == HDW_SACA);
-			nLcdXOff     = MulDiv(nLcdXOff,nMul,nDiv);
-			nLcdYOff     = MulDiv(nLcdYOff,nMul,nDiv);
-			nLcdXPixel   = MulDiv(nLcdXPixel,nMul,nDiv);
-			nLcdYPixel   = MulDiv(nLcdYPixel,nMul,nDiv);
-			nLcdDistance = MulDiv(nLcdDistance,nMul,nDiv);
-		}
-
 		// update script coordinates (buttons)
 		for (i = 0; i < nButtons; ++i)
 		{
@@ -2541,47 +2553,76 @@ static VOID ResizeMainBitmap(INT nMul, INT nDiv)
 			pButton[i].nCy = (UINT) (pButton[i].nCy * nMul / nDiv);
 		}
 
-		// annunciators update only on Lewis hardware or Sacajawea hardware with no external LCD bitmap,
-		// on Sacajawea hardware with external LCD bitmap definition all coordinates belong to the external
-		// LCD bitmap and are relative to the virtual LCD window
-		if (nCurrentHardware == HDW_LEWIS || (nCurrentHardware == HDW_SACA && hAnnunDC == NULL))
+		// Lewis hardware
+		if (nCurrentHardware == HDW_LEWIS)
 		{
-			if (hAnnunDC == NULL)			// no external annunciator bitmap
+			// adjust LCD zoom factors
+			nLcdZoom = MulDiv(nLcdZoom,nMul,nDiv);
+			if (nLcdyZoom != (UINT) -1)		// initialized
 			{
-				// preset annunciator borders
-				SetRect(&rcAnunnciator, INT_MAX, INT_MAX, INT_MIN, INT_MIN);
+				nLcdyZoom = MulDiv(nLcdyZoom,nMul,nDiv);
+			}
+		}
 
-				// determine annunciator area in main bitmap
-				for (i = 0; i < ARRAYSIZEOF(pAnnunciator); ++i)
-				{
-					// annunciator size defined, update rectangle coordinates for source bitmap
-					if ((pAnnunciator[i].nCx | pAnnunciator[i].nCy) != 0)
-					{
-						// get annunciator rectangle
-						if ((LONG) pAnnunciator[i].nDx < rcAnunnciator.left)
-						{
-							rcAnunnciator.left = (LONG) pAnnunciator[i].nDx;
-						}
-						if ((LONG) pAnnunciator[i].nDy < rcAnunnciator.top)
-						{
-							rcAnunnciator.top  = (LONG) pAnnunciator[i].nDy;
-						}
-						if ((LONG) (pAnnunciator[i].nDx + pAnnunciator[i].nCx) > rcAnunnciator.right)
-						{
-							rcAnunnciator.right = (LONG) (pAnnunciator[i].nDx + pAnnunciator[i].nCx);
-						}
-						if ((LONG) (pAnnunciator[i].nDy + pAnnunciator[i].nCy) > rcAnunnciator.bottom)
-						{
-							rcAnunnciator.bottom = (LONG) (pAnnunciator[i].nDy + pAnnunciator[i].nCy);
-						}
-					}
-				}
-
-				// destination annunciator bitmap offset must be calculated seperately to avoid rounding effects
-				xOff = (UINT) MulDiv(rcAnunnciator.left,nMul,nDiv);
-				yOff = (UINT) MulDiv(rcAnunnciator.top,nMul,nDiv);
+		if (hAnnunDC == NULL)				// no external LCD bitmap
+		{
+			// Sacajawea hardware
+			if (nCurrentHardware == HDW_SACA)
+			{
+				// adjust LCD settings defined for the background bitmap
+				nLcdXOff     = MulDiv(nLcdXOff,nMul,nDiv);
+				nLcdYOff     = MulDiv(nLcdYOff,nMul,nDiv);
+				nLcdXPixel   = MulDiv(nLcdXPixel,nMul,nDiv);
+				nLcdYPixel   = MulDiv(nLcdYPixel,nMul,nDiv);
+				nLcdDistance = MulDiv(nLcdDistance,nMul,nDiv);
 			}
 
+			// Bert hardware
+			if (nCurrentHardware == HDW_BERT)
+			{
+				// adjust LCD settings defined for the background bitmap
+				nLcdDistance = MulDiv(nLcdDistance,nMul,nDiv);
+			}
+
+			// preset annunciator borders
+			SetRect(&rcAnunnciator, INT_MAX, INT_MAX, INT_MIN, INT_MIN);
+
+			// determine annunciator area in main bitmap
+			for (i = 0; i < ARRAYSIZEOF(pAnnunciator); ++i)
+			{
+				// annunciator size defined, update rectangle coordinates for source bitmap
+				if ((pAnnunciator[i].nCx | pAnnunciator[i].nCy) != 0)
+				{
+					// get annunciator rectangle
+					if ((LONG) pAnnunciator[i].nDx < rcAnunnciator.left)
+					{
+						rcAnunnciator.left = (LONG) pAnnunciator[i].nDx;
+					}
+					if ((LONG) pAnnunciator[i].nDy < rcAnunnciator.top)
+					{
+						rcAnunnciator.top  = (LONG) pAnnunciator[i].nDy;
+					}
+					if ((LONG) (pAnnunciator[i].nDx + pAnnunciator[i].nCx) > rcAnunnciator.right)
+					{
+						rcAnunnciator.right = (LONG) (pAnnunciator[i].nDx + pAnnunciator[i].nCx);
+					}
+					if ((LONG) (pAnnunciator[i].nDy + pAnnunciator[i].nCy) > rcAnunnciator.bottom)
+					{
+						rcAnunnciator.bottom = (LONG) (pAnnunciator[i].nDy + pAnnunciator[i].nCy);
+					}
+				}
+			}
+
+			// destination annunciator bitmap offset must be calculated separately to avoid rounding effects
+			xOff = (UINT) MulDiv(rcAnunnciator.left,nMul,nDiv);
+			yOff = (UINT) MulDiv(rcAnunnciator.top,nMul,nDiv);
+		}
+
+		// annunciators update only on Lewis hardware or Sacajawea/Bert hardware with no external LCD bitmap,
+		// on Sacajawea/bert hardware with external LCD bitmap definition all coordinates belong to the external
+		// LCD bitmap and are relative to the virtual LCD window
+		if (nCurrentHardware == HDW_LEWIS || hAnnunDC == NULL)
+		{
 			// update script coordinates (annunciators)
 			for (i = 0; i < ARRAYSIZEOF(pAnnunciator); ++i)
 			{
@@ -2722,7 +2763,6 @@ BOOL InitKML(LPCTSTR szFilename, BOOL bNoLog)
 		wKeybLocId = (WORD) _tcstoul(szKLID,NULL,16);
 	}
 
-
 	nBlocksIncludeLevel = 0;
 	PrintfToLog(_T("Reading %s"), szFilename);
 	SetCurrentDirectory(szEmuDirectory);
@@ -2802,8 +2842,13 @@ BOOL InitKML(LPCTSTR szFilename, BOOL bNoLog)
 	if (!CrcRom(&wRomCrc))					// build patched ROM fingerprint and check for unpacked data
 	{
 		AddToLog(_T("Error, packed ROM image detected."));
-		UnmapRom();							// free memory
 		goto quit;
+	}
+	if (CheckForBeepPatch())				// check if ROM contain beep patches
+	{
+		AddToLog(_T("Warning, ROM beep patch detected. Remove beep patches please."));
+		bNoLog = FALSE;
+		bAlwaysDisplayLog = TRUE;
 	}
 	if (szAnnunBitmap)						// external annunciator bitmap defined
 	{

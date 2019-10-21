@@ -16,10 +16,15 @@
 #define HARDWARE		"Lewis"				// emulator hardware
 
 // valid calculator models
-#define MODELS			(MODELS_SACA MODELS_LEWIS)
+#define MODELS			(MODELS_BERT MODELS_SACA MODELS_LEWIS)
 
+#define MODELS_BERT		_T("CEF")			// valid calculator models for Bert hardware
 #define MODELS_SACA		_T("AILN")			// valid calculator models for Sacajawea hardware
 #define MODELS_LEWIS	_T("DMOTUY")		// valid calculator models for Lewis hardware
+
+#define OBJECT_EN		_T("DNO")			// valid calculator models for Load/Save Object enable
+#define STACK_C_EN		_T("CDEFIMNOTUY")	// valid calculator models for Stack Copy enable
+#define STACK_P_EN		_T("DO")			// valid calculator models for Stack Paste enable
 
 #define BINARYHEADER28S "HPHP28-S"
 
@@ -56,18 +61,19 @@
 // WM_COPYDATA identifier
 #define CDID_FILENAME	1					// send file name
 
-// MMU bit settings
-#define PAGE_BITS		10					// valid bits for the page
-#define ADDR_BITS		(20-PAGE_BITS)		// valid bits for the address
-#define ADDR_SIZE		(1<<ADDR_BITS)		// address size (in nibbles)
-
 // macro to check for valid calculator model
 #define isModelValid(m)	(m != 0 && _tcschr(MODELS,      m) != NULL)
 #define isModelLewis(m)	(m != 0 && _tcschr(MODELS_LEWIS,m) != NULL)
 #define isModelSaca(m)	(m != 0 && _tcschr(MODELS_SACA, m) != NULL)
+#define isModelBert(m)	(m != 0 && _tcschr(MODELS_BERT, m) != NULL)
+
+// macro to check for menu enabled
+#define isObjectEn(m)	(m != 0 && _tcschr(OBJECT_EN, m) != NULL)
+#define isStackCEn(m)	(m != 0 && _tcschr(STACK_C_EN,m) != NULL)
+#define isStackPEn(m)	(m != 0 && _tcschr(STACK_P_EN,m) != NULL)
 
 // values for emulator hardware platform
-enum HDW_PLATFORM { HDW_UNKNOWN = 0, HDW_LEWIS, HDW_SACA };
+enum HDW_PLATFORM { HDW_UNKNOWN = 0, HDW_LEWIS, HDW_SACA, HDW_BERT };
 
 // values for selection of Lewis chip
 enum CHIP { MASTER = 0, SLAVE };
@@ -75,7 +81,8 @@ enum CHIP { MASTER = 0, SLAVE };
 // values for mapping area
 enum MMUMAP { M_NONE,
 			  M_REG,  M_DISP,  M_NCE2,  M_NCE3,  M_ROM,
-			  M_REGS, M_DISPS, M_NCE2S, M_NCE3S, M_ROMS
+			  M_REGS, M_DISPS, M_NCE2S, M_NCE3S, M_ROMS,
+			  B_CTRL, B_DISP,  B_RAM,   B_ROM
 			};
 
 // values for disassembler memory mapping modes
@@ -188,6 +195,7 @@ extern VOID   DestroyAnnunBitmap(VOID);
 extern VOID   StartDisplay(VOID);
 extern VOID   StopDisplay(VOID);
 extern VOID   UpdateAnnunciators(VOID);
+extern VOID   GetLcdNumberBert(LPTSTR szContent);
 extern VOID   GetLcdNumberSaca(LPTSTR szContent);
 extern VOID   ResizeWindow(VOID);
 
@@ -220,6 +228,7 @@ extern DWORD     *pdwInstrArray;
 extern WORD      wInstrSize;
 extern WORD      wInstrWp;
 extern WORD      wInstrRp;
+extern VOID      (*fnOutTrace)(VOID);
 extern VOID      SuspendDebugger(VOID);
 extern VOID      ResumeDebugger(VOID);
 extern VOID      InitAdjustSpeed(VOID);
@@ -255,6 +264,7 @@ extern BOOL    bBackup;
 extern VOID    SetWindowLocation(HWND hWnd,INT nPosX,INT nPosY);
 extern DWORD   GetCutPathName(LPCTSTR szFileName,LPTSTR szBuffer,DWORD dwBufferLength,INT nCutLength);
 extern VOID    SetWindowPathTitle(LPCTSTR szFileName);
+extern BOOL    CheckForBeepPatch(VOID);
 extern BOOL    PatchRom(LPCTSTR szFilename);
 extern BOOL    CrcRom(WORD *pwChk);
 extern BOOL    MapRom(LPCTSTR szFilename);
@@ -276,7 +286,7 @@ extern BOOL    LoadObject(LPCTSTR szFilename);
 extern BOOL    SaveObject(LPCTSTR szFilename);
 extern BOOL    LoadIconFromFile(LPCTSTR szFilename);
 extern VOID    LoadIconDefault(VOID);
-extern HBITMAP LoadBitmapFile(LPCTSTR szFilename);
+extern HBITMAP LoadBitmapFile(LPCTSTR szFilename,BOOL bPalette);
 extern HRGN    CreateRgnFromBitmap(HBITMAP hBmp,COLORREF color,DWORD dwTol);
 
 // Timer.c
@@ -287,13 +297,18 @@ extern DWORD ReadT2(enum CHIP eChip);
 extern VOID  SetT2(enum CHIP eChip, DWORD dwValue);
 extern BYTE  ReadT1(enum CHIP eChip);
 extern VOID  SetT1(enum CHIP eChip, BYTE byValue);
+extern VOID  StartTimerBert(VOID);
+extern VOID  StopTimerBert(VOID);
 
 // Mops.c
-extern LPBYTE      RMap[1<<PAGE_BITS];
-extern LPBYTE      WMap[1<<PAGE_BITS];
+extern DWORD       dwPageBits;
+extern DWORD       dwAddrBits;
+extern DWORD       dwAddrSize;
+extern LPBYTE      RMap[1<<11];
+extern LPBYTE      WMap[1<<11];
 extern WORD        UpCRC(WORD wCRC, BYTE nib);
 extern VOID        InitIO(VOID);
-extern VOID        Map(WORD a, WORD b);
+extern VOID        (*fnMap)(WORD a, WORD b);
 extern VOID        Config(VOID);
 extern VOID        Uncnfg(VOID);
 extern enum MMUMAP MapData(DWORD d);

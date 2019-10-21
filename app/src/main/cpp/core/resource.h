@@ -31,6 +31,7 @@
 #define IDD_DEBUG_MEMSAVE               125
 #define IDD_DEBUG_MEMLOAD               126
 #define IDD_DEBUG_SETTINGS              127
+#define IDD_TRACE                       128
 #define IDC_REALSPEED                   1000
 #define IDC_ALWAYSONTOP                 1001
 #define IDC_ACTFOLLOWSMOUSE             1002
@@ -139,6 +140,12 @@
 #define IDC_SOUND_DEVICE                1105
 #define IDC_IR_ADDR                     1106
 #define IDC_IR_PORT                     1107
+#define IDC_TRACE_FILE                  1108
+#define IDC_TRACE_BROWSE                1109
+#define IDC_TRACE_NEW                   1110
+#define IDC_TRACE_APPEND                1111
+#define IDC_TRACE_REGISTER              1112
+#define IDC_TRACE_OPCODE                1113
 #define ID_FILE_NEW                     40001
 #define ID_FILE_OPEN                    40002
 #define ID_FILE_SAVE                    40003
@@ -209,17 +216,17 @@
 #define ID_INTR_STEPOVERINT             40069
 #define ID_INFO_LASTINSTRUCTIONS        40070
 #define ID_INFO_PROFILE                 40071
-#define ID_Menu                         40072
-#define ID_FIND_N                       40073
+#define ID_TRACE_SETTINGS               40072
+#define ID_TRACE_ENABLE                 40073
 #define ID_FILE_MRU_FILE1               40100
 
 // Next default values for new objects
-//
+// 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        128
+#define _APS_NEXT_RESOURCE_VALUE        129
 #define _APS_NEXT_COMMAND_VALUE         40074
-#define _APS_NEXT_CONTROL_VALUE         1108
+#define _APS_NEXT_CONTROL_VALUE         1114
 #define _APS_NEXT_SYMED_VALUE           108
 #endif
 #endif

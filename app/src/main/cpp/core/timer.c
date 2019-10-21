@@ -30,6 +30,8 @@
 #define T1_FREQ		62						// Timer1 1/frequency in ms
 #define T2_FREQ		8192					// Timer2 frequency
 
+#define T_FREQ	2000						// Bert Timer duration in ms
+
 // typecast define for easy access
 #define IOReg(c,o) ((pIORam[c])[o])			// independent I/O access
 
@@ -43,6 +45,8 @@ static BOOL  bOutRange[]  = { FALSE, FALSE }; // flag if timer value out of rang
 static UINT  uT1TimerId[] = { 0, 0 };
 static UINT  uT2TimerId[] = { 0, 0 };
 
+static UINT uTimerId = 0;					// Bert timer
+
 static LARGE_INTEGER lT2Ref[2];				// counter value at timer2 start
 static DWORD dwT2Ref[2];					// timer2 value at last timer2 access
 static DWORD dwT2Cyc[2];					// cpu cycle counter at last timer2 access
@@ -51,6 +55,10 @@ static DWORD dwT2Cyc[2];					// cpu cycle counter at last timer2 access
 static BYTE   *pT1[]   = { &Chipset.t1,   &ChipsetS.t1 };
 static DWORD  *pT2[]   = { &Chipset.t2,   &ChipsetS.t2 };
 static LPBYTE pIORam[] = { Chipset.IORam, ChipsetS.IORam };
+
+//
+// Sacajawea / Lewis timer
+//
 
 static void CALLBACK TimeProc(UINT uEventId, UINT uMsg, DWORD_PTR dwUser, DWORD_PTR dw1, DWORD_PTR dw2);
 
@@ -283,108 +291,114 @@ VOID SetHPTime(VOID)						// set date and time
 
 	_ASSERT(sizeof(LONGLONG) == 8);			// check size of datatype
 
-	GetLocalTime(&ts);						// local time, _ftime() cause memory/resource leaks
-
-	// calculate days until 01.01.0000 (Erlang BIF localtime/0)
-	dw = (DWORD) ts.wMonth;
-	if (dw > 2)
-		dw -= 3L;
-	else
+	if (nCurrentHardware == HDW_LEWIS)
 	{
-		dw += 9L;
-		--ts.wYear;
+		GetLocalTime(&ts);					// local time, _ftime() cause memory/resource leaks
+
+		// calculate days until 01.01.0000 (Erlang BIF localtime/0)
+		dw = (DWORD) ts.wMonth;
+		if (dw > 2)
+			dw -= 3L;
+		else
+		{
+			dw += 9L;
+			--ts.wYear;
+		}
+		dw = (DWORD) ts.wDay + (153L * dw + 2L) / 5L;
+		dw += (146097L * (((DWORD) ts.wYear) / 100L)) / 4L;
+		dw +=   (1461L * (((DWORD) ts.wYear) % 100L)) / 4L;
+		dw += (-719469L + 719528L);			// days from year 0
+
+		ticks = (ULONGLONG) dw;				// convert to 64 bit
+
+		// convert into seconds and add time
+		ticks = ticks * 24L + (ULONGLONG) ts.wHour;
+		ticks = ticks * 60L + (ULONGLONG) ts.wMinute;
+		ticks = ticks * 60L + (ULONGLONG) ts.wSecond;
+
+		// create timerticks = (s + ms) * 8192
+		ticks = (ticks << 13) | (((ULONGLONG) ts.wMilliseconds << 10) / 125);
+
+		ticks += (LONG) Chipset.t2;			// add actual timer2 value
+
+		time = ticks;						// save for calc. timeout
+
+		// unpack timer ticks
+		for (i = 0; i < ARRAYSIZEOF(byTicks); ++i)
+		{
+			byTicks[i] = (BYTE) ticks & 0xf;
+			ticks >>= 4;
+		}
+
+		if (Chipset.type == 'Y')			// Tycoon II, HP19BII
+		{
+			Nwrite(byTicks, TYCOON2_TIME, 13); // write date and time
+
+			// disable auto off (1 nib minute up counter + upper 10 nibs of 1min time
+			ZeroMemory(byTicks,11);
+			Nwrite(byTicks, TYCOON2_TIME+13, 11);
+			return;
+		}
+
+		if (Chipset.type == 'O')			// Orlando, HP28S
+		{
+			Nwrite(byTicks, ORLANDO_TIME, 12); // write date and time
+
+			// HP address for timeout 1 minute counter
+			byTicks[0] = AUTO_OFF;
+			Nwrite(byTicks, ORLANDO_OFFCNT, 1);
+			return;
+		}
+
+		// default section for Pioneer series
+		Nwrite(byTicks, PIONEER_TIME, 13);	// write date and time
+
+		time += OFF_TIME;					// add 10 min for auto off
+		for (i = 0; i < 13; ++i)			// unpack timeout time
+		{
+			byTicks[i] = (BYTE) time & 0xf;
+			time >>= 4;
+		}
+
+		// HP address for timeout (=TIMEOUT)
+		Nwrite(byTicks, PIONEER_TIME+13, 13); // write time for auto off
 	}
-	dw = (DWORD) ts.wDay + (153L * dw + 2L) / 5L;
-	dw += (146097L * (((DWORD) ts.wYear) / 100L)) / 4L;
-	dw +=   (1461L * (((DWORD) ts.wYear) % 100L)) / 4L;
-	dw += (-719469L + 719528L);				// days from year 0
-
-	ticks = (ULONGLONG) dw;					// convert to 64 bit
-
-	// convert into seconds and add time
-	ticks = ticks * 24L + (ULONGLONG) ts.wHour;
-	ticks = ticks * 60L + (ULONGLONG) ts.wMinute;
-	ticks = ticks * 60L + (ULONGLONG) ts.wSecond;
-
-	// create timerticks = (s + ms) * 8192
-	ticks = (ticks << 13) | (((ULONGLONG) ts.wMilliseconds << 10) / 125);
-
-	ticks += (LONG) Chipset.t2;				// add actual timer2 value
-
-	time = ticks;							// save for calc. timeout
-
-	// unpack timer ticks
-	for (i = 0; i < ARRAYSIZEOF(byTicks); ++i)
-	{
-		byTicks[i] = (BYTE) ticks & 0xf;
-		ticks >>= 4;
-	}
-
-	if (Chipset.type == 'Y')				// Tycoon II, HP19BII
-	{
-		Nwrite(byTicks, TYCOON2_TIME, 13);	// write date and time
-
-		// disable auto off (1 nib minute up counter + upper 10 nibs of 1min time
-		ZeroMemory(byTicks,11);
-		Nwrite(byTicks, TYCOON2_TIME+13, 11);
-		return;
-	}
-
-	if (Chipset.type == 'O')				// Orlando, HP28S
-	{
-		Nwrite(byTicks, ORLANDO_TIME, 12);	// write date and time
-
-		// HP address for timeout 1 minute counter
-		byTicks[0] = AUTO_OFF;
-		Nwrite(byTicks, ORLANDO_OFFCNT, 1);
-		return;
-	}
-
-	// default section for Pioneer series
-	Nwrite(byTicks, PIONEER_TIME, 13);		// write date and time
-
-	time += OFF_TIME;						// add 10 min for auto off
-	for (i = 0; i < 13; ++i)				// unpack timeout time
-	{
-		byTicks[i] = (BYTE) time & 0xf;
-		time >>= 4;
-	}
-
-	// HP address for timeout (=TIMEOUT)
-	Nwrite(byTicks, PIONEER_TIME+13, 13);	// write time for auto off
 	return;
 }
 
 VOID StartTimers(enum CHIP eChip)
 {
-	// try to start slave timer in non existing slave controller or master timer stopped
-	if (eChip == SLAVE && (!Chipset.bSlave || (Chipset.IORam[TIMERCTL_2]&RUN) == 0))
-		return;
-
-	if (IOReg(eChip,TIMERCTL_2)&RUN)		// start timer1 and timer2 ?
+	if (nCurrentHardware != HDW_BERT)
 	{
-		if (bStarted[eChip])				// timer running
-			return;							// -> quit
+		// try to start slave timer in non existing slave controller or master timer stopped
+		if (eChip == SLAVE && (!Chipset.bSlave || (Chipset.IORam[TIMERCTL_2]&RUN) == 0))
+			return;
 
-		bStarted[eChip] = TRUE;				// flag timer running
-
-		if (uT2MaxTicks == 0)				// init once
+		if (IOReg(eChip,TIMERCTL_2)&RUN)	// start timer1 and timer2 ?
 		{
-			timeGetDevCaps(&tc,sizeof(tc));	// get timer resolution
+			if (bStarted[eChip])			// timer running
+				return;						// -> quit
 
-			// max. timer2 ticks that can be handled by one timer event
-			uT2MaxTicks = __min((0xFFFFFFFF / 1024),tc.wPeriodMax);
-			uT2MaxTicks = __min((0xFFFFFFFF - 1023) / 125,uT2MaxTicks * 1024 / 125);
+			bStarted[eChip] = TRUE;			// flag timer running
+
+			if (uT2MaxTicks == 0)			// init once
+			{
+				timeGetDevCaps(&tc,sizeof(tc));	// get timer resolution
+
+				// max. timer2 ticks that can be handled by one timer event
+				uT2MaxTicks = __min((0xFFFFFFFF / 1024),tc.wPeriodMax);
+				uT2MaxTicks = __min((0xFFFFFFFF - 1023) / 125,uT2MaxTicks * 1024 / 125);
+			}
+
+			CheckT1(eChip,*pT1[eChip]);		// check for timer1 interrupts
+			CheckT2(eChip,*pT2[eChip]);		// check for timer2 interrupts
+			// set timer resolution to greatest possible one
+			if (bAccurateTimer == FALSE)
+				bAccurateTimer = (timeBeginPeriod(tc.wPeriodMin) == TIMERR_NOERROR);
+			// set timer1 with given period
+			VERIFY(uT1TimerId[eChip] = timeSetEvent(T1_FREQ,0,&TimeProc,1,TIME_PERIODIC));
+			RescheduleT2(eChip,TRUE);		// start timer2
 		}
-
-		CheckT1(eChip,*pT1[eChip]);			// check for timer1 interrupts
-		CheckT2(eChip,*pT2[eChip]);			// check for timer2 interrupts
-		// set timer resolution to greatest possible one
-		if (bAccurateTimer == FALSE)
-			bAccurateTimer = (timeBeginPeriod(tc.wPeriodMin) == TIMERR_NOERROR);
-		// set timer1 with given period
-		VERIFY(uT1TimerId[eChip] = timeSetEvent(T1_FREQ,0,&TimeProc,1,TIME_PERIODIC));
-		RescheduleT2(eChip,TRUE);			// start timer2
 	}
 	return;
 }
@@ -488,6 +502,65 @@ VOID SetT1(enum CHIP eChip, BYTE byValue)
 	{
 		// restart timer1 to get full period of frequency
 		VERIFY(uT1TimerId[eChip] = timeSetEvent(T1_FREQ,0,&TimeProc,1,TIME_PERIODIC));
+	}
+	return;
+}
+
+//
+// Bert timer
+//
+
+static void CALLBACK TimeProcBert(UINT uEventId, UINT uMsg, DWORD_PTR dwUser, DWORD_PTR dw1, DWORD_PTR dw2)
+{
+	if (uEventId != 0)
+	{
+		Chipset.SReq = 0x1;					// timer responds with BUS[0] = high
+		Chipset.bShutdnWake = TRUE;			// wake up from SHUTDN mode
+		SetEvent(hEventShutdn);				// wake up emulation thread
+	}
+	return;
+	UNREFERENCED_PARAMETER(uEventId);
+	UNREFERENCED_PARAMETER(uMsg);
+	UNREFERENCED_PARAMETER(dwUser);
+	UNREFERENCED_PARAMETER(dw1);
+	UNREFERENCED_PARAMETER(dw2);
+}
+
+VOID StartTimerBert(VOID)
+{
+	if (nCurrentHardware == HDW_BERT)
+	{
+		if (   (Chipset.b.IORam[BSYSTEM_CTRL] & TE)  != 0
+			&& (Chipset.b.IORam[BCONTRAST]    & DON) != 0
+			&& Chipset.Shutdn == TRUE
+		   )
+		{
+			if (uTimerId != 0)				// timer running
+				return;						// -> quit
+
+			// set timer resolution to 1 ms, if failed don't use "Accurate timer"
+			bAccurateTimer = (timeBeginPeriod(1) == TIMERR_NOERROR);
+			// set timer1 with given period
+			uTimerId = timeSetEvent(T_FREQ,0,(LPTIMECALLBACK)&TimeProcBert,0,TIME_ONESHOT);
+			_ASSERT(uTimerId);				// test if timer started
+		}
+	}
+	return;
+}
+
+VOID StopTimerBert(VOID)
+{
+	if (uTimerId != 0)						// timer running
+	{
+		timeKillEvent(uTimerId);			// stop timer
+		uTimerId = 0;						// set flag timer stopped
+
+		// "Accurate timer" running and timer stopped
+		if (bAccurateTimer)
+		{
+			timeEndPeriod(1);	// finish service
+			bAccurateTimer = FALSE;
+		}
 	}
 	return;
 }

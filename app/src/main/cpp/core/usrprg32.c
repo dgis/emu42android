@@ -39,6 +39,9 @@
 #define RTN			0x185					// code RTN
 #define FS_0		0x5A1					// code FS? 0
 #define FS_11		0x5AC					// code FS? 11
+#define GTO_A		0x621					// code GoTO A
+#define GTO_Z		0x63A					// code GoTO Z
+#define GTO_(I)		0x63C					// code GoTO(i)
 #define LBL_A		0x6A1					// code LaBeL A
 #define LBL_Z		0x6BA					// code LaBeL Z
 #define ISG_A		0x701					// code ISG A

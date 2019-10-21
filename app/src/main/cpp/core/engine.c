@@ -54,6 +54,8 @@ WORD   wInstrSize = 256;					// size of last instruction array
 WORD   wInstrWp;							// write pointer of instruction array
 WORD   wInstrRp;							// read pointer of instruction array
 
+VOID (*fnOutTrace)(VOID) = NULL;			// callback function for file trace
+
 static INT   nDbgRplBreak = BN_ASM;			// flag for RPL breakpoint detection
 static INT   nDbgOldState = DBG_OFF;		// old state of debugger for suspend/resume
 
@@ -94,6 +96,10 @@ static __inline VOID Debugger(VOID)			// debugger part
 	UpdateDbgCycleCounter();				// update 64 bit cpu cycle counter
 
 	SaveInstrAddr(Chipset.pc);				// save pc in last instruction buffer
+	if (fnOutTrace != NULL)					// has a trace function
+	{
+		fnOutTrace();						// write file trace
+	}
 
 	nDbgRplBreak = BN_ASM;					// notify ASM breakpoint
 
@@ -195,6 +201,7 @@ static __inline VOID Debugger(VOID)			// debugger part
 
 	if (bStopEmulation)						// stop condition
 	{
+		StopTimerBert();					// reset Bert timer chip
 		StopTimers(SLAVE);					// hold timer values when emulator is stopped
 		StopTimers(MASTER);
 		if (Chipset.IORam[TIMERCTL_2]&RUN)	// check if master timer running
@@ -523,19 +530,20 @@ loop:
 		if (nState != SM_RUN)
 		{
 			nState = SM_RUN;
-			Map(0x00,ARRAYSIZEOF(RMap)-1);	// update memory mapping
+			fnMap(0x00,(1<<dwPageBits)-1);// update memory mapping
 			UpdateContrast();
 			// CPU speed depending on RATE content
-			dwCyclesRate = (nCurrentHardware == HDW_SACA)
-						 ? dwSacaCycles
+			dwCyclesRate = (nCurrentHardware != HDW_LEWIS)
+						 ? dwSacaCycles		// for Bert and Sacajawea
 						 : (dwLewisCycles * (Chipset.IORam[RATECTL] + 1) + 4) / 8;
 			// init speed reference
 			dwOldCyc = (DWORD) (Chipset.cycles & 0xFFFFFFFF);
 			QueryPerformanceCounter(&lDummyInt);
 			dwSpeedRef = lDummyInt.LowPart;
-			SetHPTime();					// update time & date
 			StartDisplay();					// start display update engine
+			SetHPTime();					// update time & date
 			StartBatMeasure();				// start battery measurement
+			StartTimerBert();				// initial start of timer if enabled
 			StartTimers(MASTER);
 			StartTimers(SLAVE);
 		}
@@ -578,6 +586,7 @@ loop:
 				dwSpeedRef = lDummyInt.LowPart;
 				nOpcSlow = 0;				// no opcodes to slow down
 			}
+			StopTimerBert();				// reset Bert timer chip
 		}
 		if (Chipset.SoftInt)
 		{
@@ -592,6 +601,7 @@ loop:
 	}
 	_ASSERT(nNextState != SM_RUN);
 
+	StopTimerBert();						// stop Bert timer chip
 	StopTimers(SLAVE);
 	StopTimers(MASTER);
 	StopBatMeasure();						// stop battery measurement

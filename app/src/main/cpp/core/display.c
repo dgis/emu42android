@@ -58,11 +58,11 @@ static HBITMAP hLcdBitmap;
 static HBITMAP hMainBitmap;
 static HBITMAP hAnnunBitmap;
 
-static HDC     hMaskDC;						// mask bitmap
+static HDC     hMaskDC = NULL;				// mask bitmap
 static HBITMAP hMaskBitmap;
 static LPBYTE  pbyMask;
 
-static HDC     hBmpBkDC;					// current background
+static HDC     hBmpBkDC = NULL;				// current background
 static HBITMAP hBmpBk;
 
 static HBRUSH  hBrush = NULL;				// old drawing brush
@@ -73,6 +73,37 @@ static UINT nLcdYSize = 0;
 static UINT nLcdxZoom = (UINT) -1;			// x zoom factor
 
 static UINT uLcdTimerId = 0;
+
+// segment type -> reference to annunciator
+static CONST BYTE byLcdTypeBert[] =
+{
+	0x00, 0x00, 0x0A, 0x0B, 0x00, 0x00, 0x00, 0x00,	// A000, LSB first
+	0x07, 0x05, 0x04, 0x0C, 0x00, 0x00, 0x00, 0x06,	// A002, LSB first
+	0x02, 0x03, 0x08, 0x09, 0x00, 0x00, 0x00, 0x01,	// A004, LSB first
+	0x07, 0x05, 0x04, 0x0D, 0x00, 0x00, 0x00, 0x06,	// A006, LSB first
+	0x02, 0x03, 0x08, 0x09, 0x00, 0x00, 0x00, 0x01,	// A008, LSB first
+	0x07, 0x05, 0x04, 0x0E, 0x00, 0x00, 0x00, 0x06,	// A00A, LSB first
+	0x02, 0x03, 0x08, 0x09, 0x00, 0x00, 0x00, 0x01,	// A00C, LSB first
+	0x07, 0x05, 0x04, 0x0F, 0x00, 0x00, 0x00, 0x06,	// A00E, LSB first
+	0x02, 0x03, 0x08, 0x09, 0x00, 0x00, 0x00, 0x01,	// A010, LSB first
+	0x07, 0x05, 0x04, 0x10, 0x00, 0x00, 0x00, 0x06,	// A012, LSB first
+	0x02, 0x03, 0x08, 0x09, 0x00, 0x00, 0x00, 0x01,	// A014, LSB first
+	0x07, 0x05, 0x04, 0x11, 0x00, 0x00, 0x00, 0x06,	// A016, LSB first
+	0x02, 0x03, 0x08, 0x09, 0x00, 0x00, 0x00, 0x01,	// A018, LSB first
+	0x07, 0x05, 0x04, 0x12, 0x00, 0x00, 0x00, 0x06,	// A01A, LSB first
+	0x02, 0x03, 0x08, 0x09, 0x00, 0x00, 0x00, 0x01,	// A01C, LSB first
+	0x07, 0x05, 0x04, 0x13, 0x00, 0x00, 0x00, 0x06,	// A01E, LSB first
+	0x02, 0x03, 0x08, 0x09, 0x00, 0x00, 0x00, 0x01,	// A020, LSB first
+	0x07, 0x05, 0x04, 0x14, 0x00, 0x00, 0x00, 0x06,	// A022, LSB first
+	0x02, 0x03, 0x08, 0x09, 0x00, 0x00, 0x00, 0x01,	// A024, LSB first
+	0x07, 0x05, 0x04, 0x15, 0x00, 0x00, 0x00, 0x06,	// A026, LSB first
+	0x02, 0x03, 0x08, 0x09, 0x00, 0x00, 0x00, 0x01,	// A028, LSB first
+	0x07, 0x05, 0x04, 0x16, 0x00, 0x00, 0x00, 0x06,	// A02A, LSB first
+	0x02, 0x03, 0x08, 0x09, 0x00, 0x00, 0x00, 0x01,	// A02C, LSB first
+	0x07, 0x05, 0x04, 0x17, 0x00, 0x00, 0x00, 0x06,	// A02E, LSB first
+	0x02, 0x03, 0x08, 0x09, 0x00, 0x00, 0x00, 0x01,	// A030, LSB first
+	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,	// A032, LSB first
+};
 
 static DWORD dwKMLColor[64] =				// color table loaded by KML script
 {
@@ -172,6 +203,7 @@ static CONST struct
 
 VOID (*UpdateContrast)(VOID) = NULL;
 
+static VOID UpdateContrastBert(VOID);
 static VOID UpdateContrastSaca(VOID);
 static VOID UpdateContrastLewis(VOID);
 
@@ -189,11 +221,38 @@ static VOID WritePixelDWORD(BYTE *p, BYTE a);
 static VOID UpdateDisplayClamshell(VOID);
 static VOID UpdateDisplayPioneer(VOID);
 static VOID UpdateDisplaySacajawea(VOID);
+static VOID UpdateDisplayBert(VOID);
+
+//
+// calculate size of Bert LCD bitmap from KML script settings
+//
+static __inline VOID GetDimLcdBitmapBert(VOID)
+{
+	UINT nX,nY,nLastDigit;
+	INT  i;
+
+	nLcdXSize = nLcdYSize = 0;
+
+	nLastDigit = (12-1) * nLcdDistance;		// last digit offset
+
+	// scan all annunciators
+	for (i = 0; i < ARRAYSIZEOF(pAnnunciator); ++i)
+	{
+		if (i >= 9) nLastDigit = 0;			// no digits any more
+
+		nX = pAnnunciator[i].nOx + pAnnunciator[i].nCx + nLastDigit;
+		if (nX > nLcdXSize) nLcdXSize = nX;	// new X-max value?
+
+		nY = pAnnunciator[i].nOy + pAnnunciator[i].nCy;
+		if (nY > nLcdYSize) nLcdYSize = nY;	// new Y-max value?
+	}
+	return;
+}
 
 //
 // calculate size of Sacajawea LCD bitmap from KML script settings
 //
-static __inline VOID GetDimLcdBitmap(VOID)
+static __inline VOID GetDimLcdBitmapSaca(VOID)
 {
 	UINT nX,nY;
 	INT  i;
@@ -269,6 +328,19 @@ static VOID SetBkBitmap(VOID)
 			DeleteObject(SelectObject(hBmpBkDC,hBrush));
 		}
 		GdiFlush();
+	}
+	LeaveCriticalSection(&csGDILock);
+	return;
+}
+
+static VOID UpdateContrastBert(VOID)
+{
+	_ASSERT(hLcdDC != NULL);
+	EnterCriticalSection(&csGDILock);		// asynchronous display update needs brush
+	{
+		// replace old with new brush
+		DeleteObject(SelectObject(hLcdDC,CreateSolidBrush(
+			RGBtoCOLORREF(dwKMLColor[Chipset.b.IORam[BCONTRAST] & (DC2|DC1|DC0)]))));
 	}
 	LeaveCriticalSection(&csGDILock);
 	return;
@@ -516,11 +588,11 @@ VOID CreateLcdBitmap(VOID)
 		}
 		LeaveCriticalSection(&csGDILock);
 	}
-	else									// Sacajavea
+	else if (nCurrentHardware == HDW_SACA)	// Sacajavea
 	{
 		_ASSERT(nCurrentHardware == HDW_SACA);
 
-		GetDimLcdBitmap();					// get LCD bitmap dimension from annunciators
+		GetDimLcdBitmapSaca();				// get LCD bitmap dimension from annunciators
 
 		// all KML contrast palette fields undefined?
 		for (i = 0; bEmpty && i < 32; ++i)
@@ -576,7 +648,7 @@ VOID CreateLcdBitmap(VOID)
 				}
 
 				// check if scan line ends on a LONG data-type boundary
-				_ASSERT((DWORD) pbyMask % sizeof(LONG) == 0);
+				_ASSERT((DWORD_PTR) pbyMask % sizeof(LONG) == 0);
 
 				// copy lines
 				for (z = 1; z < nLcdYPixel; ++z)
@@ -586,7 +658,7 @@ VOID CreateLcdBitmap(VOID)
 				}
 
 				// check if scan line ends on a LONG data-type boundary
-				_ASSERT((DWORD) pbyMask % sizeof(LONG) == 0);
+				_ASSERT((DWORD_PTR) pbyMask % sizeof(LONG) == 0);
 			}
 
 			// check for buffer overflow
@@ -620,6 +692,53 @@ VOID CreateLcdBitmap(VOID)
 		}
 		LeaveCriticalSection(&csGDILock);
 	}
+	else
+	{
+		_ASSERT(nCurrentHardware == HDW_BERT);
+
+		GetDimLcdBitmapBert();				// get LCD bitmap dimension from annunciators
+
+		// set all undefined KML contrast palette fields to black
+		for (i = 0; i <= (DC2|DC1|DC0); ++i)
+		{
+			if (dwKMLColor[i] == I)
+			{
+				dwKMLColor[i] = B;
+			}
+		}
+
+		// create LCD bitmap
+		_ASSERT(hLcdDC == NULL);
+		VERIFY(hLcdDC = CreateCompatibleDC(hWindowDC));
+		VERIFY(hLcdBitmap = CreateCompatibleBitmap(hWindowDC,nLcdXSize,nLcdYSize));
+		VERIFY(hLcdBitmap = (HBITMAP) SelectObject(hLcdDC,hLcdBitmap));
+		_ASSERT(hLcdBitmap != HGDI_ERROR);
+
+		// set brush for display pattern
+		VERIFY(hBrush = CreateSolidBrush(RGBtoCOLORREF(dwKMLColor[Chipset.b.IORam[BCONTRAST] & (DC2|DC1|DC0)])));
+		VERIFY(hBrush = (HBRUSH) SelectObject(hLcdDC,hBrush));
+		_ASSERT(hBrush != HGDI_ERROR);
+
+		_ASSERT(hPalette != NULL);
+		SelectPalette(hLcdDC,hPalette,FALSE);	// set palette for LCD DC
+		RealizePalette(hLcdDC);					// realize palette
+
+		// set display update routine
+		UpdateDisplayMem = UpdateDisplayBert;
+
+		// display contrast routine
+		UpdateContrast = UpdateContrastBert;
+
+		EnterCriticalSection(&csGDILock);		// solving NT GDI problems
+		{
+			_ASSERT(hMainDC);					// background bitmap must be loaded
+
+			// get original background from bitmap
+			BitBlt(hLcdDC, 0, 0, nLcdXSize, nLcdYSize, hMainDC, nLcdX, nLcdY, SRCCOPY);
+			GdiFlush();
+		}
+		LeaveCriticalSection(&csGDILock);
+	}
 	return;
 }
 
@@ -634,8 +753,11 @@ VOID DestroyLcdBitmap(VOID)
 	if (hLcdDC != NULL)
 	{
 		// destroy mask bitmap
-		DeleteObject(SelectObject(hMaskDC,hMaskBitmap));
-		DeleteDC(hMaskDC);
+		if (hMaskDC)
+		{
+			DeleteObject(SelectObject(hMaskDC,hMaskBitmap));
+			DeleteDC(hMaskDC);
+		}
 
 		// destroy display pattern brush
 		if (hBrush)
@@ -644,13 +766,18 @@ VOID DestroyLcdBitmap(VOID)
 		}
 
 		// destroy background bitmap
-		DeleteObject(SelectObject(hBmpBkDC,hBmpBk));
-		DeleteDC(hBmpBkDC);
+		if (hBmpBkDC)
+		{
+			DeleteObject(SelectObject(hBmpBkDC,hBmpBk));
+			DeleteDC(hBmpBkDC);
+		}
 
 		// destroy LCD bitmap
 		DeleteObject(SelectObject(hLcdDC,hLcdBitmap));
 		DeleteDC(hLcdDC);
+		hMaskDC = NULL;
 		hBrush = NULL;
+		hBmpBkDC = NULL;
 		hLcdDC = NULL;
 		hLcdBitmap = NULL;
 	}
@@ -668,7 +795,7 @@ BOOL CreateMainBitmap(LPCTSTR szFilename)
 	VERIFY(hMainDC = CreateCompatibleDC(hWindowDC));
 	if (hMainDC == NULL) return FALSE;		// quit if failed
 	_ASSERT(hPalette == NULL);				// resource free
-	hMainBitmap = LoadBitmapFile(szFilename);
+	hMainBitmap = LoadBitmapFile(szFilename,TRUE);
 	if (hMainBitmap == NULL)
 	{
 		DeleteDC(hMainDC);
@@ -703,7 +830,7 @@ BOOL CreateAnnunBitmap(LPCTSTR szFilename)
 	_ASSERT(hWindowDC != NULL);
 	VERIFY(hAnnunDC = CreateCompatibleDC(hWindowDC));
 	if (hAnnunDC == NULL) return FALSE;		// quit if failed
-	hAnnunBitmap = LoadBitmapFile(szFilename);
+	hAnnunBitmap = LoadBitmapFile(szFilename,FALSE);
 	if (hAnnunBitmap == NULL)
 	{
 		DeleteDC(hAnnunDC);
@@ -754,7 +881,7 @@ static VOID WritePixelZoom4(BYTE *p, BYTE a)
 	{
 		CONST DWORD dwPattern[] = { 0x00000000, 0x01010101 };
 
-		_ASSERT((DWORD) p % sizeof(DWORD) == 0); // check alignment for ARM CPU
+		_ASSERT((DWORD_PTR) p % sizeof(DWORD) == 0); // check alignment for ARM CPU
 
 		for (y = 0; y < nLcdyZoom; ++y)
 		{
@@ -808,7 +935,7 @@ static VOID WritePixelZoom2(BYTE *p, BYTE a)
 	{
 		CONST WORD wPattern[] = { 0x0000, 0x0101 };
 
-		_ASSERT((DWORD) p % sizeof(WORD) == 0); // check alignment for ARM CPU
+		_ASSERT((DWORD_PTR) p % sizeof(WORD) == 0); // check alignment for ARM CPU
 
 		for (y = 0; y < nLcdyZoom; ++y)
 		{
@@ -860,7 +987,7 @@ static VOID WritePixelDWORD(BYTE *p, BYTE a)
 	UINT x,y;
 
 	_ASSERT(nLcdxZoom > 0);					// x-Zoom factor
-	_ASSERT((DWORD) p % sizeof(DWORD) == 0); // check alignment for ARM CPU
+	_ASSERT((DWORD_PTR) p % sizeof(DWORD) == 0); // check alignment for ARM CPU
 
 	while (a != 0)							// pixel on
 	{
@@ -890,7 +1017,7 @@ static VOID WritePixelWORD(BYTE *p, BYTE a)
 	UINT x,y;
 
 	_ASSERT(nLcdxZoom > 0);					// x-Zoom factor
-	_ASSERT((DWORD) p % sizeof(WORD) == 0);	// check alignment for ARM CPU
+	_ASSERT((DWORD_PTR) p % sizeof(WORD) == 0);	// check alignment for ARM CPU
 
 	while (a != 0)							// pixel on
 	{
@@ -1095,6 +1222,64 @@ static VOID UpdateDisplaySacajawea(VOID)
 	return;
 }
 
+static VOID UpdateDisplayBert(VOID)
+{
+	EnterCriticalSection(&csGDILock);		// solving NT GDI problems
+	{
+		HDC hSelAnnunDC = hAnnunDC != NULL ? hAnnunDC : hMainDC;
+
+		// set mask bitmap to background
+		PatBlt(hLcdDC, 0, 0, nLcdXSize, nLcdYSize, WHITENESS);
+
+		if ((Chipset.b.IORam[BCONTRAST]&DON))
+		{
+			DWORD d;
+
+			// scan complete display area
+			for (d = BDISP_BEGIN; d <= BDISP_END; ++d)
+			{
+				UINT i;
+
+				// x-offset for digit, dp or cm pattern
+				UINT nDigitOff = (UINT) (((d + 2) >> 2) - 1) * nLcdDistance; 
+
+				BYTE byValue = Chipset.b.DspRam[d];
+				_ASSERT((byValue & 0xF0) == 0);
+
+				for (i = 0; byValue; ++i, byValue >>= 1)
+				{
+					BYTE bySegType = byLcdTypeBert[d*4+i];
+
+					// segment connected and on
+					if (bySegType && (byValue & 1) != 0)
+					{
+						UINT nOx = pAnnunciator[--bySegType].nOx;
+
+						if (bySegType <= 8)	// digit, dp or cm
+						{
+							// offset to next display position
+							nOx += nDigitOff;
+						}
+
+						BitBlt(hLcdDC,
+							   nOx, pAnnunciator[bySegType].nOy,
+							   pAnnunciator[bySegType].nCx, pAnnunciator[bySegType].nCy,
+							   hSelAnnunDC,
+							   pAnnunciator[bySegType].nDx, pAnnunciator[bySegType].nDy,
+							   SRCAND);
+					}
+				}
+			}
+		}
+
+		// mask segment mask with background and brush
+		BitBlt(hLcdDC, 0, 0, nLcdXSize, nLcdYSize, hMainDC, nLcdX, nLcdY, ROP_PDSPxax);
+		GdiFlush();
+	}
+	LeaveCriticalSection(&csGDILock);
+	return;
+}
+
 static VOID UpdateMainDisplay(VOID)
 {
 	_ASSERT(UpdateDisplayMem);				// function not initialized
@@ -1129,10 +1314,14 @@ static VOID CALLBACK LcdProc(UINT uEventId, UINT uMsg, DWORD dwUser, DWORD dw1, 
 
 VOID StartDisplay(VOID)
 {
+	BYTE byDspOn;
+
 	if (uLcdTimerId)						// LCD update timer running
 		return;								// -> quit
 
-	if (Chipset.IORam[DSPCTL]&DON)			// display on?
+	byDspOn = (nCurrentHardware == HDW_BERT) ? Chipset.b.IORam[BCONTRAST] : Chipset.IORam[DSPCTL];
+
+	if (byDspOn & DON)						// display on?
 	{
 		_ASSERT(nCurrentHardware != HDW_UNKNOWN);
 
@@ -1141,7 +1330,7 @@ VOID StartDisplay(VOID)
 			_ASSERT(nCurrentHardware == HDW_LEWIS);
 			UpdateAnnunciators();			// switch on annunciators
 		}
-		else								// Sacajavea
+		else if (nCurrentHardware == HDW_SACA)
 		{
 			_ASSERT(nCurrentHardware == HDW_SACA);
 			SetBkBitmap();					// set background
@@ -1235,6 +1424,70 @@ VOID UpdateAnnunciators(VOID)
 }
 
 //
+// interprete characters of Bert display
+//
+VOID GetLcdNumberBert(LPTSTR szContent)
+{
+	INT   nAddr;
+	INT   i = 0;
+
+	// display on?
+	if ((Chipset.b.IORam[BCONTRAST] & DON) != 0)
+	{
+		// get sign
+		if ((Chipset.b.DspRam[0] & 0x4)) szContent[i++] = _T('-');
+
+		// scan complete display area
+		for (nAddr = 0x02; nAddr < 0x32; nAddr += 0x04)
+		{
+			WORD wSeg = (WORD) Npack(&Chipset.b.DspRam[nAddr],4);
+
+			switch (wSeg & 0x8387)			// 7 segment decoding
+			{
+			case 0x0000: szContent[i++] = _T(' '); break;
+			case 0x0001: szContent[i++] = _T('-'); break;
+			case 0x8386: szContent[i++] = _T('0'); break;
+			case 0x0300: szContent[i++] = _T('1'); break;
+			case 0x8107: szContent[i++] = _T('2'); break;
+			case 0x8305: szContent[i++] = _T('3'); break;
+			case 0x0381: szContent[i++] = _T('4'); break;
+			case 0x8285: szContent[i++] = _T('5'); break;
+			case 0x8287: szContent[i++] = _T('6'); break;
+			case 0x8300: szContent[i++] = _T('7'); break;
+			case 0x8387: szContent[i++] = _T('8'); break;
+			case 0x8385: szContent[i++] = _T('9'); break;
+			case 0x8383: szContent[i++] = _T('A'); break;
+			case 0x8086: szContent[i++] = _T('C'); break;
+			case 0x8087: szContent[i++] = _T('E'); break;
+			case 0x8083: szContent[i++] = _T('F'); break;
+			case 0x0383: szContent[i++] = _T('H'); break;
+			case 0x0086: szContent[i++] = _T('L'); break;
+			case 0x8183: szContent[i++] = _T('P'); break;
+			case 0x0385: szContent[i++] = _T('Y'); break;
+			case 0x0287: szContent[i++] = _T('b'); break;
+			case 0x0007: szContent[i++] = _T('c'); break;
+			case 0x0307: szContent[i++] = _T('d'); break;
+			case 0x0002: szContent[i++] = _T('i'); break;
+			case 0x0203: szContent[i++] = _T('n'); break;
+			case 0x0207: szContent[i++] = _T('o'); break;
+			case 0x0003: szContent[i++] = _T('r'); break;
+			case 0x0087: szContent[i++] = _T('t'); break;
+			case 0x0206: szContent[i++] = _T('u'); break;
+			case 0x0004: szContent[i++] = _T('_'); break;
+			}
+
+			switch (wSeg & 0x0C00)				// dp, cm decoding
+			{
+			case 0x0400: szContent[i++] = _T('.'); break;
+			case 0x0C00: szContent[i++] = _T(','); break;
+			}
+		}
+	}
+	szContent[i] = 0;						// set EOS
+	return;
+}
+
+//
 // interprete characters of Sacajawea display
 //
 VOID GetLcdNumberSaca(LPTSTR szContent)
@@ -1244,41 +1497,45 @@ VOID GetLcdNumberSaca(LPTSTR szContent)
 
 	_ASSERT(nCurrentHardware == HDW_SACA);
 
-	// get sign
-	if ((Chipset.IORam[1] & 0x8)) szContent[i++] = _T('-');
-
-	// scan complete display area
-	for (nAddr = PDISP_BEGIN; nAddr <= PDISP_END; nAddr += 10)
+	// display on?
+	if ((Chipset.IORam[DSPCTL] & DON) != 0)
 	{
-		INT j;
-		QWORD qwSeg = 0;
+		// get sign
+		if ((Chipset.IORam[1] & 0x8)) szContent[i++] = _T('-');
 
-		// build character image
-		for (j = 0; j < 10; j += 2)
+		// scan complete display area
+		for (nAddr = PDISP_BEGIN; nAddr <= PDISP_END; nAddr += 10)
 		{
-			qwSeg <<= 3;
-			qwSeg |= Chipset.IORam[nAddr+j+1] & 0x7;
-			qwSeg <<= 4;
-			qwSeg |= Chipset.IORam[nAddr+j];
-		}
+			INT j;
+			QWORD qwSeg = 0;
 
-		// search for character image in table
-		for (j = 0; j < ARRAYSIZEOF(sSegtabSaca); ++j)
-		{
-			if (sSegtabSaca[j].qwImage == qwSeg) // found known image
+			// build character image
+			for (j = 0; j < 10; j += 2)
 			{
-				szContent[i++] = sSegtabSaca[j].cChar;
-				break;
+				qwSeg <<= 3;
+				qwSeg |= Chipset.IORam[nAddr+j+1] & 0x7;
+				qwSeg <<= 4;
+				qwSeg |= Chipset.IORam[nAddr+j];
+			}
+
+			// search for character image in table
+			for (j = 0; j < ARRAYSIZEOF(sSegtabSaca); ++j)
+			{
+				if (sSegtabSaca[j].qwImage == qwSeg) // found known image
+				{
+					szContent[i++] = sSegtabSaca[j].cChar;
+					break;
+				}
+			}
+
+			// decode dp and cm
+			if (Chipset.IORam[nAddr+9] & 0x8)	// dp set
+			{
+				szContent[i++] = (Chipset.IORam[nAddr+7] & 0x8) ? _T(',') : _T('.');
 			}
 		}
-
-		// decode dp and cm
-		if (Chipset.IORam[nAddr+9] & 0x8)	// dp set
-		{
-			szContent[i++] = (Chipset.IORam[nAddr+7] & 0x8) ? _T(',') : _T('.');
-		}
 	}
-	szContent[i] = 0;
+	szContent[i] = 0;						// set EOS
 	return;
 }
 

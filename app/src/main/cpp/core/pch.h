@@ -23,6 +23,9 @@
 #include <conio.h>
 #include <crtdbg.h>
 
+#define STG_NO_COMPILE_DISK					// disable stegano disk interface
+#define STG_NO_COMPILE_ENCODER				// disable stegano encoder
+
 #if !defined VERIFY
 #if defined _DEBUG
 #define VERIFY(f)			_ASSERT(f)

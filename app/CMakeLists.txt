@@ -67,6 +67,7 @@ add_library( # Sets the name of the library.
 #        src/main/cpp/core/sndenum.c
         src/main/cpp/core/sound.c
         src/main/cpp/core/stack.c
+        src/main/cpp/core/stegano.c
         src/main/cpp/core/symbfile.c
         src/main/cpp/core/timer.c
 #        src/main/cpp/core/udp.c

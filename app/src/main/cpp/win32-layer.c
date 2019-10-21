@@ -2166,6 +2166,9 @@ void StretchBltInternal(int xDest, int yDest, int wDest, int hDest,
                         } else if (rop == ROP_PSDPxax) { // P ^ (S & (D ^ P))
                             UINT destination = *((UINT *) destinationPixel);
                             *((UINT *)destinationPixel) = (brushColor ^ (sourceColor & (destination ^ brushColor))) | 0xFF000000;
+                        } else if (rop == SRCAND) { // dest = source AND dest
+                            UINT destination = *((UINT *) destinationPixel);
+                            *((UINT *)destinationPixel) = (sourceColor & destination) | 0xFF000000;
                         } else
                             *((UINT *)destinationPixel) = sourceColor;
                         break;

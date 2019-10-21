@@ -123,6 +123,11 @@ enum MEM_MAPPING GetMemMapType(VOID)
 
 BOOL GetMemAvail(enum MEM_MAPPING eType)
 {
+	if (nCurrentHardware == HDW_BERT)		// Bert chip
+	{
+		return MEM_MMU == eType;			// only mapping
+	}
+
 	switch (eType)
 	{
 	case MEM_MMU:  return TRUE;

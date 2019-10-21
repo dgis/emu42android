@@ -15,6 +15,23 @@
 // #define DEBUG_IO							// switch for I/O debug purpose
 // #define DEBUG_MEMACC						// switch for MEMORY access debug purpose
 
+// Bert MMU defines
+#define MMU_ROM_BASE	0x0000
+#define MMU_ROM_MASK	0x8000
+#define MMU_ROM_SIZE	0x8000
+#define MMU_DRAM_BASE	0x8000
+#define MMU_DRAM_MASK	0xE000
+#define MMU_DRAM_SIZE	0x0200
+#define MMU_DISP_BASE	0xA000
+#define MMU_DISP_MASK	0xE000
+#define MMU_DISP_SIZE	0x0040
+#define MMU_CTRL_BASE	0xC000
+#define MMU_CTRL_MASK	0xE000
+#define MMU_CTRL_SIZE	0x0004
+#define MMU_NONE_BASE	0xE000
+#define MMU_NONE_MASK	0xE000
+#define MMU_NONE_SIZE	0x0000
+
 // defines for MODE register
 #define LEWIS_MASTER	0x0
 #define LEWIS_SLAVE		0x5
@@ -59,9 +76,24 @@ static __inline VOID NunpackCRC(BYTE *a, DWORD b, UINT s, BOOL bUpdate)
 	}
 }
 
+// MMU bit settings
+DWORD dwPageBits;							// valid bits for the page
+DWORD dwAddrBits;							// valid bits for the address
+DWORD dwAddrSize;							// address size (in nibbles)
+
 // port mapping
-LPBYTE RMap[1<<PAGE_BITS] = {NULL,};
-LPBYTE WMap[1<<PAGE_BITS] = {NULL,};
+LPBYTE RMap[1<<11] = {NULL,};
+LPBYTE WMap[1<<11] = {NULL,};
+
+// function pointer for mapping
+static VOID MapBert(WORD a, WORD b);
+static VOID MapLewis(WORD a, WORD b);
+
+VOID (*fnMap)(WORD a, WORD b) = NULL;
+
+// function pointer for IO memory access
+static VOID ReadBertIO(BYTE *a, DWORD d, DWORD s, BOOL bUpdate);
+static VOID WriteBertIO(BYTE *a, DWORD d, DWORD s);
 
 static VOID ReadSacajaweaIO(BYTE *a, DWORD d, DWORD s, BOOL bUpdate);
 static VOID WriteSacajaweaIO(BYTE *a, DWORD d, DWORD s);
@@ -71,9 +103,8 @@ static VOID WriteLewisIO(BYTE *a, DWORD b, DWORD s);
 static VOID ReadLewisSlaveIO(BYTE *a, DWORD d, DWORD s, BOOL bUpdate);
 static VOID WriteLewisSlaveIO(BYTE *a, DWORD d, DWORD s);
 
-// function pointer for IO memory access
-static VOID (*ReadIO)(BYTE *a, DWORD d, DWORD s, BOOL bUpdate) = NULL;
-static VOID (*WriteIO)(BYTE *a, DWORD d, DWORD s) = NULL;
+static VOID (*fnReadIO)(BYTE *a, DWORD d, DWORD s, BOOL bUpdate) = NULL;
+static VOID (*fnWriteIO)(BYTE *a, DWORD d, DWORD s) = NULL;
 
 // values for chip enables
 enum NCEPORT
@@ -137,16 +168,33 @@ static VOID MapNCE(enum NCEPORT s, WORD a, WORD b, DWORD *pdwRomOff)
 		*pdwRomOff += *NCE[s].pdwSize;		// offset in file for next ROM module
 	}
 
-	uAddr = *NCE[s].pdwBase >> ADDR_BITS;	// base address in pages
-	uMask = *NCE[s].pdwMask >> ADDR_BITS;	// address mask in pages
+	uAddr = *NCE[s].pdwBase >> dwAddrBits;	// base address in pages
+	uMask = *NCE[s].pdwMask >> dwAddrBits;	// address mask in pages
 
 	a = (WORD)MAX(a,uAddr);
-	b = (WORD)MIN(b,(*NCE[s].pdwBase + (~*NCE[s].pdwMask & 0xFFFFF)) >> ADDR_BITS);
-	m = *NCE[s].pdwSize - 1;
-	p = (a << ADDR_BITS) & m;				// offset to begin in nibbles
+	b = (WORD)MIN(b,(*NCE[s].pdwBase + (~*NCE[s].pdwMask & 0xFFFFF)) >> dwAddrBits);
+	// check if size a power of 2
+	if ((*NCE[s].pdwSize & (*NCE[s].pdwSize - 1)) != 0)
+	{
+		// get next 2^x boundary of size (for 10KB Bert ROM)
+		m = 1;
+		for (p = *NCE[s].pdwSize; p != 1; p >>= 1)
+		{
+			if ((p & 1) == 1) ++p;
+			m <<= 1;
+		}
+		--m;								// mask
+	}
+	else
+	{
+		m = *NCE[s].pdwSize - 1;			// mask for power of 2 size
+	}
+
+	p = (a << dwAddrBits) & m;				// offset to begin in nibbles
 	for (i = a; i <= b; ++i)
 	{
-		if (((i ^ uAddr) & uMask) == 0)		// mapping area may have holes
+		if (   ((i ^ uAddr) & uMask) == 0	// mapping area may have holes
+			&& (p + dwAddrSize) <= *NCE[s].pdwSize)
 		{
 			if (*NCE[s].ppNCE)				// module is RAM
 			{
@@ -159,7 +207,31 @@ static VOID MapNCE(enum NCEPORT s, WORD a, WORD b, DWORD *pdwRomOff)
 				RMap[i] = pbyRomPage + p;
 			}
 		}
-		p = (p + ADDR_SIZE) & m;
+		p = (p + dwAddrSize) & m;
+	}
+	return;
+}
+
+static VOID MapRAMBert(WORD a, WORD b)
+{
+	UINT  i, uAddr, uMask;
+	DWORD p, m;
+
+	uAddr = MMU_DRAM_BASE >> dwAddrBits;	// base address in pages
+	uMask = MMU_DRAM_MASK >> dwAddrBits;	// address mask in pages
+
+	a = (WORD)MAX(a,uAddr);
+	b = (WORD)MIN(b,(MMU_DRAM_BASE + (~MMU_DRAM_MASK & 0xFFFFF)) >> dwAddrBits);
+	m = MMU_DRAM_SIZE - 1;
+	p = (a << dwAddrBits) & m;				// offset to begin in nibbles
+	for (i=a; i<=b; ++i)
+	{
+		if (((i ^ uAddr) & uMask) == 0)		// mapping area may have holes
+		{
+			RMap[i] = Chipset.b.DRam + p;
+			WMap[i] = Chipset.b.DRam + p;
+		}
+		p = (p + dwAddrSize) & m;
 	}
 	return;
 }
@@ -168,24 +240,58 @@ VOID InitIO(VOID)
 {
 	_ASSERT(nCurrentHardware != HDW_UNKNOWN);
 
-	if (nCurrentHardware == HDW_LEWIS)
+	switch (nCurrentHardware)
 	{
-		_ASSERT(nCurrentHardware == HDW_LEWIS);
-
-		ReadIO  = ReadLewisIO;
-		WriteIO = WriteLewisIO;
+	case HDW_LEWIS:	// Lewis/Clamshell
+		fnMap = MapLewis;
+		fnReadIO  = ReadLewisIO;
+		fnWriteIO = WriteLewisIO;
+		dwPageBits = 10;					// valid bits for the page
+		break;
+	case HDW_SACA:	// Sacajavea
+		fnMap = MapLewis;
+		fnReadIO  = ReadSacajaweaIO;
+		fnWriteIO = WriteSacajaweaIO;
+		dwPageBits = 10;					// valid bits for the page
+		break;
+	case HDW_BERT:	// Bert
+		fnMap = MapBert;
+		fnReadIO  = ReadBertIO;
+		fnWriteIO = WriteBertIO;
+		dwPageBits = 11;					// valid bits for the page
+		break;
+	default:
+		_ASSERT(nCurrentHardware != HDW_UNKNOWN);
+		fnMap = NULL;
+		fnReadIO  = NULL;
+		fnWriteIO = NULL;
+		dwPageBits = 0;
 	}
-	else								// Sacajavea
-	{
-		_ASSERT(nCurrentHardware == HDW_SACA);
 
-		ReadIO  = ReadSacajaweaIO;
-		WriteIO = WriteSacajaweaIO;
-	}
+	_ASSERT((1<<dwPageBits) <= (UINT) ARRAYSIZEOF(RMap));
+	dwAddrBits = (20-dwPageBits);			// valid bits for the address
+	dwAddrSize = (1<<dwAddrBits);			// address size (in nibbles)
 	return;
 }
 
-VOID Map(WORD a, WORD b)					// maps 512 byte pages
+static VOID MapBert(WORD a, WORD b)
+{
+	UINT i;
+
+	DWORD dwOffset = 0;						// ROM file offset
+
+	for (i = a; i <= b; ++i)				// clear area
+	{
+		RMap[i] = NULL;
+		WMap[i] = NULL;
+	}
+
+	MapNCE(MASTER_NROM,a,b,&dwOffset);		// ROM (master)
+	MapRAMBert(a,b);						// RAM
+	return;
+}
+
+static VOID MapLewis(WORD a, WORD b)				// maps 512 byte pages
 {
 	UINT i;
 
@@ -243,6 +349,7 @@ VOID C_Eq_Id()
 
 static VOID ChipResetMaster(VOID)
 {
+	StopTimerBert();						// stop Bert timer chip
 	StopTimers(MASTER);						// stop timer
 	StopDisplay();							// stop display
 
@@ -282,6 +389,7 @@ static VOID ChipResetSlave(VOID)
 
 VOID CpuReset(VOID)							// register setting after Cpu Reset
 {
+	StopTimerBert();						// reset Bert timer chip
 	ChipResetMaster();						// reset master chip
 	if (Chipset.bSlave)						// 2nd display controller
 	{
@@ -292,16 +400,26 @@ VOID CpuReset(VOID)							// register setting after Cpu Reset
 
 enum MMUMAP MapData(DWORD d)				// check MMU area
 {
-	// if (Chipset.RegMask   && ((d ^ Chipset.RegBase)   & Chipset.RegMask)   == 0) return M_REG;
-	if (Chipset.DispMask  && ((d ^ Chipset.DispBase)  & Chipset.DispMask)  == 0) return M_DISP;
-	if (Chipset.NCE2Mask  && ((d ^ Chipset.NCE2Base)  & Chipset.NCE2Mask)  == 0) return M_NCE2;
-	if (Chipset.NCE3Mask  && ((d ^ Chipset.NCE3Base)  & Chipset.NCE3Mask)  == 0) return M_NCE3;
-	if (Chipset.RomMask   && ((d ^ Chipset.RomBase)   & Chipset.RomMask)   == 0) return M_ROM;
-	// if (ChipsetS.RegMask  && ((d ^ ChipsetS.RegBase)  & ChipsetS.RegMask)  == 0) return M_REGS;
-	if (ChipsetS.DispMask && ((d ^ ChipsetS.DispBase) & ChipsetS.DispMask) == 0) return M_DISPS;
-	if (ChipsetS.NCE2Mask && ((d ^ ChipsetS.NCE2Base) & ChipsetS.NCE2Mask) == 0) return M_NCE2S;
-	if (ChipsetS.NCE3Mask && ((d ^ ChipsetS.NCE3Base) & ChipsetS.NCE3Mask) == 0) return M_NCE3S;
-	if (ChipsetS.RomMask  && ((d ^ ChipsetS.RomBase)  & ChipsetS.RomMask)  == 0) return M_ROMS;
+	if (nCurrentHardware == HDW_BERT)
+	{
+		if (((d ^ MMU_ROM_BASE)  & MMU_ROM_MASK)  == 0) return B_ROM;
+		if (((d ^ MMU_DRAM_BASE) & MMU_DRAM_MASK) == 0) return B_RAM;
+		if (((d ^ MMU_DISP_BASE) & MMU_DISP_MASK) == 0) return B_DISP;
+		if (((d ^ MMU_CTRL_BASE) & MMU_CTRL_MASK) == 0) return B_CTRL;
+	}
+	else
+	{
+		// if (Chipset.RegMask   && ((d ^ Chipset.RegBase)   & Chipset.RegMask)   == 0) return M_REG;
+		if (Chipset.DispMask  && ((d ^ Chipset.DispBase)  & Chipset.DispMask)  == 0) return M_DISP;
+		if (Chipset.NCE2Mask  && ((d ^ Chipset.NCE2Base)  & Chipset.NCE2Mask)  == 0) return M_NCE2;
+		if (Chipset.NCE3Mask  && ((d ^ Chipset.NCE3Base)  & Chipset.NCE3Mask)  == 0) return M_NCE3;
+		if (Chipset.RomMask   && ((d ^ Chipset.RomBase)   & Chipset.RomMask)   == 0) return M_ROM;
+		// if (ChipsetS.RegMask  && ((d ^ ChipsetS.RegBase)  & ChipsetS.RegMask)  == 0) return M_REGS;
+		if (ChipsetS.DispMask && ((d ^ ChipsetS.DispBase) & ChipsetS.DispMask) == 0) return M_DISPS;
+		if (ChipsetS.NCE2Mask && ((d ^ ChipsetS.NCE2Base) & ChipsetS.NCE2Mask) == 0) return M_NCE2S;
+		if (ChipsetS.NCE3Mask && ((d ^ ChipsetS.NCE3Base) & ChipsetS.NCE3Mask) == 0) return M_NCE3S;
+		if (ChipsetS.RomMask  && ((d ^ ChipsetS.RomBase)  & ChipsetS.RomMask)  == 0) return M_ROMS;
+	}
 	return M_NONE;
 }
 
@@ -327,15 +445,31 @@ static VOID NreadEx(BYTE *a, DWORD d, UINT s, BOOL bUpdate)
 
 		do
 		{
-			if (M_DISP == eMap)				// display/timer/control registers (master)
+			if (B_DISP == eMap)				// Bert display registers
 			{
-				v = d & (sizeof(Chipset.IORam)-1);
-				c = MIN(s,sizeof(Chipset.IORam)-v);
-				ReadIO(a,v,c,bUpdate);
+				v = d & (sizeof(Chipset.b.DspRam)-1);
+				c = MIN(s,sizeof(Chipset.b.DspRam)-v);
+				memcpy(a, Chipset.b.DspRam+v, c);
 				break;
 			}
 
-			if (M_DISPS == eMap)			// display/timer/control registers (slave)
+			if (B_CTRL == eMap)				// Bert control registers
+			{
+				v = d & (sizeof(Chipset.b.IORam)-1);
+				c = MIN(s,sizeof(Chipset.b.IORam)-v);
+				fnReadIO(a, v, c, bUpdate);
+				break;
+			}
+
+			if (M_DISP == eMap)				// Lewis display/timer/control registers (master)
+			{
+				v = d & (sizeof(Chipset.IORam)-1);
+				c = MIN(s,sizeof(Chipset.IORam)-v);
+				fnReadIO(a,v,c,bUpdate);
+				break;
+			}
+
+			if (M_DISPS == eMap)			// Lewis display/timer/control registers (slave)
 			{
 				v = d & (sizeof(ChipsetS.IORam)-1);
 				c = MIN(s,sizeof(ChipsetS.IORam)-v);
@@ -343,9 +477,9 @@ static VOID NreadEx(BYTE *a, DWORD d, UINT s, BOOL bUpdate)
 				break;
 			}
 
-			u = d >> ADDR_BITS;
-			v = d & (ADDR_SIZE-1);
-			c = MIN(s,ADDR_SIZE-v);
+			u = d >> dwAddrBits;
+			v = d & (dwAddrSize-1);
+			c = MIN(s,dwAddrSize-v);
 			if ((p=RMap[u]) != NULL)		// module mapped
 			{
 				memcpy(a, p+v, c);
@@ -419,15 +553,40 @@ VOID Nwrite(BYTE *a, DWORD d, UINT s)
 
 		do
 		{
-			if (M_DISP == eMap)				// display/timer/control registers (master)
+			if (B_DISP == eMap)				// Bert display registers
 			{
-				v = d & (sizeof(Chipset.IORam)-1);
-				c = MIN(s,sizeof(Chipset.IORam)-v);
-				WriteIO(a, v, c);
+				UINT i;
+				BYTE byData;
+
+				v = d & (sizeof(Chipset.b.DspRam)-1);
+				c = MIN(s,sizeof(Chipset.b.DspRam)-v);
+
+				for (i = 0; i < c; ++i)
+				{
+					// handle no RAM at bit location
+					byData = (((v + i) & 0x1) != 0) ? (a[i] & 0x8) : a[i];
+					Chipset.b.DspRam[v+i] = byData;
+				}
 				break;
 			}
 
-			if (M_DISPS == eMap)			// display/timer/control registers (slave)
+			if (B_CTRL == eMap)				// Bert control registers
+			{
+				v = d & (sizeof(Chipset.b.IORam)-1);
+				c = MIN(s,sizeof(Chipset.b.IORam)-v);
+				fnWriteIO(a, v, c);
+				break;
+			}
+
+			if (M_DISP == eMap)				// Lewis display/timer/control registers (master)
+			{
+				v = d & (sizeof(Chipset.IORam)-1);
+				c = MIN(s,sizeof(Chipset.IORam)-v);
+				fnWriteIO(a, v, c);
+				break;
+			}
+
+			if (M_DISPS == eMap)			// Lewis display/timer/control registers (slave)
 			{
 				v = d & (sizeof(ChipsetS.IORam)-1);
 				c = MIN(s,sizeof(ChipsetS.IORam)-v);
@@ -435,9 +594,9 @@ VOID Nwrite(BYTE *a, DWORD d, UINT s)
 				break;
 			}
 
-			u = d >> ADDR_BITS;
-			v = d & (ADDR_SIZE-1);
-			c = MIN(s,ADDR_SIZE-v);
+			u = d >> dwAddrBits;
+			v = d & (dwAddrSize-1);
+			c = MIN(s,dwAddrSize-v);
 			if ((p=WMap[u]) != NULL) memcpy(p+v, a, c);
 		}
 		while (0);
@@ -516,6 +675,139 @@ static DWORD ReadT2Acc(enum CHIP eChip)
 		LeaveCriticalSection(&csSlowLock);
 	}
 	return ReadT2(eChip);
+}
+
+// Bert
+static VOID ReadBertIO(BYTE *a, DWORD d, DWORD s, BOOL bUpdate)
+{
+	#if defined DEBUG_IO
+	{
+		TCHAR buffer[256];
+		wsprintf(buffer,_T("%.5lx: IO read : %02x,%u\n"),Chipset.pc,d,s);
+		OutputDebugString(buffer);
+	}
+	#endif
+
+	do
+	{
+		switch (d)
+		{
+		case 0x00: // System Control [TE LBI 0 RST]
+			_ASSERT((Chipset.b.IORam[d] & XTRA) == 0);
+			if (bUpdate)
+			{
+				Chipset.b.IORam[d] &= ~BLBI; // clear LBI bit
+
+				// display on -> low battery circuit enabled
+				if ((Chipset.b.IORam[BCONTRAST] & DON) != 0)
+				{
+					SYSTEM_POWER_STATUS sSps;
+
+					VERIFY(GetSystemPowerStatus(&sSps));
+
+					// low bat emulation enabled, battery powered and low battery condition on host
+					if (   !bLowBatDisable
+						&& sSps.ACLineStatus == AC_LINE_OFFLINE
+						&& (sSps.BatteryFlag & (BATTERY_FLAG_CRITICAL | BATTERY_FLAG_LOW)) != 0)
+					{
+						// set Low Battery Indicator
+						Chipset.b.IORam[d] |= BLBI;
+					}
+				}
+
+				*a = Chipset.b.IORam[d];
+
+				// clear RST bit after reading
+				Chipset.b.IORam[d] &= ~RST;
+			}
+			else
+			{
+				*a = Chipset.b.IORam[d];
+			}
+			break;
+		case 0x01: // Display contrast [DON DC2 DC1 DC0]
+			*a = Chipset.b.IORam[d];
+			break;
+		case 0x02: // System Test [PLEV VDIG DDP DPC]
+			*a = Chipset.b.IORam[d];
+			break;
+		case 0x03: // Mode
+			*a = 0;						// Quite Mode
+			break;
+		default:
+			_ASSERT(FALSE);
+		}
+
+		d++; a++;
+	} while (--s);
+	return;
+}
+
+static VOID WriteBertIO(BYTE *a, DWORD d, DWORD s)
+{
+	BYTE c;
+
+	#if defined DEBUG_IO
+	{
+		TCHAR buffer[256];
+		DWORD j;
+		int   i;
+
+		i = wsprintf(buffer,_T("%.5lx: IO write: %02x,%u = "),Chipset.pc,d,s);
+		for (j = 0;j < s;++j,++i)
+		{
+			buffer[i] = a[j];
+			if (buffer[i] > 9) buffer[i] += _T('a') - _T('9') - 1;
+			buffer[i] += _T('0');
+		}
+		buffer[i++] = _T('\n');
+		buffer[i] = 0;
+		OutputDebugString(buffer);
+	}
+	#endif
+
+	do
+	{
+		c = *a;
+		switch (d)
+		{
+// 00 =  SYSTEM_CTRL
+// 00 @  System Control [TE LBI -- RST]
+		case 0x00:
+			Chipset.b.IORam[d] = (c & ~XTRA);
+			if ((c & TE) == 0)				// timer disabled
+				Chipset.SReq = 0;			// no responds of timer any more
+			break;
+// 01 =  CONTRAST
+// 01 @  Display contrast [DON DC2 DC1 DC0]
+// 01 @  Higher value = darker screen
+		case 0x01:
+			if ((c^Chipset.b.IORam[d]) != 0) // content changed
+			{
+				// DON bit changed?
+				BOOL bDON = ((c ^ Chipset.b.IORam[d]) & DON) != 0;
+
+				Chipset.b.IORam[d] = c;		// new setting
+				if (bDON)					// DON bit changed
+				{
+					if ((c & DON) != 0)		// set display on
+					{
+						StartDisplay();		// start display update
+					}
+					else					// set display off
+					{
+						StopDisplay();		// stop display update
+					}
+				}
+
+				UpdateContrast();
+			}
+			break;
+		default: Chipset.b.IORam[d]=c;
+		}
+		a++; d++;
+	} while (--s);
+	return;
 }
 
 // Sacajawea

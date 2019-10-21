@@ -43,13 +43,12 @@ static __inline LPBYTE FASTPTR(DWORD d)
 
 	d &= 0xFFFFF;							// handle address overflows
 
-	u = d >> ADDR_BITS;						// page
-	v = d & (ADDR_SIZE-1);					// offset
+	u = d >> dwAddrBits;					// page
+	v = d & (dwAddrSize-1);					// offset
 
 	if (   RMap[u] != NULL					// page valid
-		&& (   v < ADDR_SIZE - ARRAYSIZEOF(pbyNULL) // complete opcode inside page
-											// or next page continue linear addressing
-			|| (RMap[u] + ADDR_SIZE == RMap[(u+1) & (ARRAYSIZEOF(RMap)-1)])
+		&& (   v < dwAddrSize - ARRAYSIZEOF(pbyNULL) // complete opcode inside page
+			|| (RMap[u] + dwAddrSize == RMap[(u+1) & (ARRAYSIZEOF(RMap)-1)])
 		   )
 	   )
 	{
