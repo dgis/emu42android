@@ -3023,3 +3023,19 @@ BOOL ClearCommBreak(HANDLE hFile) {
     //TODO
     return FALSE;
 }
+
+int WSAGetLastError() {
+    //TODO
+    // Win9x break with WSAEINTR (a blocking socket call was canceled)
+//    if(errno == ECANCELED)
+//        return WSAEINTR;
+    return 0;
+}
+
+int WSAStartup(WORD wVersionRequested, LPWSADATA lpWSAData) {
+    return 0;
+}
+
+int WSACleanup() {
+    return 0;
+}

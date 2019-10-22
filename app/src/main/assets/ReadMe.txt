@@ -43,6 +43,16 @@ NOT WORKING YET
 
 CHANGES
 
+Version 1.2 (2019-10-22)
+
+- Update from the original source code Emu42 version 1.23 from Christoph Gießelink which support HP10B, HP20S, HP21S too.
+- Add option to prevent the pinch zoom.
+- Prevent the white bottom bar when both options "Hide the status/navigation bar" and "Hide the menu button" are set (Github Fix: #9).
+- Prevent the BACK/ESCAPE key to end the application only from a hardware keyboard (Github Fix: #10).
+- Add the KML Icon if present in the navigation menu header (only support PNG or 32bits BMP in the ICO file).
+- Add an optional overlapping LCD part stuck to the screen when swiping the 2 calc parts (experimental).
+
+
 Version 1.1 (2019-07-11)
 
 - Add the Ir printer simulator based on the Christoph Giesselink's HP82240B Printer Simulator for Windows.

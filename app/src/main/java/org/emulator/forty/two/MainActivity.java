@@ -412,9 +412,9 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         int nMacroState = NativeLib.getMacroState();
 
         boolean uRun = NativeLib.isDocumentAvailable();
-        boolean bObjectEnable = (cCurrentRomType == 'D') || (cCurrentRomType == 'N') || (cCurrentRomType == 'O');
-        boolean bStackCEnable = (cCurrentRomType == 'D') || (cCurrentRomType == 'I') || (cCurrentRomType == 'M') || (cCurrentRomType == 'N') || (cCurrentRomType == 'O') || (cCurrentRomType == 'T') || (cCurrentRomType == 'U') || (cCurrentRomType == 'Y');
-        boolean bStackPEnable = (cCurrentRomType == 'D') || (cCurrentRomType == 'O');
+        boolean bObjectEnable = (cCurrentRomType == 'D' || cCurrentRomType == 'N' || cCurrentRomType == 'O');
+        boolean bStackCEnable = (cCurrentRomType == 'C' || cCurrentRomType == 'D' || cCurrentRomType == 'E' || cCurrentRomType == 'F' || cCurrentRomType == 'I' || cCurrentRomType == 'M' || cCurrentRomType == 'N' || cCurrentRomType == 'O' || cCurrentRomType == 'T' || cCurrentRomType == 'U' || cCurrentRomType == 'Y');
+        boolean bStackPEnable = (cCurrentRomType == 'D' || cCurrentRomType == 'O');
 
         menu.findItem(R.id.nav_save).setEnabled(uRun);
         menu.findItem(R.id.nav_save_as).setEnabled(uRun);
@@ -676,6 +676,9 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         int model = NativeLib.getCurrentModel();
         String extension = "e42";
         switch (model) {
+            case 'E': // HP10B # Ernst
+                extension = "e10";
+                break;
             case 'I': // HP14B # Midas
                 extension = "e14";
                 break;
@@ -685,6 +688,12 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
                 break;
             case 'Y': // HP19BII # Tycoon II
                 extension = "e19";
+                break;
+            case 'F': // HP20S # Erni
+                extension = "e20";
+                break;
+            case 'C': // HP21S # Monte Carlo
+                extension = "e21";
                 break;
             case 'A': // HP22S # Plato
                 extension = "e22";

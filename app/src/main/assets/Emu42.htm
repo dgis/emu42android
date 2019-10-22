@@ -1,14 +1,14 @@
 <!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
-        "http://www.w3.org/TR/html4/loose.dtd">
+     "http://www.w3.org/TR/html4/loose.dtd">
 <html>
 
 <head>
-  <title>Emu42 Manual</title>
-  <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
-  <meta http-equiv="Content-Language" content="en-us">
-  <meta name="author" content="Christoph Giesselink">
-  <meta name="description" content="Emulator Manual Emu42">
-  <style type="text/css">
+<title>Emu42 Manual</title>
+<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+<meta http-equiv="Content-Language" content="en-us">
+<meta name="author" content="Christoph Giesselink">
+<meta name="description" content="Emulator Manual Emu42">
+<style type="text/css">
 <!--
 body { background-color:white;
        font-family:'Times New Roman',Times,Arial,serif;
@@ -28,7 +28,7 @@ h3 { color:red; font-size:1.1em; }
 </head>
 <body>
 <div id="headline">
-  <p>Emu42 - A freeware HP14B/17B/17BII/19BII/22S/27S/28S/32S/32SII/42S Emulator<br>
+  <p>Emu42 - A freeware HP10B/14B/17B/17BII/19BII/20S/21S/22S/27S/28S/32S/32SII/42S Emulator<br>
     for Windows 9x, ME, NT, 2000, XP, Vista, 7, 8 and 10</p>
 </div>
 <div id="navi">
@@ -84,452 +84,473 @@ h3 { color:red; font-size:1.1em; }
 </div>
 <div id="main">
   <h1><a name=s1>1. General</a></h1>
-  <p>Emu42 is based on the sources of Emu48 and is an emulator for the
-    Hewlett Packard Mid Range Pioneer series HP14B, HP22S, HP32S and HP32SII,
-    for the High End Pioneer series HP17B, HP17BII, HP27S and HP42S and for
-    the Clamshell calculators HP19BII and HP28S hardware. These calculators
-    are based on the 1LR2 Lewis or on the 1LR3 Sacajawea chip.</p>
+    <p><a href="http://hp.giesselink.com/emu42.htm">Emu42</a> is based on
+    the sources of <a href="http://hp.giesselink.com/emu48.htm">Emu48</a>
+    and is an emulator for the Hewlett Packard Pioneer serie calculators
+    HP10B, HP14B, HP17B, HP17BII, HP20S, HP21S, HP22S, HP32S, HP32SII,
+    HP27S and HP42S and for the Clamshell calculators HP19BII and HP28S
+    hardware. These calculators are based on the 1LR2 Lewis, the 1LR3
+    Sacajawea or on the 1LU7 Bert chip.</p>
   <h1><a name=s2>2. Acknowledgements</a></h1>
-  <p>I want to thank Raymond Del Tondo who convinced me to begin with a HP42S
+    <p>I want to thank Raymond Del Tondo who convinced me to begin with a HP42S
     emulator and for his HP42S ROM entry point list. A big thank also to
     Cyrille de Brebisson for his technical assistance, without him the emulator
     would only be a &quot;Proof of concept&quot;. Jean-Fran&ccedil;ois Garnier
-    spend a lot of knowledge and material on the HP17BII and HP28S calculator.
-    Warren Furlow's V41 emulator spend some basic parts of the HP42S User Code
-    import/export handling. Lode Vandevenne spend the PNG image decoder. Also
+    spent a lot of knowledge and material on the HP17BII and HP28S calculator.
+    Warren Furlow's V41 emulator spent some basic parts of the HP42S User Code
+    import/export handling. Lode Vandevenne spent the PNG image decoder. Also
     thanks to Sébastien Carlier for his Emu48 v1.0, without him this emulator
     would never have been created. A big thank to Erik Ehrling and Michael
     Faulhaber for their beta testing and suggestions. And finally I want to
     thank all the unnamed authors for publishing material about these
     calculators.</p>
   <h1><a name=s3>3. ROM Images</a></h1>
-  <p>You need ROM images. The ROM images are copyrighted by Hewlett Packard
-    and I have no license to distribute them. Please don't ask me, I will not
-    send you mine.</p>
-  <p>ROM images are valid in a packed (even address lower nibble, odd address
+    <p>You need <a href="https://en.wikipedia.org/wiki/ROM_image">ROM
+    images</a>. The necessary ROM images are copyrighted by Hewlett Packard
+    and I have no license to distribute them. Please don't ask me, I will
+    not send you mine.</p>
+    <p>ROM images are valid in a packed (even address lower nibble, odd address
     higher nibble) or unpacked (one nibble per byte with even address first)
     form. They can be validated with the <i>LEWISCRC.EXE</i> command line
-    utility. To do that, start a Command Prompt while running Windows, and
-    type:</p>
-  <blockquote>Lewiscrc &lt;image-file&gt;</blockquote>
-  <p>where &lt;image-file&gt; is the ROM image you want to test. As result
-    you will get a report of the CRC check.</p>
+    utility. <i>LEWISCRC.EXE</i> is part of the Emu42 installation package
+    or binary distribution or can be downloaded separately
+    <a href="http://hp.giesselink.com/emu42.htm">here</a>.
+    To do that, start a Command Prompt while running Windows, and type:</p>
+    <blockquote>Lewiscrc &lt;image-file&gt;</blockquote>
+    <p>where &lt;image-file&gt; is the ROM image you want to test. As result
+    you will get a report of the Checksum/CRC check.</p>
   <h1><a name=s4>4. Installation</a></h1>
-  <p>To install Emu42, just unzip the emulator and the required emulator
-    skins into an empty directory. Finally copy your ROM images into this
-    directory and adjust the ROM image name to the name used in the
-    corresponding KML script. When you first run Emu42, it will detect the
-    directory in which you installed it, and will write the configuration to
-    the registry at <i>HKCU\Software\Emu42</i>.</p>
+    <p>To install Emu42, unzip the emulator and the required emulator skins
+    into an empty directory or use the Emu42 installer package. Finally copy
+    your ROM images into this directory and adjust the ROM image name to the
+    name used in the corresponding KML script. When you first run Emu42, it
+    will detect the directory in which you installed it, and will write the
+    configuration to the registry at <i>HKCU\Software\Emu42</i>.</p>
   <h1><a name=s5>5. How to Start</a></h1>
-  <p>When Emu42 is installed and you have put the valid ROM image(s) into
+    <p>When Emu42 is installed and you have put the valid ROM image(s) into
     your Emu42 installation directory, you can start Emu42. You'll see a
     &quot;Choose Your KML Script&quot; box.</p>
-  <p>KML scripts in fact define the visual aspect of Emu42, the behavior of
-    the buttons, of the keyboard, ... It's a GREAT way to customize your copy
-    of Emu42.</p>
-  <p>Check that the path in the &quot;Emu42 Directory&quot; text area is
-    correct. Modify it if the directory in which you installed Emu42 is not
-    the directory displayed. Click the refresh button (&quot;V&quot;) after
-    modifying it to update the list box or use the (&quot;...&quot;) button to
-    start the directory browser.</p>
-  <p>Choose a KML script in the list box for your calculator ROM you put
+    <p>KML (Keyboard Mapping Language) scripts define the visual aspects of
+    Emu42, the behaviour of the buttons, of the keyboard, ... It's a
+    <b>great</b> way to customize your copy of Emu42.</p>
+    <p>Check in this dialog that the path in the &quot;Emu42 Directory&quot;
+    text area points to the directory in which you installed the Emu42 KML
+    files. Click the refresh button (&quot;V&quot;) after modifying the
+    directory path manually to update the list box or use the
+    (&quot;...&quot;) button to start a directory browser.</p>
+    <p>Choose a KML script in the list box for your calculator ROM you put
     into Emu42's directory.</p>
-  <p>Available scripts from the author at the moment are:</p>
-  <ul>
-    <li>Christoph's Real HP17B</li>
-    <li>Christoph's Real HP17BII</li>
-    <li>Christoph's Real HP19BII</li>
-    <li>Christoph's Real HP27S</li>
-    <li>Christoph's Real HP28S</li>
-    <li>Christoph's Real HP42S</li>
-  </ul>
-  <p>And if you are interested in writing new scripts, get the KML 2.0
+    <p>Available scripts from the author at the moment are:</p>
+    <ul>
+      <li>Christoph's Real HP-10B</li>
+      <li>Christoph's Real HP-14B</li>
+      <li>Christoph's Real HP-17B</li>
+      <li>Christoph's Real HP-17BII</li>
+      <li>Christoph's Real HP-19BII</li>
+      <li>Christoph's Real HP-20S</li>
+      <li>Christoph's Real HP-21S</li>
+      <li>Christoph's Real HP-27S</li>
+      <li>Christoph's Real HP-28S</li>
+      <li>Christoph's Real HP-32SII</li>
+      <li>Christoph's Real HP-42S</li>
+    </ul>
+    <p>If you are interested in writing new scripts, get the KML 2.0
     documentation from <a href="http://hp.giesselink.com/emu48.htm">the
-      authors Emu48 page</a>.</p>
-  <p>Once you have selected a script, press OK to start the emulator. In
-    most cases, when Emu42 crash after pressing the OK button, you are using
-    an invalid ROM image. While it's running, you can use the View/Change KML
-    Script... command to change the visual aspect of Emu42.</p>
+    authors Emu48 page</a>.</p>
+    <p>Having selected a script, press OK to start the emulator. In most
+    cases, when Emu42 crash after pressing the OK button, you are using
+    an invalid ROM image. While it's running, you can use the
+    &quot;<a href="#ss10.1">View/Change KML Script...</a>&quot; command to
+    change the visual aspect of Emu42.</p>
   <h1><a name=s6>6. Command Line</a></h1>
-  <p>The command line syntax is &quot;<i>Emu42 [file]</i>&quot;. The
-    parameter sets the filename for the emulation data independent from the
-    &quot;LastDocument&quot; setting. The argument is optional.</p>
+    <p>The command line syntax is &quot;<i>Emu42 [file]</i>&quot;. The
+    parameter sets the filename of the emulation state file independent
+    from the &quot;LastDocument&quot; setting, normally reponsible for
+    opening the last used state file. The argument is optional.</p>
   <h1><a name=s7>7. Virtual Keyboard</a></h1>
-  <p>There are two ways to use the virtual keyboard on the emulated
+    <p>There are two ways to use the virtual keyboard on the emulated
     calculator:</p>
-  <ol>
-    <li><a href="#mouse">by Mouse</a></li>
-    <li><a href="#keyboard">by PC keyboard</a></li>
-  </ol>
-  <p><a name=mouse></a>
-    The easiest way to use the emulated calculator is using the mouse. The KML
-    script define buttons with an area where mouse input is active. The mouse
-    cursor change from an arrow to a hand cursor in these areas. The state of
-    the virtual key follow the state of your left mouse button. When the mouse
-    cursor leaves the virtual key area the virtual button automatically
-    release. In some cases you need to press more than one key on the
-    emulator. For these cases press the virtual key with the right mouse
-    button. When you release the mouse button or leave the area of the virtual
-    key, the key is still hold. To release all hold virtual buttons, just use
-    the left mouse botton again. A single release of a hold virtual key isn't
-    possible.</p>
-  <p><a name=keyboard></a>
+    <ol>
+      <li><a href="#mouse">by Mouse</a></li>
+      <li><a href="#keyboard">by PC keyboard</a></li>
+    </ol>
+    <p><a name=mouse></a>
+    The easiest way to use the emulated calculator is by using the mouse. The
+    KML script defines buttons with an area where mouse clicks take effect.
+    The active area is indicated by changing the cursor from an arrow to a
+    hand cursor. Pressing the left mouse button over an active area will
+    press the virtual button. When the mouse cursor leaves the virtual key
+    area with still the left mouse button pressed, the virtual button is
+    automatically released. The visual aspect of a pressed or released
+    virtual button is defined in the KML script. In some cases you need to
+    press more than one key on the emulator. For these cases press the
+    virtual key with the right mouse button. When you release the mouse
+    button or leave the area of the virtual key, the key is still held.
+    To release all held virtual buttons, just use the left mouse button
+    again. A single release of a hold virtual key isn't possible.</p>
+    <p><a name=keyboard></a>
     Another convenient way is using the PC keyboard. The KML script language
-    support a large variety of commands to implement this feature. So keyboard
-    usage depends on your used KML script and not on the emulator. Because of
-    this it's impossible to say what's happen when you press a key on the PC
-    keyboard. For further details read the KML 2.0 documentation mentioned
-    before please.</p>
+    supports a large variety of commands to implement this feature. So
+    keyboard usage mostly depends on your used KML script and not on the
+    emulator. Because of this it's impossible to say what's happen when you
+    press a key on the PC keyboard. Some Windows specific accelerator keys
+    like F10 cannot be overloaded by the KML script. For further details
+    read the KML 2.0 documentation mentioned before please.</p>
   <h1><a name=s8>8. File Menu</a></h1>
   <h2><a name=ss8.1>8.1 New...</a></h2>
-  <p>Creates a new emulation session. You're asked for a new KML script
-    where you can select the calculator type and skin to emulate.</p>
+    <p>Creates a new emulation session. You're asked for a KML script where
+    you can select the calculator type and skin to emulate.</p>
   <h2><a name=ss8.2>8.2 Open...</a></h2>
-  <p>Opens an existing emulation session. The emulation continues at the
-    same position where the loaded session was aborted. Loading emulation
+    <p>Opens a previously saved emulation session. The emulation continues
+    at the same position where the session was aborted. Loading emulation
     sessions made with a different ROM revision may <u>destroy</u> the memory
     content or may cause other unpredictable results.</p>
   <h2><a name=ss8.3>8.3 Save</a></h2>
-  <p>Saves the current running session with the actual name.</p>
+    <p>Saves the current session with the actual name.</p>
   <h2><a name=ss8.4>8.4 Save As...</a></h2>
-  <p>Saves the current running session with a new name. You're also get in
-    this dialog when you Exit a new session without a state file name.</p>
+    <p>Saves the current session with a new name. You're also get this
+    dialog when you Exit a new session without a state file name.</p>
   <h2><a name=ss8.5>8.5 Close</a></h2>
-  <p>Closes the current session without closing the emulator.</p>
+    <p>Closes the current session without closing the emulator.</p>
   <h2><a name=ss8.6>8.6 Settings</a></h2>
-  <p>This calls the Settings dialog. This dialog has three sections:
-    General, Disassembler and Sound.</p>
+    <p>This calls the Settings dialog. This dialog has four sections:
+    General, Disassembler, Sound and Infrared Printer.</p>
   <h3>8.6.1 General section</h3>
-  <ul>
-    <li><i>Authentic Calculator Speed</i>
+    <ul>
+      <li><i>Authentic Calculator Speed</i>
       <p>When this option is checked, the emulation speed will be similar to
-        the real calculator depending on the RATE control register content.
+      the real calculator, on the Lewis chip depending on the RATE control
+      register content.
       </p></li>
-    <li><i>Show Title</i>
+      <li><i>Show Title</i>
       <p>When this option is checked, the window title bar is visible.</p></li>
-    <li><i>Show Menu</i>
+      <li><i>Show Menu</i>
       <p>When this option is checked, the menu bar is enabled. If unchecked,
-        the menu is accessible as context menu in the client area outside the
-        calculator button definitions.</p></li>
-    <li><i>Always On Top</i>
+      the menu is accessible as context menu in the client area outside the
+      calculator button definitions.</p></li>
+      <li><i>Always On Top</i>
       <p>When this option is checked, the emulator window will always be the
-        topmost one.</p></li>
-    <li><i>Activation Follows Mouse</i>
+      topmost one.</p></li>
+      <li><i>Activation Follows Mouse</i>
       <p>This option enables a X-Mouse style windows activation. When the
-        mouse is moved over the emulator window, the emulator is getting the
-        focus and popping up into foreground.</p></li>
-    <li><i>Single Instance</i>
-      <p>When this option is checked, the program is only allowed to run in
-        a single instance. If another running instance is detected, the detected
-        instance is set into foreground as active window and get a request to
-        change his state file to the given one by the current instance. Finally
-        the current instance is terminated.</p></li>
-    <li><i>Automatically Save Files</i>
+      mouse is moved over the emulator window, the emulator is getting the
+      focus and popping up into foreground.</p></li>
+      <li><i>Single Instance</i>
+      <p>When this option is checked, only one instance of the emulator can
+      be started. If another running instance is detected, the detected
+      instance is set into foreground as active window and get a request to
+      change his state file to the given one by the current instance. Then
+      the current instance is terminated.</p></li>
+      <li><i>Automatically Save Files</i>
       <p>When this option is checked, the current state file will automatically
-        saved when you change to another state file, but not when you close the
-        emulator program.</p></li>
-    <li><i>Automatically Save Files On Exit</i>
+      saved when you change to another state file, but not when you close the
+      emulator program.</p></li>
+      <li><i>Automatically Save Files On Exit</i>
       <p>When this option is checked, the current state file will be saved
-        automatically at the end when the emulator program is closed.</p></li>
-    <li><i>Show Load Object Warning</i>
+      automatically when the emulator program is closed.</p></li>
+      <li><i>Show Load Object Warning</i>
       <p>When this option is checked, you'll get a warning message box when you
-        try to load an object with the <i>Load Object...</i> menu command. If
-        this option is unchecked, the warning will be skipped.</p></li>
-    <li><i>Always Show KML Compilation Result</i>
+      try to load an object with the <i>Load Object...</i> menu command. If
+      this option is unchecked, the warning will be skipped.</p></li>
+      <li><i>Always Show KML Compilation Result</i>
       <p>When this option is checked, you see the results of the KML
-        (Keyboard Macro Language) interpreter at every KML script load.</p></li>
-  </ul>
-  <h3>8.6.2 Disassembler section</h3>
-  <p>Choosing the assembler syntax:</p>
-  <ul>
-    <li><i>HP Mnemonics</i>
-      <p>This is the standard syntax used by HP.</p></li>
-    <li><i>Class Mnemonics</i>
-      <p>Class (Clarke assembler) was written by Lutz Vieweg in 1991, at a time
-        when HP had not published their own development tools. The syntax is very
-        similar to the AG and STAR mnemonics used at this time. Especially
-        published assembler programs written for the HP28S use the similar AG
-        syntax.</p></li>
-  </ul>
-  <h3>8.6.3 Sound section</h3>
-  <p>A new implementation of the sound engine made ROM patches for sound
-    output obsolete. The new sound engine emulates the behavior of the beeper
-    output ports and only work in connection with a sound card. Using the
-    internal PC speaker isn't possible any more. The old beeper method with a
-    ROM patch is still working but deprecated, it's strongly recommended to
-    remove all beep patches from your current KML scripts to enable the new
-    sound engine. The support of the old sound implementation by a ROM patch
-    maybe removed in later versions of the emulator and remaining beep
-    patches will corrupt the ROM with an illegal opcode then.
-  </p>
-  <p>
-    For the sound generation the calculator must know his own CPU strobe
-    frequency. On the real calculator the speed depends on various settings
-    like component tolerances, actual temperature, humidity and other
-    variables. The resulting speed is measured by the calculator firmware
-    at a cold- or at a warmstart and stored in the =CSPEED variable. The
-    content of this calculator variable has direct influence on the
-    resulting frequency and duration. On the emulator the CPU strobe
-    frequency is set by the registry key
-    <i>HKCU\Software\Emu42\Emulator\LewisCycles</i>. The content of this
-    variable multiplied with 16384 is the CPU strobe frequency in Hz used
-    by the emulator. Because older versions of the emulator were not able
-    to measure the CPU strobe frequency properly or the content of the
-    <i>LewisCycles</i> has been changed since the last measurement, the
-    =CSPEED variable of this session file may contain a wrong frequency
-    value. You easily may discover this by measuring the real duration of
-    a 10s beep. Is the difference to 10s less than 1s everything is ok,
-    if not, you should perform a <u style="color:red">warmstart</u> of the
-    calculator in this session file. Alternatively you may execute a
-    <a href=#ss9.6>Reset Calculator</a>. This recalls the measuring routine
-    and save the result in the speed variable. Both restart variants purge
-    the stack content!
-  </p>
-  <ul>
-    <li><i>Volume</i>
-      <p>The output volume can be selected with the Volume slider relative to
-        the Master Volume control.
+      (Keyboard Mapping Language) interpreter at every KML script load.
       </p></li>
-    <li><i>Device</i>
-      <p>By default the sound device is set to &quot;Standard Audio&quot;, but
-        you can also manually choose the output device. The device name is
-        somehow cut since Window Vista, but the method of reading the device
-        name is used for backwards compatibility to older versions of the
-        Operating System. When you change the Standard Audio device in the
-        Operating System settings dialog, the internal device numbering may
-        change, and so the manually selected audio device.</p></li>
-  </ul>
+    </ul>
+  <h3>8.6.2 Disassembler section</h3>
+    <p>Choosing the assembler syntax:</p>
+    <ul>
+      <li><i>HP Mnemonics</i>
+      <p>This is the standard syntax used by HP.</p></li>
+      <li><i>Class Mnemonics</i>
+      <p>Class (Clarke assembler) was written by Lutz Vieweg in 1991, at a time
+      when HP had not published their own development tools. The syntax is very
+      similar to the AG and STAR mnemonics used at this time. Especially
+      published assembler programs written for the HP28S use the similar AG
+      syntax.</p></li>
+    </ul>
+  <h3>8.6.3 Sound section</h3>
+    <p>A new implementation of the sound engine made ROM patches for sound
+      output obsolete. The new sound engine emulates the behaviour of the
+      beeper output ports and only work in connection with a sound card.
+      Using the legacy PC speaker mode isn't possible any more. The old
+      beeper method with a ROM patch is still working but deprecated, it's
+      strongly recommended to remove all beep patches from your current KML
+      scripts to enable the new sound engine. The support of the old sound
+      implementation by a ROM patch maybe removed in later versions of the
+      emulator and remaining beep patches will corrupt the ROM with an
+      illegal opcode then. Actually the program informs you when
+      detecting ROM beep patches by opening the &quot;KML Script Compilation
+      Result&quot; dialog. To prevent this, remove the ROM beep patches
+      from the KML script.
+    </p>
+    <p>For the sound generation the calculator must know his own CPU strobe
+      frequency. On the real calculator the speed depends on various settings
+      like component tolerances, actual temperature, humidity and other
+      variables. The actual speed is measured by the calculator firmware
+      at a cold- or at a warmstart and stored in the =CSPEED variable. The
+      content of this calculator variable has direct influence on the
+      resulting frequency and duration. On the emulator the CPU strobe
+      frequency is set by the registry key
+      <i>HKCU\Software\Emu42\Emulator\LewisCycles</i>. The content of this
+      variable multiplied by 16384 is the CPU strobe frequency in Hz used
+      by the emulator. Because older versions of the emulator were not able
+      to measure the CPU strobe frequency properly or the content of the
+      <i>LewisCycles</i> has been changed since the last measurement, the
+      =CSPEED variable of this session file may contain a wrong frequency
+      value. You easily may discover this by measuring the actual duration
+      of a 10s beep. A deviance less than 1s is ok, otherwise you should
+      perform a <u style="color:red">warmstart</u> of the calculator in
+      this session file. Alternatively you may execute a
+      <a href=#ss9.6>Reset Calculator</a>. This recalls the measuring routine
+      and save the result in the speed variable. Both restart variants purge
+      the stack content!
+    </p>
+    <ul>
+      <li><i>Volume</i>
+      <p>The output volume can be set with the Volume slider relative to
+      the Windows Master Volume control.
+      </p></li>
+      <li><i>Device</i>
+      <p>By default the sound device is set to &quot;Standard Audio&quot;,
+      but you can also manually choose the output device.  When you change
+      the Standard Audio device in the Operating System settings dialog,
+      the internal device numbering may change, and so the manually selected
+      audio device.</p></li>
+    </ul>
   <h3>8.6.4 Infrared Printer</h3>
-  <p>The emulator has the ability to print data to a HP82240A/B printer
+    <p>The emulator has the ability to print data to a HP82240A/B printer
     simulation. The data transfer to the printer simulator is done over UDP.
     In this section you can the define the IPv4 address and the port the
     printer simulator is listening. A suitable HP82240B printer simulation can
     be found <a href="http://hp.giesselink.com/hp82240b.htm">here</a>.</p>
   <h2><a name=ss8.7>8.7 Exit</a></h2>
-  <p>Quit emulation. The default actions at finishing are defined in the
+    <p>Quit emulation. The default actions at finishing are defined in the
     <a href=#ss8.6>Settings</a> dialog. If the current session is
     &quot;Untitled&quot; you are asked for a session file name using the
     <a href="#ss8.4">Save As...</a> dialog. If you quit the emulator without a
     given filename, you're asked for choosing a KML script at next startup.</p>
   <h1><a name=s9>9. Edit Menu</a></h1>
   <h2><a name=ss9.1>9.1 Load Object...</a></h2>
-  <p>This is only valid for the HP28S, HP32SII and the HP42S emulation.</p>
-  <ul>
-    <li><b>HP28S</b>
+    <p>This is only valid for the HP28S, HP32SII and the HP42S emulation.</p>
+    <ul>
+      <li><b>HP28S</b>
       <p>You can load HP28S binary objects to stack level 1. Therefore the
-        object must begin with &quot;HPHP28-S&quot;. If the binary header isn't
-        present, the object is loaded as string. Dropping HP objects over the
-        emulator window will also load objects. Be sure that the emulator isn't
-        busy before doing this.</p></li>
-    <li><b>HP32SII</b>
-      <p>You can load HP32SII the User Code programs directly at bottom of
-        the calculator memory. These User Code programs should begin with a
-        label and end with a RTN instruction. Other program configurations may
-        cause unpredictable results at loading. The file must be in a special
-        RAW file created by <a href="#ss9.2">Save Object...</a>. If the object
-        and the calculator share label names, loading is aborted.</p>
+      object must begin with &quot;HPHP28-S&quot;. If the binary header isn't
+      present, the object is loaded as string. Dropping HP objects over the
+      emulator window will also load objects. Be sure that the emulator isn't
+      busy before doing this.</p></li>
+      <li><b>HP32SII</b>
+      <p>You can load HP32SII User Code programs directly at bottom of the
+      calculators program memory. These programs should begin with a label
+      and end with a RTN instruction. Other program configurations may
+      cause unpredictable results at loading. The file to load must be a
+      special RAW file created by <a href="#ss9.2">Save Object...</a>. If
+      the object and the calculator share label names, loading is aborted.
+      </p>
       <p>When you now load the User Code into memory be sure that the last
-        program in memory has a RTN instruction. If not, both programs will be
-        merged.</p>
-    <li><b>HP42S</b>
+      program in memory has a RTN instruction. If not, both programs, the
+      last in memory and the loaded one, will be merged.</p>
+      <li><b>HP42S</b>
       <p>You can load HP42S User Code programs directly into top of the
-        calculator memory. The file must be in a special RAW file created by
-        <a href="#ss9.2">Save Object...</a> in the HP42S emulation of Emu42 or
-        by <i>Put User Code...</i> of Warren Furlow's V41 emulator. Please
-        remember that the HP42S command set is only compatible to the HP41C
-        and HP41CV non synthetic command set. Some of the HP41CX or plug in
-        module commands are unknown in the HP42S. Non HP42S compatible file
-        can't be edited with the internal editor, you'll get a &quot;Machine
-        Reset&quot; when you try to modify the illegal commands. These RAW
-        files have no special header, so it's very difficult to distinguish
-        them from other files. Be sure that you only use RAW files containing
-        HP41/42 user code programs else your calculator memory maybe get
-        corrupted.</p>
-      <p>When you now load the User Code into memory be sure that the last
-        program in memory has an END instruction. If not, both programs will be
-        merged. The easiest way to make an end instruction is executing a
-        <i>GTO ..</i> on the calculator.</p>
-    </li>
-  </ul>
+      calculator memory. The file must be in a special RAW file created by
+      <a href="#ss9.2">Save Object...</a> in the HP42S emulation of Emu42 or
+      by <i>Put User Code...</i> of Warren Furlow's V41 emulator. Please
+      remember that the HP42S command set is only compatible to the HP41C
+      and HP41CV non synthetic command set. Some of the HP41CX or plug in
+      module commands are unknown in the HP42S. Non HP42S suitable files
+      can't be edited with the internal editor, you'll get a &quot;Machine
+      Reset&quot; when you try to modify the illegal commands. These RAW
+      files have no special header, so it's very difficult to distinguish
+      them from other files. Make sure that you only use RAW files
+      containing HP41/42 user code programs else your calculator memory
+      maybe get corrupted.</p>
+      <p>When you load the User Code into memory make sure that the last
+      program in memory has an END instruction. If not, both programs will be
+      merged. The easiest way to append an end instruction at the last
+      program in memory is executing <i>GTO ..</i> on the calculator.</p>
+      </li>
+    </ul>
   <h2><a name=ss9.2>9.2 Save Object...</a></h2>
-  <p>This is only valid for the HP28S, HP32SII and the HP42S emulation.</p>
-  <ul>
-    <li><b>HP28S</b>
-      <p>Save the current object in stack level 1 as HP28S binary object to
-        disk.</p></li>
-    <li><b>HP32SII</b>
+    <p>This is only valid for the HP28S, HP32SII and the HP42S emulation.</p>
+    <ul>
+      <li><b>HP28S</b>
+      <p>Saves the current object on stack level 1 as a HP28S binary object
+      to disk.</p></li>
+      <li><b>HP32SII</b>
       <p>You get a selection box with all User Code programs located in memory
-        leading by an initial LBL and ending with a RTN User Code instruction.
-        All other used labels between the initial label and the RTN are shown
-        in brackets. <i>LBL &quot;0&quot;</i> is a special label to mark a
-        program at top of memory which has no leading label. Select one or more
-        of the programs to export.</p>
-    <li><b>HP42S</b>
+      leading by an initial LBL and ending with a RTN User Code instruction.
+      All other used labels between the initial label and the RTN are shown
+      in brackets. <i>LBL &quot;0&quot;</i> is a special label to mark a
+      program at top of memory which has no leading label. Select one or more
+      of the programs to export.</p>
+      <li><b>HP42S</b>
       <p>You get a selection box with all User Code programs located in
-        memory. Global labels which aren't at the begin of a User Code program
-        are not viewed. This avoids having code parts more than once in the
-        export file. Select one or more of the programs to export. It's
-        recommended to use the file extension RAW for the exported files on the
-        PC. This is the default extension of the V41 emulator. Remember please,
-        having more than one User Code program in an export file is a Emu42
-        extension, V41 supports only one User Code program in each RAW file.</p>
-      <p>When you want to import User Code programs made by Emu42 into V41 you
-        have to think about, that the HP42S has an extended command set. Unknown
-        commands on the HP41 will be displayed as XROM <i>xx</i>,<i>yy</i> where
-        <i>xx</i> and <i>yy</i> are command specific numbers. Another thing is,
-        that the HP42S has a zero byte after each number in his programs, the
-        HP41 only between two numbers. Unnecessary zero bytes are removed by the
-        normal packing cycle in the HP41 so you don't have to take care about
-        it.</p></li>
-  </ul>
+      memory. Global labels between the first global label and the END
+      instruction of a User Code program are not viewed. This avoids having
+      code parts more than once in the export file. Select one or more of
+      the programs to export. It's recommended to use the file extension
+      RAW for the exported files on the PC. This is the default extension
+      of the V41 emulator. Remember please, having more than one User Code
+      program in an export file is a Emu42 extension, V41 until Release 8E
+      supports only one User Code program in each RAW file.</p>
+      <p>When you want to import User Code programs created by Emu42 into V41
+      you should consider that the HP42S has an extended command set. Unknown
+      commands on the HP41 will be displayed as XROM <i>xx</i>,<i>yy</i> where
+      <i>xx</i> and <i>yy</i> are command specific numbers. Beside this the
+      HP42S has a zero byte after each number in his programs, the HP41
+      only between consecutive numbers. Unnecessary zero bytes are removed by the
+      normal packing cycle in the HP41 so you don't have to take care about
+      it.</p></li>
+    </ul>
   <h2><a name=ss9.3>9.3 Copy Screen</a></h2>
-  <p>Copy the screen content as bitmap to the clipboard. The Sacajawea
-    hardware based calculators HP14B, HP22S, HP32S and HP32SII send the
-    screen content also in text format. Not all characters can be showed
-    in the actual codepage, these character positions leave empty in the
-    clipboard.</p>
+    <p>Copy the screen content as bitmap to the clipboard. The Bert and
+    Sacajawea hardware based calculators HP10B, HP14B, HP20S, HP21S, HP22S,
+    HP32S and HP32SII send the screen content also in text format. Not all
+    text characters can be showed in the actual codepage, these character
+    positions leave empty in the clipboard.</p>
   <h2><a name=ss9.4>9.4 Copy Stack</a></h2>
-  <p>This is menu point is enabled for the HP14B, HP17B, HP17BII, HP19BII,
-    HP27S, HP28S, HP32SII and the HP42S emulation.</p>
-  <p>The decimal point (radix mark) of &quot;Real Numbers&quot; in the
-    clipboard is equal to the calculator setting. This point maybe important
-    when you try to paste the numbers into a program using the locale settings
+    <p>This menu item is enabled for the HP10B, HP14B, HP17B, HP17BII,
+    HP19BII, HP20S, HP21S, HP27S, HP28S, HP32SII and the HP42S emulation.
+    </p>
+    <p>The decimal point (radix mark) of &quot;Real Numbers&quot; in the
+    clipboard is equal to the calculator setting. This is important when
+    you try to paste the numbers into a program using the locale settings
     of the host operating system.</p>
-  <p>Not supported objects will be ignored. This prevents sending binary
+    <p>Unsupported objects will be ignored. This prevents sending binary
     objects to the clipboard.</p>
-  <ul>
-    <li><b>HP28S</b>
+    <ul>
+      <li><b>HP28S</b>
       <p>Copy a &quot;Real Number&quot;, &quot;Complex Number&quot; or
-        &quot;String&quot; object in stack level 1 to the clipboard.</p></li>
-    <li><b>HP42S</b>
+      &quot;String&quot; object on stack level 1 to the clipboard.</p></li>
+      <li><b>HP42S</b>
       <p>Copy a &quot;Real Number&quot; or &quot;Complex Number&quot; object
-        in the X-register to the clipboard.</p></li>
-    <li><b>Others</b>
+      from the X-register to the clipboard.</p></li>
+      <li><b>Others</b>
       <p>Copy a &quot;Real Number&quot; object in the X- or result-register
-        to the clipboard.</p></li>
-  </ul>
+      to the clipboard.</p></li>
+    </ul>
   <h2><a name=ss9.5>9.5 Paste Stack</a></h2>
-  <p>This is only valid for the HP28S and the HP42S emulation.</p>
-  <p>To import &quot;Real or Complex Numbers&quot; from the clipboard, the
-    decimal point (radix mark) of the clipboard and calculator <u>must</u> be
-    equal. A real or complex number is only detected in the case of valid real
-    number characters in the clipboard. Especially heading and tailing white
-    spaces aren't valid number characters also.</p>
-  <p>Complex numbers must be in the form <i>(a,b)</i> when using the point
+    <p>This is only valid for the HP28S and the HP42S emulation.</p>
+    <p>To import &quot;Real or Complex Numbers&quot; from the clipboard, the
+    decimal point (radix mark) of the clipboard and calculator <u>must</u>
+    match. A real or complex number is only detected in the case of valid
+    real number characters in the clipboard. Especially heading and tailing
+    white spaces aren't valid number characters also.</p>
+    <p>Complex numbers must be in the form <i>(a,b)</i> when using the point
     radix mark or in the form <i>(a;b)</i> when using the comma radix mark.
     The Cartesian or algebraic form <i>a+bi</i> is not supported.</p>
-  <ul>
-    <li><b>HP28S</b>
+    <ul>
+      <li><b>HP28S</b>
       <p>Paste the text field content of the clipboard to stack level 1 of the
-        emulated calculator. If the clipboard content is representing a real
-        number, the number will be saved as &quot;Real Number&quot; object. Is
-        the content a complex number object, the number will be saved as
-        &quot;Complex Number&quot; object, in all other cases as
-        &quot;String&quot; object.</p></li>
-    <li><b>HP42S</b>
+      emulated calculator. If the clipboard content is representing a real
+      number, the number will be saved as &quot;Real Number&quot; object. Is
+      the content a complex number object, the number will be saved as
+      &quot;Complex Number&quot; object, otherwise cases as
+      &quot;String&quot; object.</p></li>
+      <li><b>HP42S</b>
       <p>Paste the text field content of the clipboard to the X-register of
-        the emulated calculator. The clipboard content must be a real or complex
-        number, all other contents will be ignored.</p></li>
-  </ul>
+      the emulated calculator. The clipboard content must be a real or complex
+      number, any other contents will be ignored.</p></li>
+    </ul>
   <h2><a name=ss9.6>9.6 Reset Calculator</a></h2>
-  <p>This emulates the Reset pin of the internal CPU.</p>
+    <p>This emulates the Reset pin of the internal CPU.</p>
   <h2><a name=ss9.7>9.7 Backup</a></h2>
   <h3><a name=ss9.7.1>9.7.1 Backup Save</a></h3>
-  <p>This saves the current emulator status into a backup slot. If the
-    backup slot already contain data, it will be overwritten.</p>
+    <p>This saves the current emulator status into a backup slot. If the
+    backup slot already contains data, it will be overwritten.</p>
   <h3><a name=ss9.7.2>9.7.2 Backup Restore</a></h3>
-  <p>This restores a previous saved emulator status without request. If you
+    <p>This restores a previous saved emulator status without request. If you
     changed the calculator model meanwhile, the emulator will switch back to
-    the old model.</p>
+    the model used in the backup.</p>
   <h3><a name=ss9.7.3>9.7.3 Backup Delete</a></h3>
-  <p>This deletes the data in the backup slot.</p>
+    <p>This deletes the data in the backup slot.</p>
   <h1><a name=s10>10. View Menu</a></h1>
   <h2><a name=ss10.1>10.1 Change KML Script...</a></h2>
-  <p>This allows you to change the skin of the current emulated calculator.
+    <p>This allows you to change the skin of the current emulated calculator.
     In opposite to the New... command you see only scripts emulating the same
     calculator model.</p>
   <h1><a name=s11>11. Tools Menu</a></h1>
   <h2><a name=ss11.1>11.1 Disassembler...</a></h2>
-  <p>This is a simple disassembler.</p>
-  <p>Enter the address to disassemble in hexadecimal into the &quot;Address
+    <p>This is a simple disassembler.</p>
+    <p>Enter the address to disassemble in hexadecimal into the &quot;Address
     (HEX)&quot; field and press &lt;Return&gt;. With the &quot;Next Address&quot;
     button the next opcode is disassembled. With the &quot;Copy Data&quot; button
-    you can copy all selected lines inside the list box to the clipboard.</p>
+    you can copy selected lines from the list box to the clipboard.</p>
   <h2><a name=ss11.2>11.2 Debugger...</a></h2>
-  <p>The assembler code debugger of the emulator. For more details refer to the
+    <p>The assembler code debugger of the emulator. For more details refer to the
     extra documentation of the debugger please.</p>
   <h2><a name=ss11.3>11.3 Macro</a></h2>
-  <p>The keyboard macro recorder unit.</p>
-  <h3><a name=ss11.3.1>11.3.1 Macro Record...</a></h3>
-  <p>Prompts a dialog to enter the macro file for the data to record. After
-    accepting the confirm message, every key event is recorded into the macro
-    file with it's time information.</p>
-  <h3><a name=ss11.3.2>11.3.2 Macro Play...</a></h3>
-  <p>Prompts a dialog box to ask for the keyboard macro file to play. The
-    replay starts immediately after selecting the file.</p>
-  <h3><a name=ss11.3.3>11.3.3 Macro Stop</a></h3>
-  <p>Stops recording or replaying a keyboard macro file.</p>
-  <h3><a name=ss11.3.4>11.3.4 Macro Settings...</a></h3>
-  <p>Settings for the Macro Replay mode</p>
-  <ul>
-    <li><i>Real</i>
-      <p>Replay macro with the original recording speed.</p></li>
-    <li><i>Manual</i>
-      <p>Replay macro with the speed set by the speed slider.</p></li>
-  </ul>
+    <p>The keyboard macro recorder unit.</p>
+  	<h3><a name=ss11.3.1>11.3.1 Macro Record...</a></h3>
+      <p>Prompts a dialog to enter the macro file for the data to record. After
+      accepting the confirm message, every key event is recorded into the macro
+      file with it's time information.</p>
+  	<h3><a name=ss11.3.2>11.3.2 Macro Play...</a></h3>
+      <p>Prompts a dialog box to ask for the keyboard macro file to play. The
+      replay starts immediately after opening the selected file.</p>
+  	<h3><a name=ss11.3.3>11.3.3 Macro Stop</a></h3>
+      <p>Stops recording or replaying a keyboard macro file.</p>
+  	<h3><a name=ss11.3.4>11.3.4 Macro Settings...</a></h3>
+      <p>Settings for the Macro Replay mode</p>
+      <ul>
+        <li><i>Real</i>
+        <p>Replay macro with the original recording speed.</p></li>
+        <li><i>Manual</i>
+        <p>Replay macro with the speed set by the speed slider.</p></li>
+      </ul>
   <h1><a name=s12>12. Help Menu</a></h1>
   <h2><a name=ss12.1>12.1 Help Topics</a></h2>
-  <p>Call this document.</p>
+  <p>Show this document.</p>
   <h2><a name=ss12.2>12.2 About Emu42...</a></h2>
-  <p>The version, copyright and license message...</p>
+  <p>Show the version, copyright and license message.</p>
   <h1><a name=s13>13. DDE Server</a></h1>
-  <p>Emu42 has an integrated DDE server to transmit data from and to the HP
+    <p>Emu42 has an integrated DDE server to transmit data from and to the HP
     stack. Because only the HP28S has a stack, all DDE transfers are ignored
     on the other calculators. You have the same restrictions like with the
     commands &quot;Load object...&quot; and &quot;Save Object...&quot;, that a
     running program may corrupt memory. In difference you can choose the stack
     level for the transfer in the DDE item field. Take care to transmit data
     only after the acknowledge of the last DDE transaction.</p>
-  <p>Technical data:</p>
-  <table border="0" cellpadding="0" cellspacing="0" width="651" summary="DDE settings">
-    <tr>
-      <td width="111">Servicename:</td>
-      <td width="536">Emu42</td>
-    </tr>
-    <tr>
-      <td width="111">Topicname:</td>
-      <td width="536">Stack</td>
-    </tr>
-    <tr>
-      <td width="111">Item:</td>
-      <td width="536">1 (stack level)</td>
-    </tr>
-    <tr>
-      <td width="111">Clipboardformat:</td>
-      <td width="536">&quot;CF_HPOBJ&quot; (user defined)</td>
-    </tr>
-  </table>
-  <p>The DDE commands CONNECT, POKE and REQUEST are supported.</p>
-  <p>The structure of the clipboard format &quot;CF_HPOBJ&quot;:</p>
-  <table border="1" cellpadding="0" cellspacing="0" width="100%" summary="CF_HPOBJ format">
-    <tr>
-      <td width="34%">4 Byte (length of object, LSB first)</td>
-      <td width="66%" align="center">HP object (normal HP object)</td>
-    </tr>
-  </table>
+    <p>Technical data:</p>
+    <table border="0" cellpadding="0" cellspacing="0" width="651" summary="DDE settings">
+      <tr>
+        <td width="111">Servicename:</td>
+        <td width="536">Emu42</td>
+      </tr>
+      <tr>
+        <td width="111">Topicname:</td>
+        <td width="536">Stack</td>
+      </tr>
+      <tr>
+        <td width="111">Item:</td>
+        <td width="536">1 (stack level)</td>
+      </tr>
+      <tr>
+        <td width="111">Clipboardformat:</td>
+        <td width="536">&quot;CF_HPOBJ&quot; (user defined)</td>
+      </tr>
+    </table>
+    <p>The DDE commands CONNECT, POKE and REQUEST are supported.</p>
+    <p>The structure of the clipboard format &quot;CF_HPOBJ&quot;:</p>
+    <table border="1" cellpadding="0" cellspacing="0" width="100%" summary="CF_HPOBJ format">
+      <tr>
+        <td width="34%">4 Byte (length of object, LSB first)</td>
+        <td width="66%" align="center">HP object (normal HP object)</td>
+      </tr>
+    </table>
   <h1><a name=s14>14. License</a></h1>
-  <p>Emu42 - A HP14B/17B/17BII/19BII/22S/27S/28S/32S/32SII/42S Emulator<br>
-    Copyright (C) 2018 Christoph Gie&szlig;elink</p>
-  <p>This program is free software; you can redistribute it and/or modify it
+    <p>Emu42 - A HP10B/14B/17B/17BII/19BII/20S/21S/22S/27S/28S/32S/32SII/42S Emulator<br>
+    Copyright (C) 2019 Christoph Gie&szlig;elink</p>
+    <p>This program is free software; you can redistribute it and/or modify it
     under the terms of the GNU General Public License as published by the Free
     Software Foundation; either version 2 of the License, or (at your option)
     any later version.</p>
-  <p>This program is distributed in the hope that it will be useful, but
+    <p>This program is distributed in the hope that it will be useful, but
     WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
     or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
     for more details.</p>
-  <p>You should have received a copy of the GNU General Public License along
+    <p>You should have received a copy of the GNU General Public License along
     with this program; if not, write to the Free Software Foundation, Inc.,
     51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.</p>
 </div>

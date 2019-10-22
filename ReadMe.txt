@@ -43,8 +43,9 @@ NOT WORKING YET
 
 CHANGES
 
-Version 1.2 (2019-07-XX)
+Version 1.2 (2019-10-22)
 
+- Update from the original source code Emu42 version 1.23 from Christoph Gießelink which support HP10B, HP20S, HP21S too.
 - Add option to prevent the pinch zoom.
 - Prevent the white bottom bar when both options "Hide the status/navigation bar" and "Hide the menu button" are set (Github Fix: #9).
 - Prevent the BACK/ESCAPE key to end the application only from a hardware keyboard (Github Fix: #10).
