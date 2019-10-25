@@ -1768,9 +1768,13 @@ HDC CreateCompatibleDC(HDC hdc) {
     return handle;
 }
 HDC GetDC(HWND hWnd) {
+    if(!hWnd)
+        return NULL;
     return hWnd->windowDC;
 }
 int ReleaseDC(HWND hWnd, HDC hDC) {
+    if(!hWnd)
+        return NULL;
     hWnd->windowDC = NULL; //?
     return TRUE;
 }
