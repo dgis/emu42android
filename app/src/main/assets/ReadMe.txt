@@ -43,7 +43,7 @@ NOT WORKING YET
 
 CHANGES
 
-Version 1.2 (2019-10-22)
+Version 1.2 (2019-10-29)
 
 - Update from the original source code Emu42 version 1.23 from Christoph Gießelink which support HP10B, HP20S, HP21S too.
 - Add option to prevent the pinch zoom.
