@@ -665,7 +665,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
             Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT);
             intent.addCategory(Intent.CATEGORY_OPENABLE);
             intent.setType("*/*");
-            intent.putExtra(Intent.EXTRA_TITLE, getString(R.string.filename) + "-state.e48");
+            intent.putExtra(Intent.EXTRA_TITLE, getString(R.string.filename) + "-state.e42");
             startActivityForResult(intent, INTENT_GETOPENFILENAME);
         });
     }
