@@ -9,7 +9,6 @@
 #include "pch.h"
 #include "resource.h"
 #include "Emu42.h"
-#include "stegano.h"
 #include "kml.h"
 
 #define ROP_PSDPxax 0x00B8074A				// ternary ROP
@@ -905,6 +904,8 @@ static KmlLine* ParseLines(BOOL bInclude)
 		if (eToken == TOK_INCLUDE)
 		{
 			LPTSTR szFilename;
+			UINT   nLexLineKml;
+
 			eToken = Lex(LEX_PARAM);		// get include parameter in 'szLexString'
 			if (eToken != TOK_STRING)		// not a string (token don't begin with ")
 			{
@@ -913,6 +914,7 @@ static KmlLine* ParseLines(BOOL bInclude)
 			}
 			szFilename = szLexString;		// save pointer to allocated memory
 			szLexString = NULL;
+			nLexLineKml = nLexLine;			// save line number
 			eToken = Lex(LEX_PARAM);		// decode argument
 			if (eToken != TOK_EOL)
 			{
@@ -935,7 +937,10 @@ static KmlLine* ParseLines(BOOL bInclude)
 			}
 			free(szFilename);				// free filename string
 			if (pLine == NULL)				// parsing error
+			{
+				nLexLine = nLexLineKml;		// restore line number
 				goto abort;
+			}
 			while (pLine->pNext) pLine=pLine->pNext;
 			continue;
 		}
@@ -1106,6 +1111,8 @@ static KmlBlock* ParseBlocks(BOOL bInclude, BOOL bEndTokenEn)
 		if (eToken == TOK_INCLUDE)
 		{
 			LPTSTR szFilename;
+			UINT   nLexLineKml;
+
 			eToken = Lex(LEX_PARAM);		// get include parameter in 'szLexString'
 			if (eToken != TOK_STRING)		// not a string (token don't begin with ")
 			{
@@ -1114,6 +1121,7 @@ static KmlBlock* ParseBlocks(BOOL bInclude, BOOL bEndTokenEn)
 			}
 			szFilename = szLexString;		// save pointer to allocated memory
 			szLexString = NULL;
+			nLexLineKml = nLexLine;			// save line number
 			eToken = Lex(LEX_PARAM);		// decode argument
 			if (eToken != TOK_EOL)
 			{
@@ -1127,7 +1135,10 @@ static KmlBlock* ParseBlocks(BOOL bInclude, BOOL bEndTokenEn)
 				pBlock = pFirst = IncludeBlocks(bInclude,szFilename);
 			free(szFilename);				// free filename string
 			if (pBlock == NULL)				// parsing error
+			{
+				nLexLine = nLexLineKml;		// restore line number
 				goto abort;
+			}
 			while (pBlock->pNext) pBlock = pBlock->pNext;
 			continue;
 		}
@@ -1320,7 +1331,7 @@ static VOID InitGlobal(KmlBlock* pBlock)
 				HBITMAP hBmp = LoadBitmapFile((LPTSTR)pLine->nParam[0],FALSE);
 				if (hBmp != NULL)
 				{
-					SteganoDecodeHBm(&pbyRom,&dwRomSize,4,hBmp);
+					MapRomBmp(hBmp);		// look for an integrated ROM image
 					DeleteObject(hBmp);
 				}
 			}
@@ -1361,7 +1372,7 @@ static VOID InitGlobal(KmlBlock* pBlock)
 			if (pbyRom == NULL)				// no ROM image loaded so far
 			{
 				// look for an integrated ROM image
-				bBitmapROM = SteganoDecodeHBm(&pbyRom, &dwRomSize, 4, (HBITMAP)GetCurrentObject(hMainDC,OBJ_BITMAP)) == STG_NOERROR;
+				bBitmapROM = MapRomBmp((HBITMAP)GetCurrentObject(hMainDC,OBJ_BITMAP));
 			}
 			break;
 		case TOK_COLOR:

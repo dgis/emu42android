@@ -268,6 +268,7 @@ extern BOOL    CheckForBeepPatch(VOID);
 extern BOOL    PatchRom(LPCTSTR szFilename);
 extern BOOL    CrcRom(WORD *pwChk);
 extern BOOL    MapRom(LPCTSTR szFilename);
+extern BOOL    MapRomBmp(HBITMAP hBmp);
 extern VOID    UnmapRom(VOID);
 extern VOID    ResetDocument(VOID);
 extern BOOL    NewDocument(VOID);

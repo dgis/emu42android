@@ -2154,7 +2154,7 @@ static __inline BOOL OnFindOK(HWND hDlg,BOOL bASCII,DWORD *pdwAddrLast,INT nSear
 		#if defined _UNICODE
 		{
 			// Unicode to byte translation
-			LPTSTR szTmp = DuplicateString((LPTSTR) lpbySearch);
+			LPTSTR szTmp = DuplicateString((LPCTSTR) lpbySearch);
 			if (szTmp != NULL)
 			{
 				WideCharToMultiByte(CP_ACP, WC_COMPOSITECHECK,
@@ -3590,7 +3590,7 @@ static __inline void __cdecl PrintTrace(LPCTSTR lpFormat, ...)
 	#if defined _UNICODE
 	{
 		// Unicode to byte translation
-		LPTSTR szTmp = DuplicateString((LPTSTR) cOutput);
+		LPTSTR szTmp = DuplicateString(cOutput);
 		if (szTmp != NULL)
 		{
 			WideCharToMultiByte(CP_ACP, WC_COMPOSITECHECK,

@@ -711,7 +711,7 @@ LRESULT OnStackPaste(VOID)					// paste data to stack
 						_ASSERT(16 <= ARRAYSIZEOF(byNumber));
 						s = RPL_SetBcd(lpstrClipdata,12,3,GetRadix(),byNumber,sizeof(byNumber));
 
-						if (s > 0)					// is a real number
+						if (s > 0)			// is a real number
 						{
 							_ASSERT(s <= ARRAYSIZEOF(byNumber));
 
@@ -729,7 +729,7 @@ LRESULT OnStackPaste(VOID)					// paste data to stack
 									// push object to stack
 									RPL_PushX(dwAddress);
 								}
-								else				// HP28S (Orlando)
+								else		// HP28S (Orlando)
 								{
 									// push object to stack
 									RPL_Push(1,dwAddress);
@@ -769,7 +769,8 @@ LRESULT OnStackPaste(VOID)					// paste data to stack
 					}
 
 					// any other format
-					if (cCurrentRomType == 'O') // HP28S (Orlando)
+					if (   cCurrentRomType == 'D'	// HP42S (Davinci)
+						|| cCurrentRomType == 'O')	// HP28S (Orlando)
 					{
 						DWORD dwSize = lstrlen(lpstrClipdata);
 						if ((lpbyData = (LPBYTE) malloc(dwSize * 2)))
@@ -800,16 +801,56 @@ LRESULT OnStackPaste(VOID)					// paste data to stack
 
 							dwSize *= 2;	// size in nibbles
 
-							// get TEMPOB memory for string object
-							dwAddress = RPL_CreateTemp(dwSize+10);
-							if ((bSuccess = (dwAddress > 0)))
+							// HP42S (Davinci)
+							if (cCurrentRomType == 'D')
 							{
-								Write5(dwAddress,O_DOCSTR); // String
-								Write5(dwAddress+5,dwSize+5); // length of String
-								Nwrite(lpbyData,dwAddress+10,dwSize); // data
+								BYTE byNumber[16];
+								UINT i;
 
-								// push object to stack
-								RPL_Push(1,dwAddress);
+								// limit alpha string to 6 characters
+								if (dwSize > 2 * 6) dwSize = 2 * 6;
+
+								// fill number buffer with alpha data, rest with 0
+								for (i = 0; i < 2 * 6; ++i)
+								{
+									byNumber[i] = (i < dwSize) ? lpbyData[i] : 0;
+								}
+
+								// marker for HP41 ALPHA DATA
+								byNumber[12] = 0;
+								byNumber[13] = 1;
+
+								// no. of characters
+								byNumber[14] = (BYTE) (dwSize / 2);
+
+								// ALPHA DATA
+								byNumber[15] = 1;
+
+								// get TEMPOB memory for real object
+								dwAddress = RPL_CreateTemp(16+5);
+								if ((bSuccess = (dwAddress > 0)))
+								{
+									// write object
+									Write5(dwAddress,D_DOREAL);
+									Nwrite(byNumber,dwAddress+5,ARRAYSIZEOF(byNumber));
+
+									// push object to stack
+									RPL_PushX(dwAddress);
+								}
+							}
+							else			// HP28S (Orlando)
+							{
+								// get TEMPOB memory for string object
+								dwAddress = RPL_CreateTemp(dwSize+10);
+								if ((bSuccess = (dwAddress > 0)))
+								{
+									Write5(dwAddress,O_DOCSTR); // String
+									Write5(dwAddress+5,dwSize+5); // length of String
+									Nwrite(lpbyData,dwAddress+10,dwSize); // data
+
+									// push object to stack
+									RPL_Push(1,dwAddress);
+								}
 							}
 							free(lpbyData);
 						}

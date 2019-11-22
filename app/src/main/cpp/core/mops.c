@@ -151,6 +151,7 @@ static VOID MapNCE(enum NCEPORT s, WORD a, WORD b, DWORD *pdwRomOff)
 {
 	LPBYTE pbyRomPage;
 	UINT   i, uAddr, uMask;
+	DWORD  dwRomEnd;
 	DWORD  p, m;
 
 	_ASSERT(s >= 0 && s < ARRAYSIZEOF(NCE));
@@ -164,6 +165,7 @@ static VOID MapNCE(enum NCEPORT s, WORD a, WORD b, DWORD *pdwRomOff)
 		if (*pdwRomOff >= dwRomSize)		// ROM file not big enough
 			return;							// no mapping
 
+		dwRomEnd = dwRomSize - *pdwRomOff;	// size of remaining ROM
 		pbyRomPage = pbyRom + *pdwRomOff;	// base for ROM access
 		*pdwRomOff += *NCE[s].pdwSize;		// offset in file for next ROM module
 	}
@@ -203,8 +205,11 @@ static VOID MapNCE(enum NCEPORT s, WORD a, WORD b, DWORD *pdwRomOff)
 			}
 			else							// module is ROM
 			{
-				_ASSERT(pbyRomPage);		// ROM page defined
-				RMap[i] = pbyRomPage + p;
+				if ((p + dwAddrSize) <= dwRomEnd)
+				{
+					_ASSERT(pbyRomPage);	// ROM page defined
+					RMap[i] = pbyRomPage + p;
+				}
 			}
 		}
 		p = (p + dwAddrSize) & m;

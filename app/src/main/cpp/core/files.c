@@ -13,6 +13,7 @@
 #include "rpl.h"
 #include "kml.h"
 #include "debugger.h"
+#include "stegano.h"
 #include "lodepng.h"
 
 #pragma intrinsic(abs,labs)
@@ -442,6 +443,22 @@ BOOL PatchRom(LPCTSTR szFilename)
 //#
 //################
 
+// lodepng allocators
+void* lodepng_malloc(size_t size)
+{
+  return malloc(size);
+}
+
+void* lodepng_realloc(void* ptr, size_t new_size)
+{
+  return realloc(ptr, new_size);
+}
+
+void lodepng_free(void* ptr)
+{
+  free(ptr);
+}
+
 BOOL CrcRom(WORD *pwChk)					// calculate fingerprint of ROM
 {
 	DWORD *pdwData,dwSize;
@@ -557,6 +574,47 @@ BOOL MapRom(LPCTSTR szFilename)
 	return TRUE;
 }
 
+BOOL MapRomBmp(HBITMAP hBmp)
+{
+	// look for an integrated ROM image
+	BOOL bBitmapROM = SteganoDecodeHBm(&pbyRom,&dwRomSize,8,hBmp) == STG_NOERROR;
+
+	if (bBitmapROM)							// has data inside
+	{
+		DWORD dwSrc,dwDest;
+		unsigned uError;
+
+		LPBYTE pbyOutData = NULL;
+		size_t nOutData = 0;
+
+		// try to decompress data
+		uError = lodepng_zlib_decompress(&pbyOutData,&nOutData,pbyRom,dwRomSize,
+										 &lodepng_default_decompress_settings);
+
+		if (uError == 0)					// data decompression successful
+		{
+			free(pbyRom);					// free compressed data
+			pbyRom = pbyOutData;			// use decompressed instead
+			dwRomSize = (DWORD) nOutData;
+		}
+
+		dwSrc = dwRomSize;					// source start address
+
+		dwRomSize *= 2;						// unpacked ROM image has double size
+		pbyRom = (LPBYTE) realloc(pbyRom,dwRomSize);
+
+		dwDest = dwRomSize;					// destination start address
+		while (dwSrc > 0)					// unpack source
+		{
+			BYTE byValue = pbyRom[--dwSrc];
+			_ASSERT(dwDest >= 2);
+			pbyRom[--dwDest] = byValue >> 4;
+			pbyRom[--dwDest] = byValue & 0xF;
+		}
+	}
+	return bBitmapROM;
+}
+
 VOID UnmapRom(VOID)
 {
 	if (pbyRom == NULL) return;
@@ -641,7 +699,7 @@ BOOL NewDocument(VOID)
 		Chipset.RomBase  = 0x00000;			// MMU ROM (6 bits)
 		Chipset.RomMask  = 0x08000;			// n-island mask
 
-		Chipset.RomSize  = dwRomSize;		// size of ROM
+		Chipset.RomSize  = _KB(10);			// size of mask ROM
 
 		Chipset.b.IORam[BSYSTEM_CTRL] = RST; // set ReSeT bit at power up
 	}
@@ -660,7 +718,7 @@ BOOL NewDocument(VOID)
 		Chipset.RomBase  = 0x00000;			// MMU ROM (6 bits)
 		Chipset.RomMask  = 0xF8000;			// n-island mask
 
-		Chipset.RomSize  = dwRomSize;		// size of ROM
+		Chipset.RomSize  = _KB(16);			// size of mask ROM
 
 		Chipset.NCE2Ram  = TRUE;			// RAM
 		Chipset.NCE2Size = _B(512);			// 512 byte, integrated DRAM
@@ -682,15 +740,10 @@ BOOL NewDocument(VOID)
 		Chipset.RomBase  = 0x00000;			// MMU ROM (6 bits)
 		Chipset.RomMask  = 0xE0000;			// n-island mask
 
-		Chipset.RomSize  = dwRomSize;		// size of ROM
+		Chipset.RomSize  = _KB(64);			// size of mask ROM
 
-		if (Chipset.RomSize > _KB(64))		// external ROM
-		{
-			Chipset.RomSize  = _KB(64);		// size of mask ROM
-
-			Chipset.NCE3Ram  = FALSE;		// ROM
-			Chipset.NCE3Size = dwRomSize-Chipset.RomSize;
-		}
+		Chipset.NCE3Ram  = FALSE;			// ROM
+		Chipset.NCE3Size = _KB(32);			// size of extra ROM (17B/17BII International)
 
 		Chipset.NCE2Ram  = TRUE;			// RAM
 		// physical DRAM chip (default 8KB or size of KML Class argument)
@@ -2429,7 +2482,7 @@ HBITMAP LoadBitmapFile(LPCTSTR szFilename,BOOL bPalette)
 
 	do
 	{
-		// check for bitmap file header "BM"
+		// check for BMP file header "BM"
 		if (Bmp.dwFileSize >= 2 && *(WORD *) Bmp.pbyFile == 0x4D42)
 		{
 			hBitmap = DecodeBmp(&Bmp,bPalette);
@@ -2493,7 +2546,7 @@ static BOOL LabColorCmp(DWORD dwColor1,DWORD dwColor2,DWORD dwTol)
 	nDiffCol = (INT) (dwColor1 & 0xFF) - (INT) (dwColor2 & 0xFF);
 	dwDiff += (DWORD) (nDiffCol * nDiffCol);
 	dwTol *= dwTol;
-	
+
 	return dwDiff > dwTol;					// FALSE = colors match
 }
 
