@@ -1584,9 +1584,9 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
                     mainScreenView.setRotationMode(rotationMode, isDynamic);
                     break;
                 case "settings_auto_layout":
-                    int autoLayoutMode = 1;
+                    int autoLayoutMode = 2;
                     try {
-                        autoLayoutMode = Integer.parseInt(sharedPreferences.getString("settings_auto_layout", "1"));
+                        autoLayoutMode = Integer.parseInt(sharedPreferences.getString("settings_auto_layout", "2"));
                     } catch (NumberFormatException ex) {
                         // Catch bad number format
                     }

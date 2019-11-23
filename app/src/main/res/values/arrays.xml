@@ -14,8 +14,8 @@
 
     <string-array name="settings_auto_layout_item">
         <item>None</item>
-        <item>Auto Rotation (default)</item>
-        <item>Auto Zoom</item>
+        <item>Auto Rotation</item>
+        <item>Auto Zoom (default)</item>
         <item>Fill Screen</item>
     </string-array>
     <string-array name="settings_auto_layout_value">

@@ -29,7 +29,7 @@
                 android:summary="@string/settings_auto_layout_summary"
                 android:entries="@array/settings_auto_layout_item"
                 android:entryValues="@array/settings_auto_layout_value"
-                android:defaultValue="1"
+                android:defaultValue="2"
                 />
             <ListPreference
                 android:key="settings_rotation"

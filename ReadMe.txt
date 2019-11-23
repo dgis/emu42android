@@ -52,6 +52,7 @@ Version 1.2beta4 (2019-11-22)
 - Add the KML Icon if present in the navigation menu header (only support PNG or 32bits BMP in the ICO file).
 - Add an optional overlapping LCD part stuck to the screen when swiping the 2 calc parts (experimental).
 - Improve loading speed by caching the KML folder.
+- Make the setting Layout/Auto Zoom by default.
 
 
 Version 1.1 (2019-07-11)
