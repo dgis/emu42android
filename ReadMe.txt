@@ -53,6 +53,7 @@ Version 1.2beta4 (2019-11-22)
 - Add an optional overlapping LCD part stuck to the screen when swiping the 2 calc parts (experimental).
 - Improve loading speed by caching the KML folder.
 - Make the setting Layout/Auto Zoom by default.
+- Support the transparency in the KML Global Color.
 
 
 Version 1.1 (2019-07-11)
