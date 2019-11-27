@@ -70,6 +70,8 @@ public class MainScreenView extends PanAndScaleView {
         charmap.put('-', 0x6D); // VK_SUBTRACT
         charmap.put('*', 0x6A); // VK_MULTIPLY
         charmap.put('/', 0x6F); // VK_DIVIDE
+        charmap.put('[', 0xDB); // VK_OEM_4
+        charmap.put(']', 0xDD); // VK_OEM_6
 
         vkmap = new SparseIntArray();
         //vkmap.put(KeyEvent.KEYCODE_BACK, 0x08); // VK_BACK
@@ -115,16 +117,16 @@ public class MainScreenView extends PanAndScaleView {
         vkmap.put(KeyEvent.KEYCODE_X, 0x58); // X
         vkmap.put(KeyEvent.KEYCODE_Y, 0x59); // Y
         vkmap.put(KeyEvent.KEYCODE_Z, 0x5A); // Z
-        vkmap.put(KeyEvent.KEYCODE_0, 0x60); // VK_NUMPAD0
-        vkmap.put(KeyEvent.KEYCODE_1, 0x61); // VK_NUMPAD1
-        vkmap.put(KeyEvent.KEYCODE_2, 0x62); // VK_NUMPAD2
-        vkmap.put(KeyEvent.KEYCODE_3, 0x63); // VK_NUMPAD3
-        vkmap.put(KeyEvent.KEYCODE_4, 0x64); // VK_NUMPAD4
-        vkmap.put(KeyEvent.KEYCODE_5, 0x65); // VK_NUMPAD5
-        vkmap.put(KeyEvent.KEYCODE_6, 0x66); // VK_NUMPAD6
-        vkmap.put(KeyEvent.KEYCODE_7, 0x67); // VK_NUMPAD7
-        vkmap.put(KeyEvent.KEYCODE_8, 0x68); // VK_NUMPAD8
-        vkmap.put(KeyEvent.KEYCODE_9, 0x69); // VK_NUMPAD9
+        vkmap.put(KeyEvent.KEYCODE_0, 0x30); //VK_0   0x60); // VK_NUMPAD0
+        vkmap.put(KeyEvent.KEYCODE_1, 0x31); //VK_1   0x61); // VK_NUMPAD1
+        vkmap.put(KeyEvent.KEYCODE_2, 0x32); //VK_2   0x62); // VK_NUMPAD2
+        vkmap.put(KeyEvent.KEYCODE_3, 0x33); //VK_3   0x63); // VK_NUMPAD3
+        vkmap.put(KeyEvent.KEYCODE_4, 0x34); //VK_4   0x64); // VK_NUMPAD4
+        vkmap.put(KeyEvent.KEYCODE_5, 0x35); //VK_5   0x65); // VK_NUMPAD5
+        vkmap.put(KeyEvent.KEYCODE_6, 0x36); //VK_6   0x66); // VK_NUMPAD6
+        vkmap.put(KeyEvent.KEYCODE_7, 0x37); //VK_7   0x67); // VK_NUMPAD7
+        vkmap.put(KeyEvent.KEYCODE_8, 0x38); //VK_8   0x68); // VK_NUMPAD8
+        vkmap.put(KeyEvent.KEYCODE_9, 0x39); //VK_9   0x69); // VK_NUMPAD9
         vkmap.put(KeyEvent.KEYCODE_NUMPAD_0, 0x60); // VK_NUMPAD0
         vkmap.put(KeyEvent.KEYCODE_NUMPAD_1, 0x61); // VK_NUMPAD1
         vkmap.put(KeyEvent.KEYCODE_NUMPAD_2, 0x62); // VK_NUMPAD2
@@ -143,13 +145,11 @@ public class MainScreenView extends PanAndScaleView {
         vkmap.put(KeyEvent.KEYCODE_NUMPAD_DOT, 0x6E); // VK_DECIMAL
         vkmap.put(KeyEvent.KEYCODE_SLASH, 0x6F); // VK_DIVIDE
         vkmap.put(KeyEvent.KEYCODE_NUMPAD_DIVIDE, 0x6F); // VK_DIVIDE
-//        vkmap.put(KeyEvent.KEYCODE_SEMICOLON, 0xBA); // VK_OEM_1 (:);)
         vkmap.put(KeyEvent.KEYCODE_COMMA, 0xBC); // VK_OEM_COMMA
         vkmap.put(KeyEvent.KEYCODE_PERIOD, 0xBE); // VK_OEM_PERIOD
-//        vkmap.put(KeyEvent.0x2C, 0xBF); // VK_OEM_2 (?)
-//        vkmap.put(KeyEvent.0x32, 0xC0); // VK_OEM_3 (~)
-//        vkmap.put(KeyEvent.KEYCODE_LEFT_BRACKET, 0xDB); // VK_OEM_4 ([{)
-//        vkmap.put(KeyEvent.0x27, 0xDE);  // VK_OEM_7 (‘ »)
+        vkmap.put(KeyEvent.KEYCODE_SEMICOLON, 0xBA); // VK_OEM_1 (:);)
+        vkmap.put(KeyEvent.KEYCODE_APOSTROPHE, 0xDE);  // VK_OEM_7 (‘ »)
+        vkmap.put(KeyEvent.KEYCODE_BACKSLASH, 0xDC);  // VK_OEM_5 (\|)
 
         this.setFocusable(true);
         this.setFocusableInTouchMode(true);
@@ -198,14 +198,15 @@ public class MainScreenView extends PanAndScaleView {
     public boolean onKeyDown(int keyCode, KeyEvent event) {
         if((event.getFlags() & KeyEvent.FLAG_VIRTUAL_HARD_KEY) == 0) {
             char pressedKey = (char) event.getUnicodeChar();
-            if(debug) Log.d(TAG, "onKeyDown is: " + pressedKey);
             Integer windowsKeycode = charmap.get(pressedKey);
             if(windowsKeycode == null)
                 windowsKeycode = vkmap.get(keyCode);
+            if(debug) Log.d(TAG, String.format("onKeyDown keyCode: 0x%x (%d), unicodeChar: '%c' 0x%x (%d) -> windowsKeycode: 0x%x (%d)",
+                    keyCode, keyCode, pressedKey, (int)pressedKey, (int)pressedKey, windowsKeycode, windowsKeycode));
             if (windowsKeycode != 0)
                 NativeLib.keyDown(windowsKeycode);
             else if(debug) Log.e(TAG, String.format("Unknown keyCode: %d", keyCode));
-            if(keyCode == KeyEvent.KEYCODE_BACK)
+            if(keyCode == KeyEvent.KEYCODE_BACK || keyCode == KeyEvent.KEYCODE_TAB)
                 return true;
         }
         return super.onKeyDown(keyCode, event);
@@ -215,14 +216,15 @@ public class MainScreenView extends PanAndScaleView {
     public boolean onKeyUp(int keyCode, KeyEvent event) {
         if((event.getFlags() & KeyEvent.FLAG_VIRTUAL_HARD_KEY) == 0) {
             char pressedKey = (char) event.getUnicodeChar();
-            if(debug) Log.d(TAG, "onKeyUp is: " + pressedKey);
             Integer windowsKeycode = charmap.get(pressedKey);
             if(windowsKeycode == null)
                 windowsKeycode = vkmap.get(keyCode);
+            if(debug) Log.d(TAG, String.format("onKeyUp keyCode: 0x%x (%d), unicodeChar: '%c' 0x%x (%d) -> windowsKeycode: 0x%x (%d)",
+                    keyCode, keyCode, pressedKey, (int)pressedKey, (int)pressedKey, windowsKeycode, windowsKeycode));
             if (windowsKeycode != 0)
                 NativeLib.keyUp(windowsKeycode);
             else if(debug) Log.e(TAG, String.format("Unknown keyCode: %d", keyCode));
-            if(keyCode == KeyEvent.KEYCODE_BACK)
+            if(keyCode == KeyEvent.KEYCODE_BACK || keyCode == KeyEvent.KEYCODE_TAB)
                 return true;
         }
         return super.onKeyUp(keyCode, event);
@@ -257,20 +259,31 @@ public class MainScreenView extends PanAndScaleView {
                         ((Activity)getContext()).setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE);
 
                     if (autoZoom) {
-                        //((Activity) getContext()).setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED);
                         if (imageRatio < 1.0f != viewRatio < 1.0f) {
                             // With have different screens orientations, so we automatically zoom
                             float translateX, translateY, scale;
                             if(viewRatio > imageRatio) {
                                 float alpha = viewRatio / imageRatio;
                                 scale = Math.min(2, alpha) * viewSizeWidth / virtualSizeWidth;
-                                translateX = viewSizeWidth - scale * virtualSizeWidth;
+                                float screenHorizontalPositionRatio = ((float)NativeLib.getScreenPositionX() + (float)NativeLib.getScreenWidth() * 0.5f ) / (virtualSizeWidth + 0.1f);
+                                if(screenHorizontalPositionRatio < 0.5f)
+                                    // Screen seems to be at the left
+                                    translateX = 0;
+                                else
+                                    // Screen seems to be at the right
+                                    translateX = viewSizeWidth - scale * virtualSizeWidth;
                                 translateY = (viewSizeHeight - scale * virtualSizeHeight) / 2.0f;
                             } else {
                                 float beta = imageRatio / viewRatio;
                                 scale = Math.min(2, beta) * viewSizeHeight / virtualSizeHeight;
                                 translateX = (viewSizeWidth - scale * virtualSizeWidth) / 2.0f;
-                                translateY = 0.0f;
+                                float screenVerticalPositionRatio = ((float)NativeLib.getScreenPositionY() + (float)NativeLib.getScreenHeight() * 0.5f ) / (virtualSizeHeight + 0.1f);
+                                if(screenVerticalPositionRatio < 0.5f)
+                                    // Screen seems to be at the top
+                                    translateY = 0.0f;
+                                else
+                                    // Screen seems to be at the bottom
+                                    translateY = viewSizeHeight - scale * virtualSizeHeight;
                             }
 
                             viewScaleFactorX = scale;
@@ -311,7 +324,7 @@ public class MainScreenView extends PanAndScaleView {
         canvas.drawBitmap(bitmapMainScreen, 0, 0, paint);
     }
 
-    public int updateCallback(int type, int param1, int param2, String param3, String param4) {
+    public void updateCallback(int type, int param1, int param2, String param3, String param4) {
         switch (type) {
             case NativeLib.CALLBACK_TYPE_INVALIDATE:
                 //Log.d(TAG, "PAINT updateCallback() postInvalidate()");
@@ -339,7 +352,6 @@ public class MainScreenView extends PanAndScaleView {
                 }
                 break;
         }
-        return -1;
     }
 
     public void setRotationMode(int rotationMode, boolean isDynamic) {
