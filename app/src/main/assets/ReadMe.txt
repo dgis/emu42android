@@ -43,17 +43,18 @@ NOT WORKING YET
 
 CHANGES
 
-Version 1.2beta4 (2019-11-22)
+Version 1.2beta5 (2019-11-28)
 
 - Update from the original source code Emu42 version 1.24 from Christoph Gießelink which support HP10B, HP20S, HP21S too.
 - Add option to prevent the pinch zoom.
 - Prevent the white bottom bar when both options "Hide the status/navigation bar" and "Hide the menu button" are set (Github Fix: #9).
 - Prevent the BACK/ESCAPE key to end the application only from a hardware keyboard (Github Fix: #10).
 - Add the KML Icon if present in the navigation menu header (only support PNG or 32bits BMP in the ICO file).
-- Add an optional overlapping LCD part stuck to the screen when swiping the 2 calc parts (experimental).
+- Add an optional overlapping LCD part stuck to the screen when swiping the 2 calc parts.
 - Improve loading speed by caching the KML folder.
 - Make the setting Layout/Auto Zoom by default.
 - Support the transparency in the KML Global Color.
+- Improve the overlapping LCD mode.
 
 
 Version 1.1 (2019-07-11)
