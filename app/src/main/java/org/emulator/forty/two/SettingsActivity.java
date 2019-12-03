@@ -15,20 +15,33 @@
 package org.emulator.forty.two;
 
 import android.app.Activity;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.content.res.Configuration;
+import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
+import android.text.InputType;
 import android.view.MenuItem;
+import android.widget.EditText;
+import android.widget.LinearLayout;
 
+import java.util.HashSet;
+import java.util.Locale;
+import java.util.Objects;
+
+import androidx.annotation.Nullable;
 import androidx.appcompat.app.ActionBar;
+import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.preference.Preference;
 import androidx.preference.PreferenceFragmentCompat;
 import androidx.preference.PreferenceManager;
+import androidx.preference.SeekBarPreference;
 
 import org.emulator.calculator.NativeLib;
-
-import java.util.HashSet;
+import org.emulator.calculator.Utils;
 
 public class SettingsActivity extends AppCompatActivity implements SharedPreferences.OnSharedPreferenceChangeListener {
 
@@ -106,10 +119,37 @@ public class SettingsActivity extends AppCompatActivity implements SharedPrefere
 //                preferenceAllowSound.setSummary("Cannot initialize the sound engine.");
 //                preferenceAllowSound.setEnabled(false);
 //            }
-            Preference preferenceSoundVolume = findPreference("settings_sound_volume");
-            if(preferenceSoundVolume != null && !NativeLib.getSoundEnabled()) {
-                preferenceSoundVolume.setSummary("Cannot initialize the sound engine.");
-                preferenceSoundVolume.setEnabled(false);
+            SeekBarPreference preferenceSoundVolume = findPreference("settings_sound_volume");
+            if(preferenceSoundVolume != null) {
+                if(!NativeLib.getSoundEnabled()) {
+                    preferenceSoundVolume.setSummary("Cannot initialize the sound engine.");
+                    preferenceSoundVolume.setEnabled(false);
+                } else {
+                    preferenceSoundVolume.setOnPreferenceClickListener(preference -> {
+                        AlertDialog.Builder alert = new AlertDialog.Builder(Objects.requireNonNull(getContext()));
+                        alert.setTitle(R.string.settings_sound_volume_dialog_title);
+                        final EditText input = new EditText(getContext());
+                        input.setInputType(InputType.TYPE_CLASS_NUMBER);
+                        input.setRawInputType(Configuration.KEYBOARD_12KEY);
+                        input.setFocusable(true);
+                        input.setText(String.format(Locale.US,"%d", preferenceSoundVolume.getValue()));
+//                        input.setMaxEms(3);
+//                        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT);
+//                        input.setLayoutParams(lp);
+                        alert.setView(input);
+                        alert.setPositiveButton(R.string.message_ok, (dialog, whichButton) -> {
+                            String newValueText = input.getText().toString();
+                            try {
+                                int newValue = Integer.parseInt(newValueText);
+                                if(newValue >= preferenceSoundVolume.getMin() && newValue <= preferenceSoundVolume.getMax())
+                                    preferenceSoundVolume.setValue(newValue);
+                            } catch (NumberFormatException ignored) {}
+                        });
+                        alert.setNegativeButton(R.string.message_cancel, (dialog, whichButton) -> {});
+                        alert.show();
+                        return true;
+                    });
+                }
             }
 
             // Background color settings
