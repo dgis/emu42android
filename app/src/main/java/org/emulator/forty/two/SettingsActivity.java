@@ -114,11 +114,6 @@ public class SettingsActivity extends AppCompatActivity implements SharedPrefere
 
             // Sound settings
 
-//            Preference preferenceAllowSound = findPreference("settings_allow_sound");
-//            if(preferenceAllowSound != null && !NativeLib.getSoundEnabled()) {
-//                preferenceAllowSound.setSummary("Cannot initialize the sound engine.");
-//                preferenceAllowSound.setEnabled(false);
-//            }
             SeekBarPreference preferenceSoundVolume = findPreference("settings_sound_volume");
             if(preferenceSoundVolume != null) {
                 if(!NativeLib.getSoundEnabled()) {
@@ -133,9 +128,6 @@ public class SettingsActivity extends AppCompatActivity implements SharedPrefere
                         input.setRawInputType(Configuration.KEYBOARD_12KEY);
                         input.setFocusable(true);
                         input.setText(String.format(Locale.US,"%d", preferenceSoundVolume.getValue()));
-//                        input.setMaxEms(3);
-//                        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT);
-//                        input.setLayoutParams(lp);
                         alert.setView(input);
                         alert.setPositiveButton(R.string.message_ok, (dialog, whichButton) -> {
                             String newValueText = input.getText().toString();
