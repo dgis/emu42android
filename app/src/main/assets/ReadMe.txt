@@ -7,7 +7,8 @@ It can open or save the exact same state files (state.e??) than the original Win
 
 This application does NOT come with the ROM files!
 You will need KML scripts and ROM files already copied into your Android filesystem.
-You can download the KML scripts from the original Emu42 Windows application archive (https://hp.giesselink.com/emu42.htm)
+You can download the KML scripts here: http://regis.cosnier.free.fr/soft/androidEmu42/KML-original-124-without-ROMs.zip
+Or you can download the KML scripts from the original Emu42 Windows application archive (https://hp.giesselink.com/emu42.htm)
 and you can extract the ROM file from a real calculator (or be lucky on internet).
 Be careful about the case sensitivity of the filename in the KML script (Linux is case sensitive, not Windows).
 
@@ -43,7 +44,7 @@ NOT WORKING YET
 
 CHANGES
 
-Version 1.2beta5 (2019-11-28)
+Version 1.2 (2019-12-12)
 
 - Update from the original source code Emu42 version 1.24 from Christoph Gießelink which support HP10B, HP20S, HP21S too.
 - Add option to prevent the pinch zoom.
@@ -54,7 +55,8 @@ Version 1.2beta5 (2019-11-28)
 - Improve loading speed by caching the KML folder.
 - Make the setting Layout/Auto Zoom by default.
 - Support the transparency in the KML Global Color.
-- Improve the overlapping LCD mode.
+- Improve the New and Save menus.
+- Sound volume can be adjusted by number by touching the number.
 
 
 Version 1.1 (2019-07-11)
