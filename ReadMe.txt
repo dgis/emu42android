@@ -44,6 +44,16 @@ NOT WORKING YET
 
 CHANGES
 
+Version 1.3beta (2020-04-XX)
+
+- Intercept the ESC keyboard key to allow the use of the BACK soft key.
+- Add LCD pixel borders (not for Sacajawea and Bert).
+- Add support for the dark theme.
+- Remove the non loadable file from the MRU file list.
+- Fix: Overlapping window source position when Background/Offset is not (0,0).
+- Fix: Copy screen not working with Sacajawea.
+
+
 Version 1.2 (2019-12-12)
 
 - Update from the original source code Emu42 version 1.24 from Christoph Gießelink which support HP10B, HP20S, HP21S too.
@@ -92,9 +102,9 @@ You should have received a copy of the GNU General Public License along with thi
 
 TODO
 
+- Anyway that the layout settings (zoom mode, fill screen...) be part of the saved state, rather than being global to the app (Vincent Weber).
 - Try to include the KML files without the ROMs.
 - Sometimes, the calculator seems to lag and finally freeze.
-- Anyway that the layout settings (zoom mode, fill screen...) be part of the saved state, rather than being global to the app (Vincent Weber).
 
 
 BUILD

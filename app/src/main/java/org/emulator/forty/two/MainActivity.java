@@ -119,11 +119,12 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
     private String kmlMimeType = "application/vnd.google-earth.kml+xml";
     private boolean kmlFolderUseDefault = true;
     private String kmlFolderURL = "";
-    private boolean kmFolderChange = true;
+    private boolean kmlFolderChange = true;
 
     private int selectedRAMSize = -1;
     private boolean[] objectsToSaveItemChecked = null;
 
+    // Most Recently Used state files
     private int MRU_ID_START = 10000;
     private int MAX_MRU = 5;
     private LinkedHashMap<String, String> mruLinkedHashMap = new LinkedHashMap<String, String>(5, 1.0f, true) {
@@ -255,8 +256,14 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
             Set<String> mruLinkedHashMapKeySet = mruLinkedHashMap.keySet();
             String[] mrus = mruLinkedHashMapKeySet.toArray(new String[0]);
             for (int i = mrus.length - 1; i >= 0; i--) {
-                String displayName = getFilenameFromURL(mrus[i]);
-                recentsSubMenu.add(Menu.NONE, MRU_ID_START + i, Menu.NONE, displayName);
+            	String mostRecentlyUsedFile = mrus[i];
+                String displayName = getFilenameFromURL(mostRecentlyUsedFile);
+                if(displayName == null || displayName.equals("") || displayName.equals(mostRecentlyUsedFile)) {
+                	// We should remove this file because it seems impossible to get the display name of this Most Recently Used state file.
+	                // It might be deleted or the permissions does not allow to reach it anymore.
+	                mruLinkedHashMap.remove(mostRecentlyUsedFile);
+                } else
+	                recentsSubMenu.add(Menu.NONE, MRU_ID_START + i, Menu.NONE, displayName);
             }
         }
     }
@@ -399,6 +406,10 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
             ensureDocumentSaved(() -> {
                 if(onFileOpen(url) != 0) {
                     saveLastDocument(url);
+                } else {
+	                // We should remove this file from the MRU list because it might be deleted or the permissions does not allow to reach it anymore.
+	                mruLinkedHashMap.remove(url);
+	                navigationView.post(this::updateMRU);
                 }
             });
 
@@ -444,8 +455,8 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
     }
     ArrayList<KMLScriptItem> kmlScripts;
     private void extractKMLScripts() {
-        if(kmlScripts == null || kmFolderChange) {
-            kmFolderChange = false;
+        if(kmlScripts == null || kmlFolderChange) {
+            kmlFolderChange = false;
 
             kmlScripts = new ArrayList<>();
 
@@ -902,13 +913,13 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         } else
             kmlScriptsForCurrentModel = kmlScripts;
 
-        boolean hasEmbeddedKMLs = getPackageName().contains("org.emulator.forty.eight");
+        boolean showDefaultKMLScriptFolderItem = !kmlFolderUseDefault && getPackageName().contains("org.emulator.forty.eight");
         int lastIndex = kmlScriptsForCurrentModel.size();
-        String[] kmlScriptTitles = new String[lastIndex + (hasEmbeddedKMLs ? 2 : 1)];
+        String[] kmlScriptTitles = new String[lastIndex + (showDefaultKMLScriptFolderItem ? 2 : 1)];
         for (int i = 0; i < kmlScriptsForCurrentModel.size(); i++)
             kmlScriptTitles[i] = kmlScriptsForCurrentModel.get(i).title;
         kmlScriptTitles[lastIndex] = getResources().getString(R.string.load_custom_kml);
-        if(hasEmbeddedKMLs)
+        if(showDefaultKMLScriptFolderItem)
             kmlScriptTitles[lastIndex + 1] = getResources().getString(R.string.load_default_kml);
         new AlertDialog.Builder(MainActivity.this)
                 .setTitle(getResources().getString(R.string.pick_calculator))
@@ -1148,8 +1159,6 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
                                         fileOutputStream.flush();
                                         fileOutputStream.close();
                                     }
-                                } catch (FileNotFoundException e) {
-                                    e.printStackTrace();
                                 } catch (IOException e) {
                                     e.printStackTrace();
                                 }
@@ -1285,7 +1294,6 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
     public int updateCallback(int type, int param1, int param2, String param3, String param4) {
 
         mainScreenView.updateCallback(type, param1, param2, param3, param4);
-        lcdOverlappingView.updateCallback(type, param1, param2, param3, param4);
         return -1;
     }
 
@@ -1458,7 +1466,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
 
         // Not found, so we search in the default KML asset folder
         kmlFolderUseDefault = true;
-        kmFolderChange = true;
+        kmlFolderChange = true;
 
         extractKMLScripts();
 
@@ -1557,7 +1565,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         int isDynamicValue = isDynamic ? 1 : 0;
         if(key == null) {
             String[] settingKeys = {
-                    "settings_realspeed", "settings_grayscale", "settings_rotation", "settings_auto_layout", "settings_allow_pinch_zoom", "settings_lcd_overlapping_mode",
+                    "settings_realspeed", "settings_grayscale", "settings_rotation", "settings_auto_layout", "settings_allow_pinch_zoom", "settings_lcd_overlapping_mode", "settings_lcd_pixel_borders",
                     "settings_hide_bar", "settings_hide_button_menu", "settings_sound_volume", "settings_haptic_feedback",
                     "settings_background_kml_color", "settings_background_fallback_color",
                     "settings_printer_model", "settings_printer_prevent_line_wrap", "settings_macro",
@@ -1604,6 +1612,11 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
                     }
                     lcdOverlappingView.setOverlappingLCDMode(overlappingLCDMode);
                     break;
+	            case "settings_lcd_pixel_borders":
+	            	boolean usePixelBorders = sharedPreferences.getBoolean("settings_lcd_pixel_borders", false);
+		            mainScreenView.setUsePixelBorders(usePixelBorders);
+		            lcdOverlappingView.setUsePixelBorders(usePixelBorders);
+		            break;
                 case "settings_hide_bar":
                 case "settings_hide_bar_status":
                 case "settings_hide_bar_nav":
@@ -1657,7 +1670,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
                         // https://stackoverflow.com/questions/44185477/intent-action-open-document-tree-doesnt-seem-to-return-a-real-path-to-drive/44185706
                         // https://stackoverflow.com/questions/26744842/how-to-use-the-new-sd-card-access-api-presented-for-android-5-0-lollipop
                     }
-                    kmFolderChange = true;
+                    kmlFolderChange = true;
                     break;
 
                 case "settings_macro":

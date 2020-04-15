@@ -29,6 +29,8 @@ import android.view.MotionEvent;
 import android.view.View;
 import android.widget.FrameLayout;
 
+import static org.emulator.calculator.MainScreenView.drawPixelBorder;
+
 public class LCDOverlappingView extends View {
 
     protected static final String TAG = "LCDOverlappingView";
@@ -38,7 +40,6 @@ public class LCDOverlappingView extends View {
     private Paint paint = new Paint();
     private Rect srcBitmapCopy = new Rect();
     private Rect dstBitmapCopy = new Rect();
-    private Bitmap bitmapLCD;
     private float bitmapRatio = -1;
     private float minViewSize = 200.0f;
     public static int OVERLAPPING_LCD_MODE_NONE = 0;
@@ -48,6 +49,7 @@ public class LCDOverlappingView extends View {
     private MainScreenView mainScreenView;
     private boolean viewSized = false;
     private boolean firstTime = true;
+	private boolean usePixelBorders = true;
 
     public LCDOverlappingView(Context context, MainScreenView mainScreenView) {
         super(context);
@@ -57,13 +59,13 @@ public class LCDOverlappingView extends View {
 
         sharedPreferences = PreferenceManager.getDefaultSharedPreferences(context.getApplicationContext());
 
-        paint.setFilterBitmap(true);
-        paint.setAntiAlias(true);
+        //paint.setFilterBitmap(true);
+	    paint.setStyle(Paint.Style.STROKE);
+	    paint.setStrokeWidth(1.0f);
+        paint.setAntiAlias(false); //true);
 
         DisplayMetrics displayMetrics = new DisplayMetrics();
         ((Activity)context).getWindowManager().getDefaultDisplay().getMetrics(displayMetrics);
-        bitmapLCD = Bitmap.createBitmap(1, 1, Bitmap.Config.ARGB_8888);
-        bitmapLCD.eraseColor(Color.BLACK);
 
         this.setFocusable(true);
         this.setFocusableInTouchMode(true);
@@ -219,43 +221,20 @@ public class LCDOverlappingView extends View {
     protected void onDraw(Canvas canvas) {
         //if(debug) Log.d(TAG, "onDraw()");
 
-        if(this.overlappingLCDMode != OVERLAPPING_LCD_MODE_NONE && bitmapLCD != null) {
-            int x = NativeLib.getScreenPositionX();
-            int y = NativeLib.getScreenPositionY();
-            srcBitmapCopy.set(x, y, x + NativeLib.getScreenWidth(), y + NativeLib.getScreenHeight());
+        if(this.overlappingLCDMode != OVERLAPPING_LCD_MODE_NONE) {
+            int lcdPositionX = NativeLib.getScreenPositionX();
+            int lcdPositionY = NativeLib.getScreenPositionY();
+            srcBitmapCopy.set(lcdPositionX, lcdPositionY, lcdPositionX + NativeLib.getScreenWidth(), lcdPositionY + NativeLib.getScreenHeight());
             dstBitmapCopy.set(0, 0, getWidth(), getHeight());
             canvas.drawBitmap(mainScreenView.getBitmap(), srcBitmapCopy, dstBitmapCopy, paint);
-        }
-    }
 
-    public void updateCallback(int type, int param1, int param2, String param3, String param4) {
-        if(this.overlappingLCDMode == OVERLAPPING_LCD_MODE_NONE)
-            return;
-        switch (type) {
-            case NativeLib.CALLBACK_TYPE_INVALIDATE:
-                //if(debug) Log.d(TAG, "updateCallback() CALLBACK_TYPE_INVALIDATE");
-                if(bitmapLCD.getWidth() > 1)
-                    postInvalidate();
-                break;
-            case NativeLib.CALLBACK_TYPE_WINDOW_RESIZE:
-                // New Bitmap size
-                int newLCDWidth = NativeLib.getScreenWidth();
-                int newLCDHeight = NativeLib.getScreenHeight();
-                if(bitmapLCD == null || bitmapLCD.getWidth() != newLCDWidth || bitmapLCD.getHeight() != newLCDHeight) {
-                    int newWidth = Math.max(1, newLCDWidth);
-                    int newHeight = Math.max(1, newLCDHeight);
-
-                    if(debug) Log.d(TAG, "updateCallback() Bitmap.createBitmap(x: " + newWidth + ", y: " + newHeight + ")");
-                    Bitmap  oldBitmapLCD = bitmapLCD;
-                    bitmapLCD = Bitmap.createBitmap(newWidth, newHeight, Bitmap.Config.ARGB_8888);
-                    bitmapRatio = (float)newHeight / (float)newWidth;
-                    if(oldBitmapLCD != null)
-                        oldBitmapLCD.recycle();
-
-                    if(viewSized)
-                        updateLayout();
-                }
-                break;
+	        if(usePixelBorders) {
+		        int lcdWidthNative = NativeLib.getScreenWidthNative();
+		        if(lcdWidthNative > 0) {
+			        int lcdHeightNative = NativeLib.getScreenHeightNative();
+			        drawPixelBorder(canvas, lcdWidthNative, lcdHeightNative, 0.0f, 0.0f, getWidth(), getHeight(), paint);
+		        }
+	        }
         }
     }
 
@@ -353,7 +332,7 @@ public class LCDOverlappingView extends View {
         editor.putString("settings_lcd_overlapping_mode", Integer.toString(this.overlappingLCDMode));
         editor.putInt("settings_lcd_overlapping_x", viewFlowLayout.leftMargin);
         editor.putInt("settings_lcd_overlapping_y", viewFlowLayout.topMargin);
-        editor.putFloat("settings_lcd_overlapping_scale", bitmapLCD != null && bitmapLCD.getWidth() > 0 ? (float)viewFlowLayout.width / (float)bitmapLCD.getWidth() : 1.0f);
+        editor.putFloat("settings_lcd_overlapping_scale", (float)viewFlowLayout.width / (float)Math.max(1, NativeLib.getScreenWidth()));
         editor.apply();
     }
 
@@ -398,4 +377,9 @@ public class LCDOverlappingView extends View {
                 this.updateLayout();
         }
     }
+
+	public void setUsePixelBorders(boolean usePixelBorders) {
+		this.usePixelBorders = usePixelBorders;
+		postInvalidate();
+	}
 }

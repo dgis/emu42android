@@ -864,36 +864,29 @@ JNIEXPORT void JNICALL Java_org_emulator_calculator_NativeLib_onViewCopy(JNIEnv 
     nxO = nyO = 0;					// origin in HDC
     hSrcDC = hLcdDC;				// use display HDC as source
 
-    if (nCurrentHardware == HDW_SACA)
-    {
-        TCHAR cBuffer[32];			// temp. buffer for text
-        MSG msg;
+	if (nCurrentHardware == HDW_SACA || nCurrentHardware == HDW_BERT)
+	{
+		TCHAR cBuffer[32];			// temp. buffer for text
+		MSG msg;
 
-        // Text
-        GetLcdNumberSaca(cBuffer);	// get display string
-        dwLen = (lstrlen(cBuffer) + 1) * sizeof(cBuffer[0]);
-        // memory allocation for clipboard data
-        if ((hClipObj = GlobalAlloc(GMEM_MOVEABLE, dwLen)) != NULL)
-        {
-            LPTSTR szText = (LPTSTR) GlobalLock(hClipObj);
-            lstrcpy(szText, cBuffer);
+		// get text display string
+		if (nCurrentHardware == HDW_SACA)
+			GetLcdNumberSaca(cBuffer);
+		else
+			GetLcdNumberBert(cBuffer);
+		dwLen = (lstrlen(cBuffer) + 1) * sizeof(cBuffer[0]);
+		// memory allocation for clipboard data
+		if ((hClipObj = GlobalAlloc(GMEM_MOVEABLE, dwLen)) != NULL)
+		{
+			LPTSTR szText = (LPTSTR) GlobalLock(hClipObj);
+			lstrcpy(szText, cBuffer);
 #if defined _UNICODE
-            SetClipboardData(CF_UNICODETEXT, hClipObj);
+			SetClipboardData(CF_UNICODETEXT, hClipObj);
 #else
-            SetClipboardData(CF_TEXT, hClipObj);
+			SetClipboardData(CF_TEXT, hClipObj);
 #endif
-            GlobalUnlock(hClipObj);
-        }
-
-        // pump WM_PAINT message for closing menu before getting image
-//        while (PeekMessage (&msg, hWnd, WM_PAINT, WM_PAINT, PM_REMOVE))
-//            DispatchMessage (&msg);
-
-        // calculate bitmap origins from hWindowDC
-        nxO = nLcdX; if (nxO > 1) { nxO -= 2; nxSize += 4; };
-        nyO = nLcdY; if (nyO > 1) { nyO -= 2; nySize += 4; };
-
-        hSrcDC = hWindowDC;				// use output HDC as source
+			GlobalUnlock(hClipObj);
+		}
     }
 
     hBmp = CreateCompatibleBitmap(hSrcDC,nxSize,nySize);
@@ -1149,10 +1142,10 @@ JNIEXPORT jint JNICALL Java_org_emulator_calculator_NativeLib_getState(JNIEnv *e
 }
 
 JNIEXPORT jint JNICALL Java_org_emulator_calculator_NativeLib_getScreenPositionX(JNIEnv *env, jobject thisz) {
-    return nLcdX;
+    return nLcdX - nBackgroundX;
 }
 JNIEXPORT jint JNICALL Java_org_emulator_calculator_NativeLib_getScreenPositionY(JNIEnv *env, jobject thisz) {
-    return nLcdY;
+    return nLcdY - nBackgroundY;
 }
 JNIEXPORT jint JNICALL Java_org_emulator_calculator_NativeLib_getScreenWidth(JNIEnv *env, jobject thisz) {
     INT nxSize,nySize;
@@ -1163,4 +1156,23 @@ JNIEXPORT jint JNICALL Java_org_emulator_calculator_NativeLib_getScreenHeight(JN
     INT nxSize,nySize;
     GetSizeLcdBitmap(&nxSize,&nySize);	// get LCD size
     return nySize; //*nLcdZoom;
+}
+JNIEXPORT jint JNICALL Java_org_emulator_calculator_NativeLib_getScreenWidthNative(JNIEnv *env, jobject thisz) {
+	if(nCurrentHardware != HDW_LEWIS)
+		return -1;
+	INT nxSize,nySize;
+	GetSizeLcdBitmap(&nxSize,&nySize);	// get LCD size
+	return nxSize / nLcdZoom;
+}
+JNIEXPORT jint JNICALL Java_org_emulator_calculator_NativeLib_getScreenHeightNative(JNIEnv *env, jobject thisz) {
+	INT nxSize,nySize;
+	GetSizeLcdBitmap(&nxSize,&nySize);	// get LCD size
+	return nySize / (nLcdyZoom == -1 ? nLcdZoom : nLcdyZoom);
+}
+JNIEXPORT jint JNICALL Java_org_emulator_calculator_NativeLib_getLCDBackgroundColor(JNIEnv *env, jobject thisz) {
+	if (hMainDC) {
+		COLORREF brushColor = GetPixel(hMainDC, nLcdX, nLcdY);
+		return ((brushColor & 0xFF0000) >> 16) | ((brushColor & 0xFF) << 16) | (brushColor & 0xFF00);
+	}
+	return -1;
 }

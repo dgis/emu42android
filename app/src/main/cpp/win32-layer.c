@@ -306,6 +306,7 @@ DWORD GetFileSize(HANDLE hFile, LPDWORD lpFileSizeHigh) {
     } else if(hFile->handleType == HANDLE_TYPE_FILE_ASSET) {
         return (DWORD) AAsset_getLength64(hFile->fileAsset);
     }
+    return 0;
 }
 
 //** https://www.ibm.com/developerworks/systems/library/es-MigratingWin32toLinux.html
@@ -554,7 +555,7 @@ extern int jniDetachCurrentThread();
 #define MAX_CREATED_THREAD 30
 static HANDLE threads[MAX_CREATED_THREAD];
 
-static DWORD ThreadStart(LPVOID lpThreadParameter) {
+static void ThreadStart(LPVOID lpThreadParameter) {
     HANDLE handle = (HANDLE)lpThreadParameter;
     if(handle) {
         handle->threadStartAddress(handle->threadParameter);
@@ -2981,14 +2982,54 @@ void _wmakepath(wchar_t _Buffer, wchar_t const* _Drive, wchar_t const* _Dir, wch
 int WINAPI wvsprintf(LPSTR arg1, LPCSTR arg2, va_list arglist) {
     return vsprintf(arg1, arg2, arglist);
 }
-DWORD GetFullPathName(LPCSTR lpFileName, DWORD nBufferLength, LPSTR lpBuffer, LPSTR* lpFilePart) { return 0; }
+const char pathSeparator =
+#ifdef _WIN32
+        '\\';
+#else
+        '/';
+#endif
+
+DWORD GetFullPathName(LPCSTR lpFileName, DWORD nBufferLength, LPSTR lpBuffer, LPSTR* lpFilePart) {
+    lstrcpyn(lpBuffer, lpFileName, nBufferLength);
+    if(lpFilePart != NULL) {
+        *lpFilePart = strrchr(lpBuffer, pathSeparator);
+        if(*lpFilePart != NULL)
+            (*lpFilePart)++;
+    }
+    return lstrlen(lpBuffer);
+}
 LPSTR lstrcpyn(LPSTR lpString1, LPCSTR lpString2,int iMaxLength) {
     return strcpy(lpString1, lpString2);
 }
 LPSTR lstrcat(LPSTR lpString1, LPCSTR lpString2) {
-    return NULL;
+    return strcat(lpString1, lpString2);
 }
-void __cdecl _splitpath(char const* _FullPath, char* _Drive, char* _Dir, char* _Filename, char* _Ext) {}
+void __cdecl _splitpath(const char * _FullPath, char* _Drive, char* _Dir, char* _Filename, char* _Ext) {
+    if (_Drive)
+        _Drive[0] = 0;
+    char * filePart = strrchr(_FullPath, pathSeparator);
+    if(_Dir) {
+        if(filePart != NULL) {
+            strncpy(_Dir, _FullPath, (int)(filePart - _FullPath));
+        } else
+            _Dir[0] = 0;
+    }
+    if(_Filename) {
+        if(filePart != NULL) {
+            strcpy(_Filename, filePart + 1);
+        } else
+            _Filename[0] = 0;
+    }
+    if(_Ext) {
+        _Ext[0] = 0;
+        if(_Filename) {
+            char * extPart = strrchr(_Filename, '.');
+            if (extPart != NULL) {
+                strcpy(_Ext, extPart + 1);
+            }
+        }
+    }
+}
 int WINAPI lstrcmp(LPCSTR lpString1, LPCSTR lpString2) {
     return strcmp(lpString1, lpString2);
 }
