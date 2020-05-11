@@ -551,8 +551,6 @@ JNIEXPORT jint JNICALL Java_org_emulator_calculator_NativeLib_onFileOpen(JNIEnv 
         if(hLcdDC && hLcdDC->selectedBitmap) {
             hLcdDC->selectedBitmap->bitmapInfoHeader->biHeight = -abs(hLcdDC->selectedBitmap->bitmapInfoHeader->biHeight);
         }
-
-        MruAdd(szBufferFilename);
     }
     chooseCurrentKmlMode = ChooseKmlMode_UNKNOWN;
     mainViewResizeCallback(nBackgroundW, nBackgroundH);

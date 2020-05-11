@@ -51,7 +51,12 @@ Version 1.3beta (2020-04-XX)
 - Add support for the dark theme.
 - Remove the non loadable file from the MRU file list.
 - Fix: Overlapping window source position when Background/Offset is not (0,0).
+- Wrap the table of content in the former help documentation.
+- Save the settings at the end of the state file.
 - Fix: Copy screen not working with Sacajawea.
+- Transform all child activities with dialog fragments (to prevent unwanted state save).
+- Fix an issue with the numpad keys which send the arrow keys and the numbers at the same time.
+- Fix a major issue which prevented to open a state file (with a custom KML script) with Android 10.
 
 
 Version 1.2 (2019-12-12)

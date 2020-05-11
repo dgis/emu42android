@@ -30,8 +30,10 @@ import android.view.InputDevice;
 import android.view.KeyEvent;
 import android.view.MotionEvent;
 
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
 public class MainScreenView extends PanAndScaleView {
@@ -45,6 +47,7 @@ public class MainScreenView extends PanAndScaleView {
 	private Rect srcBitmapCopy = new Rect();
     private SparseIntArray vkmap;
     private HashMap<Character, Integer> charmap;
+    private List<Integer> numpadKey;
     private int kmlBackgroundColor = Color.BLACK;
     private boolean useKmlBackgroundColor = false;
     private int fallbackBackgroundColorType = 0;
@@ -102,7 +105,11 @@ public class MainScreenView extends PanAndScaleView {
 //        vkmap.put(KeyEvent.KEYCODE_CTRL_RIGHT, 0x11); // VK_CONTROL
         vkmap.put(KeyEvent.KEYCODE_ESCAPE, 0x1B); // VK_ESCAPE
         vkmap.put(KeyEvent.KEYCODE_SPACE, 0x20); // VK_SPACE
-        vkmap.put(KeyEvent.KEYCODE_DPAD_LEFT, 0x25); // VK_LEFT
+	    vkmap.put(KeyEvent.KEYCODE_PAGE_UP, 0x21);  // VK_PRIOR
+	    vkmap.put(KeyEvent.KEYCODE_PAGE_DOWN, 0x22);  // VK_NEXT
+	    vkmap.put(KeyEvent.KEYCODE_MOVE_END, 0x23);  // VK_END
+	    vkmap.put(KeyEvent.KEYCODE_MOVE_HOME, 0x24);  // VK_HOME
+	    vkmap.put(KeyEvent.KEYCODE_DPAD_LEFT, 0x25); // VK_LEFT
         vkmap.put(KeyEvent.KEYCODE_DPAD_UP, 0x26); // VK_UP
         vkmap.put(KeyEvent.KEYCODE_DPAD_RIGHT, 0x27); // VK_RIGHT
         vkmap.put(KeyEvent.KEYCODE_DPAD_DOWN, 0x28); // VK_DOWN
@@ -166,6 +173,21 @@ public class MainScreenView extends PanAndScaleView {
         vkmap.put(KeyEvent.KEYCODE_APOSTROPHE, 0xDE);  // VK_OEM_7 (‘ »)
         vkmap.put(KeyEvent.KEYCODE_BACKSLASH, 0xDC);  // VK_OEM_5 (\|)
 
+	    numpadKey = Arrays.asList(
+	    		KeyEvent.KEYCODE_NUMPAD_0,
+			    KeyEvent.KEYCODE_NUMPAD_1,
+			    KeyEvent.KEYCODE_NUMPAD_2,
+			    KeyEvent.KEYCODE_NUMPAD_3,
+			    KeyEvent.KEYCODE_NUMPAD_4,
+			    KeyEvent.KEYCODE_NUMPAD_5,
+			    KeyEvent.KEYCODE_NUMPAD_6,
+			    KeyEvent.KEYCODE_NUMPAD_7,
+			    KeyEvent.KEYCODE_NUMPAD_8,
+			    KeyEvent.KEYCODE_NUMPAD_9,
+			    KeyEvent.KEYCODE_NUMPAD_DOT,
+			    KeyEvent.KEYCODE_NUMPAD_COMMA
+			    );
+
         this.setFocusable(true);
         this.setFocusableInTouchMode(true);
     }
@@ -213,6 +235,8 @@ public class MainScreenView extends PanAndScaleView {
     public boolean onKeyDown(int keyCode, KeyEvent event) {
         if((event.getFlags() & KeyEvent.FLAG_VIRTUAL_HARD_KEY) == 0
         && (event.getSource() & InputDevice.SOURCE_KEYBOARD) == InputDevice.SOURCE_KEYBOARD) {
+        	if(!event.isNumLockOn() && numpadKey.indexOf(keyCode) != -1)
+        		return false;
             char pressedKey = (char) event.getUnicodeChar();
             Integer windowsKeycode = charmap.get(pressedKey);
             if(windowsKeycode == null)
@@ -232,6 +256,8 @@ public class MainScreenView extends PanAndScaleView {
     public boolean onKeyUp(int keyCode, KeyEvent event) {
         if((event.getFlags() & KeyEvent.FLAG_VIRTUAL_HARD_KEY) == 0
         && (event.getSource() & InputDevice.SOURCE_KEYBOARD) == InputDevice.SOURCE_KEYBOARD) {
+	        if(!event.isNumLockOn() && numpadKey.indexOf(keyCode) != -1)
+		        return false;
             char pressedKey = (char) event.getUnicodeChar();
             Integer windowsKeycode = charmap.get(pressedKey);
             if(windowsKeycode == null)
@@ -338,15 +364,21 @@ public class MainScreenView extends PanAndScaleView {
         }
     }
 
-    private Runnable onUpdateLayoutListener = null;
+	private Runnable onUpdateLayoutListener = null;
 
-    public void setOnUpdateLayoutListener(Runnable onUpdateLayoutListener) {
-        this.onUpdateLayoutListener = onUpdateLayoutListener;
-    }
+	public void setOnUpdateLayoutListener(Runnable onUpdateLayoutListener) {
+		this.onUpdateLayoutListener = onUpdateLayoutListener;
+	}
+
+	private Runnable onUpdateDisplayListener = null;
+
+	public void setOnUpdateDisplayListener(Runnable onUpdateDisplayListener) {
+		this.onUpdateDisplayListener = onUpdateDisplayListener;
+	}
 
 	@Override
 	protected void onCustomDraw(Canvas canvas) {
-		//Log.d(TAG, "onCustomDraw()");
+		if (debug) Log.d(TAG, "onCustomDraw()");
 
 		canvas.drawColor(getBackgroundColor());
 
@@ -364,6 +396,9 @@ public class MainScreenView extends PanAndScaleView {
 
     @Override
     public void onDraw(Canvas canvas) {
+	    if (debug)
+	    	Log.d(TAG, "onDraw()");
+
         super.onDraw(canvas);
 
         if(usePixelBorders) {
@@ -403,10 +438,13 @@ public class MainScreenView extends PanAndScaleView {
 	public void updateCallback(int type, int param1, int param2, String param3, String param4) {
         switch (type) {
             case NativeLib.CALLBACK_TYPE_INVALIDATE:
-                //Log.d(TAG, "PAINT updateCallback() postInvalidate()");
+	            if (debug) Log.d(TAG, "updateCallback() CALLBACK_TYPE_INVALIDATE postInvalidate()");
                 postInvalidate();
-                break;
+	            if(this.onUpdateDisplayListener != null)
+		            this.onUpdateDisplayListener.run();
+	            break;
             case NativeLib.CALLBACK_TYPE_WINDOW_RESIZE:
+	            if (debug) Log.d(TAG, "updateCallback() CALLBACK_TYPE_WINDOW_RESIZE()");
                 // New Bitmap size
                 if(bitmapMainScreen == null || bitmapMainScreen.getWidth() != param1 || bitmapMainScreen.getHeight() != param2) {
                     if(debug) Log.d(TAG, "updateCallback() Bitmap.createBitmap(x: " + Math.max(1, param1) + ", y: " + Math.max(1, param2) + ")");
@@ -469,7 +507,7 @@ public class MainScreenView extends PanAndScaleView {
 
 
 
-    private int getBackgroundColor() {
+    public int getBackgroundColor() {
         if(useKmlBackgroundColor) {
             return kmlBackgroundColor;
         } else switch(fallbackBackgroundColorType) {

@@ -14,34 +14,21 @@
 
 package org.emulator.calculator;
 
-import android.os.Bundle;
-import android.view.MenuItem;
-import android.webkit.WebView;
+import android.app.Application;
+import androidx.preference.PreferenceManager;
 
-import androidx.appcompat.app.AppCompatActivity;
+public class EmuApplication extends Application {
 
-public class InfoWebActivity extends AppCompatActivity {
+	private static Settings customPreferenceDataStore;
 
-	private int homeId;
-
-	@Override
-	protected void onCreate(Bundle savedInstanceState) {
-		super.onCreate(savedInstanceState);
-
-		setContentView(Utils.resId(this, "layout", "activity_web_info"));
-		homeId = Utils.resId(this, "id", "home");
-		WebView webView = findViewById(Utils.resId(this, "id", "webViewInfo"));
-		String url = getString(Utils.resId(this, "string", "help_url"));
-		webView.loadUrl(url);
+	public static Settings getSettings() {
+		return customPreferenceDataStore;
 	}
 
 	@Override
-	public boolean onOptionsItemSelected(MenuItem item) {
-		if(item.getItemId() == homeId) {
-			finish();
-			return true;
-		}
-		return super.onOptionsItemSelected(item);
-	}
+	public void onCreate() {
+		super.onCreate();
 
+		customPreferenceDataStore = new Settings(PreferenceManager.getDefaultSharedPreferences(this));
+	}
 }

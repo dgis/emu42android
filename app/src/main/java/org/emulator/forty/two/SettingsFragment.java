@@ -15,102 +15,171 @@
 package org.emulator.forty.two;
 
 import android.app.Activity;
-import android.content.DialogInterface;
+import android.app.Dialog;
 import android.content.Intent;
-import android.content.SharedPreferences;
 import android.content.res.Configuration;
+import android.graphics.BlendMode;
+import android.graphics.BlendModeColorFilter;
+import android.graphics.PorterDuff;
+import android.graphics.drawable.Drawable;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.text.InputType;
-import android.view.MenuItem;
+import android.util.Log;
+import android.view.LayoutInflater;
+import android.view.Menu;
+import android.view.View;
+import android.view.ViewGroup;
+import android.view.Window;
 import android.widget.EditText;
-import android.widget.LinearLayout;
+
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+import androidx.appcompat.app.AlertDialog;
+import androidx.appcompat.app.AppCompatDialog;
+import androidx.appcompat.app.AppCompatDialogFragment;
+import androidx.appcompat.widget.Toolbar;
+import androidx.fragment.app.Fragment;
+import androidx.preference.Preference;
+import androidx.preference.PreferenceFragmentCompat;
+import androidx.preference.SeekBarPreference;
+
+import org.emulator.calculator.EmuApplication;
+import org.emulator.calculator.NativeLib;
+import org.emulator.calculator.Settings;
+import org.emulator.calculator.Utils;
 
 import java.util.HashSet;
 import java.util.Locale;
-import java.util.Objects;
 
-import androidx.annotation.Nullable;
-import androidx.appcompat.app.ActionBar;
-import androidx.appcompat.app.AlertDialog;
-import androidx.appcompat.app.AppCompatActivity;
-import androidx.preference.Preference;
-import androidx.preference.PreferenceFragmentCompat;
-import androidx.preference.PreferenceManager;
-import androidx.preference.SeekBarPreference;
+public class SettingsFragment extends AppCompatDialogFragment {
 
-import org.emulator.calculator.NativeLib;
-import org.emulator.calculator.Utils;
+	private static final String TAG = "SettingsFragment";
+	protected final boolean debug = false;
 
-public class SettingsActivity extends AppCompatActivity implements SharedPreferences.OnSharedPreferenceChangeListener {
+	private static Settings settings;
+	private HashSet<String> settingsKeyChanged = new HashSet<>();
+	private Settings.OnOneKeyChangedListener sharedPreferenceChangeListener = (key) -> settingsKeyChanged.add(key);
+	private GeneralPreferenceFragment generalPreferenceFragment;
 
-    //private static final String TAG = "SettingsActivity";
-    private static SharedPreferences sharedPreferences;
-    private HashSet<String> settingsKeyChanged = new HashSet<>();
+	public interface OnSettingsKeyChangedListener {
+		void onSettingsKeyChanged(HashSet<String> settingsKeyChanged);
+	}
 
-    private GeneralPreferenceFragment generalPreferenceFragment;
+	private OnSettingsKeyChangedListener onSettingsKeyChangedListener;
 
+	@Override
+	public void onCreate(Bundle savedInstanceState) {
+		super.onCreate(savedInstanceState);
 
-    @Override
-    protected void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
+		settings = EmuApplication.getSettings();
+		settings.registerOnOneKeyChangeListener(sharedPreferenceChangeListener);
 
-        sharedPreferences = PreferenceManager.getDefaultSharedPreferences(getApplicationContext());
-        sharedPreferences.registerOnSharedPreferenceChangeListener(this);
+		setStyle(AppCompatDialogFragment.STYLE_NO_FRAME, R.style.AppTheme);
+	}
 
-        ActionBar actionBar = getSupportActionBar();
-        if (actionBar != null) {
-            // Show the Up button in the action bar.
-            actionBar.setDisplayHomeAsUpEnabled(true);
-        }
+	@NonNull
+	@Override
+	public Dialog onCreateDialog(Bundle savedInstanceState) {
+		Dialog dialog = new AppCompatDialog(getContext(), getTheme()) {
+			@Override
+			public void onBackPressed() {
+				dialogResult();
+				dismiss();
+			}
+		};
+		dialog.requestWindowFeature(Window.FEATURE_NO_TITLE);
+		return dialog;
+	}
 
-        generalPreferenceFragment = new GeneralPreferenceFragment();
-        getSupportFragmentManager().beginTransaction().replace(android.R.id.content, generalPreferenceFragment).commit();
+	@Override
+	public View onCreateView(@NonNull LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
+
+		String title = getString(settings.getIsDefaultSettings() ? R.string.dialog_common_settings_title : R.string.dialog_state_settings_title);
+		Dialog dialog = getDialog();
+		if(dialog != null)
+			dialog.setTitle(title);
+
+		View view = inflater.inflate(R.layout.fragment_settings, container, false);
+
+		// Configure the toolbar
+
+		Toolbar toolbar = view.findViewById(R.id.my_toolbar);
+		toolbar.setTitle(title);
+		Utils.colorizeDrawableWithColor(requireContext(), toolbar.getNavigationIcon(), android.R.attr.colorForeground);
+		toolbar.setNavigationOnClickListener(v -> {
+			dialogResult();
+			dismiss();
+		});
+		toolbar.inflateMenu(R.menu.fragment_settings);
+		Menu menu = toolbar.getMenu();
+		menu.findItem(R.id.menu_settings_reset_to_default).setEnabled(settings.getIsDefaultSettings());
+		menu.findItem(R.id.menu_settings_reset_to_common).setEnabled(!settings.getIsDefaultSettings());
+		toolbar.setOnMenuItemClickListener(item -> {
+			int id = item.getItemId();
+			if(id == R.id.menu_settings_reset_to_default) {
+				settings.clearCommonDefaultSettings();
+				restartPreferenceFragment();
+			} else if(id == R.id.menu_settings_reset_to_common) {
+				settings.clearEmbeddedStateSettings();
+				restartPreferenceFragment();
+			}
+			return true;
+		});
+
+		// Insert the Preference fragment
+		restartPreferenceFragment();
+		return view;
+	}
+
+	/**
+	 * Start or restart the preference fragment to take into account the new settings.
+	 */
+	private void restartPreferenceFragment() {
+		if(generalPreferenceFragment != null)
+			getChildFragmentManager().beginTransaction().remove(generalPreferenceFragment).commit();
+		generalPreferenceFragment = new GeneralPreferenceFragment();
+		getChildFragmentManager().beginTransaction().replace(R.id.settingsContent, generalPreferenceFragment).commit();
+	}
+
+	/**
+	 * Common method to handle the result of the dialog.
+	 */
+	private void dialogResult() {
+		if (onSettingsKeyChangedListener != null)
+			onSettingsKeyChangedListener.onSettingsKeyChanged(settingsKeyChanged);
+	}
+
+	@Override
+	public void onDestroy() {
+		settings.unregisterOnOneKeyChangeListener();
+		super.onDestroy();
+	}
+
+	void registerOnSettingsKeyChangedListener(OnSettingsKeyChangedListener listener) {
+		if(debug) Log.d(TAG, "registerOnSettingsKeyChangedListener()");
+		onSettingsKeyChangedListener = listener;
+	}
+
+	void unregisterOnSettingsKeyChangedListener() {
+		if(debug) Log.d(TAG, "unregisterOnSettingsKeyChangedListener()");
+		onSettingsKeyChangedListener = null;
     }
 
-    @Override
-    protected void onDestroy() {
-        sharedPreferences.unregisterOnSharedPreferenceChangeListener(this);
-        super.onDestroy();
-    }
-
-    @Override
-    public boolean onOptionsItemSelected(MenuItem item) {
-        int id = item.getItemId();
-        if (id == android.R.id.home) {
-            onBackPressed();
-            return true;
-        }
-        return super.onOptionsItemSelected(item);
-    }
-
-    @Override
-    public void onBackPressed() {
-        Intent resultIntent = new Intent();
-        resultIntent.putExtra("changedKeys", settingsKeyChanged.toArray(new String[0]));
-        setResult(Activity.RESULT_OK, resultIntent);
-        finish();
-        //super.onBackPressed();
-    }
-
-    @Override
-    public void onSharedPreferenceChanged(SharedPreferences sharedPreferences, String key) {
-        settingsKeyChanged.add(key);
-    }
-
-    /**
-     * This fragment shows general preferences only. It is used when the
-     * activity is showing a two-pane settings UI.
-     */
     public static class GeneralPreferenceFragment extends PreferenceFragmentCompat {
 
         Preference preferencePort2load = null;
 
         @Override
         public void onCreatePreferences(Bundle savedInstanceState, String rootKey) {
-            addPreferencesFromResource(R.xml.pref_general);
-            setHasOptionsMenu(true);
+
+			// Register our own settings data store
+			getPreferenceManager().setPreferenceDataStore(EmuApplication.getSettings());
+
+			// Load the preferences from an XML resource
+			setPreferencesFromResource(R.xml.pref_general, rootKey);
+
 
             // Sound settings
 
@@ -121,7 +190,7 @@ public class SettingsActivity extends AppCompatActivity implements SharedPrefere
                     preferenceSoundVolume.setEnabled(false);
                 } else {
                     preferenceSoundVolume.setOnPreferenceClickListener(preference -> {
-                        AlertDialog.Builder alert = new AlertDialog.Builder(Objects.requireNonNull(getContext()));
+						AlertDialog.Builder alert = new AlertDialog.Builder(requireContext());
                         alert.setTitle(R.string.settings_sound_volume_dialog_title);
                         final EditText input = new EditText(getContext());
                         input.setInputType(InputType.TYPE_CLASS_NUMBER);
@@ -165,7 +234,7 @@ public class SettingsActivity extends AppCompatActivity implements SharedPrefere
                 };
                 preferenceBackgroundFallbackColor.setOnPreferenceChangeListener(onPreferenceChangeListenerBackgroundFallbackColor);
                 onPreferenceChangeListenerBackgroundFallbackColor.onPreferenceChange(preferenceBackgroundFallbackColor,
-                        sharedPreferences.getString(preferenceBackgroundFallbackColor.getKey(), "0"));
+						settings.getString(preferenceBackgroundFallbackColor.getKey(), "0"));
 
 
                 //preferenceBackgroundCustomColor.setColorValue(customColor);
@@ -194,9 +263,8 @@ public class SettingsActivity extends AppCompatActivity implements SharedPrefere
                     return true;
                 };
                 preferenceMacroRealSpeed.setOnPreferenceChangeListener(onPreferenceChangeListenerMacroRealSpeed);
-                onPreferenceChangeListenerMacroRealSpeed.onPreferenceChange(preferenceMacroRealSpeed, sharedPreferences.getBoolean(preferenceMacroRealSpeed.getKey(), true));
+				onPreferenceChangeListenerMacroRealSpeed.onPreferenceChange(preferenceMacroRealSpeed, settings.getBoolean(preferenceMacroRealSpeed.getKey(), true));
             }
-
         }
     }
 }
