@@ -44,7 +44,7 @@ NOT WORKING YET
 
 CHANGES
 
-Version 1.3beta (2020-04-XX)
+Version 1.3 (2020-05-24)
 
 - Intercept the ESC keyboard key to allow the use of the BACK soft key.
 - Add LCD pixel borders (not for Sacajawea and Bert).
@@ -57,6 +57,7 @@ Version 1.3beta (2020-04-XX)
 - Transform all child activities with dialog fragments (to prevent unwanted state save).
 - Fix an issue with the numpad keys which send the arrow keys and the numbers at the same time.
 - Fix a major issue which prevented to open a state file (with a custom KML script) with Android 10.
+- Optimize the speed with -Ofast option.
 
 
 Version 1.2 (2019-12-12)
