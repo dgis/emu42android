@@ -13,7 +13,7 @@
 #include "kml.h"
 #include "debugger.h"
 
-#define VERSION   "1.24"
+#define VERSION   "1.25"
 
 #ifdef _DEBUG
 LPCTSTR szNoTitle = _T("Emu42 ")_T(VERSION)_T(" Debug");
@@ -547,7 +547,7 @@ static LRESULT OnPaint(HWND hWindow)
 			GdiFlush();
 		}
 		LeaveCriticalSection(&csGDILock);
-		UpdateAnnunciators();
+		UpdateAnnunciators(0x7F);
 		RefreshButtons(&rcMainPaint);
 	}
 	EndPaint(hWindow, &Paint);

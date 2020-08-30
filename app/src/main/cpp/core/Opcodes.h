@@ -441,6 +441,3 @@ extern VOID o_invalid6(LPBYTE I);
 
 extern VOID o_goyes3(LPBYTE I);
 extern VOID o_goyes5(LPBYTE I);
-
-extern VOID o81B0(LPBYTE I); // =BPUTL patch
-extern VOID o81B1(LPBYTE I); // =makebeep patch

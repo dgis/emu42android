@@ -913,8 +913,16 @@ BOOL OpenDocument(LPCTSTR szFilename)
 
 	// read length of KML script name
 	ReadFile(hFile,&nLength,sizeof(nLength),&lBytesRead,NULL);
+
 	// KML script name too long for file buffer
-	if (nLength >= ARRAYSIZEOF(szCurrentKml)) goto read_err;
+	if (nLength >= ARRAYSIZEOF(szCurrentKml))
+	{
+		// skip heading KML script name characters until remainder fits into file buffer
+		UINT nSkip = nLength - (ARRAYSIZEOF(szCurrentKml) - 1);
+		SetFilePointer(hFile, nSkip, NULL, FILE_CURRENT);
+
+		nLength = ARRAYSIZEOF(szCurrentKml) - 1;
+	}
 	#if defined _UNICODE
 	{
 		LPSTR szTmp = (LPSTR) malloc(nLength);

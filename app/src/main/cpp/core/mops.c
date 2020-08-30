@@ -1114,8 +1114,8 @@ static VOID ReadLewisIO(BYTE *a, DWORD d, DWORD s, BOOL bUpdate)
 
 static VOID WriteLewisIO(BYTE *a, DWORD d, DWORD s)
 {
-	BYTE c;
-	BOOL bAnnunciator = FALSE;				// no annunciator access
+	BYTE  c;
+	DWORD dwAnnunciator = 0;				// no annunciator write
 
 	#if defined DEBUG_IO
 	{
@@ -1283,10 +1283,20 @@ static VOID WriteLewisIO(BYTE *a, DWORD d, DWORD s)
 // 003F8 @  hardware timer (38-3F), decremented 8192 times/s
 		// nothing - fall through to default
 		default:
-			Chipset.IORam[d]=c;				// write data
+			// Pioneer annunciator area changed
+			if (!Chipset.bSlave && d >= LA_ALL && d <= LA_RAD + 7 && (Chipset.IORam[d] ^ c) != 0)
+			{
+				// annunciator conversation table from memory position to annunciator order
+				// bit 0 = LA_UPDOWN, bit 1 = LA_SHIFT, bit 2 = LA_PRINTER, bit 3 = LA_BUSY
+				// bit 4 = LA_BAT,    bit 5 = LA_G,     bit 6 = LA_RAD
+				const BYTE byUpdateMask[] = { 0x7F, 1<<0, 1<<1, 1<<2, 1<<3, 1<<4, 1<<5, 1<<6 };
 
-			// Pioneer annunciator area
-			bAnnunciator |= !Chipset.bSlave && d >= LA_ALL && d <= LA_RAD + 7;
+				// get annunciator mask from table
+				_ASSERT((d - LA_ALL) / 8 < ARRAYSIZEOF(byUpdateMask));
+				dwAnnunciator |= byUpdateMask[(d - LA_ALL) / 8];
+			}
+
+			Chipset.IORam[d]=c;				// write data
 
 			if (d >= TIMER2)				// timer2 update
 			{
@@ -1300,7 +1310,7 @@ static VOID WriteLewisIO(BYTE *a, DWORD d, DWORD s)
 	} while (--s);
 
 finish:
-	if (bAnnunciator) UpdateAnnunciators();
+	if (dwAnnunciator) UpdateAnnunciators(dwAnnunciator);
 	return;
 }
 
@@ -1383,8 +1393,8 @@ static VOID ReadLewisSlaveIO(BYTE *a, DWORD d, DWORD s, BOOL bUpdate)
 
 static VOID WriteLewisSlaveIO(BYTE *a, DWORD d, DWORD s)
 {
-	BYTE c;
-	BOOL bAnnunciator = FALSE;				// no annunciator access
+	BYTE  c;
+	DWORD dwAnnunciator = 0;				// no annunciator write
 
 	#if defined DEBUG_IO
 	{
@@ -1422,7 +1432,7 @@ static VOID WriteLewisSlaveIO(BYTE *a, DWORD d, DWORD s)
 					// DON bit of master not cleared
 					ChipsetS.bLcdSyncErr = (Chipset.IORam[DSPCTL]&DON) != 0;
 				}
-				bAnnunciator = TRUE;		// update annunciator setting
+				dwAnnunciator = 0x7F;		// update all annunciators
 			}
 			ChipsetS.IORam[d] = c;
 			break;
@@ -1491,10 +1501,20 @@ static VOID WriteLewisSlaveIO(BYTE *a, DWORD d, DWORD s)
 // 003F8 @  hardware timer (38-3F), decremented 8192 times/s
 		// nothing - fall through to default
 		default:
-			ChipsetS.IORam[d] = c;			// write data
+			// Clamshell annunciator area changed
+			if (d >= SLA_BUSY && d <= SLA_ALL + 7 && (ChipsetS.IORam[d] ^ c) != 0)
+			{
+				// annunciator conversation table from memory position to annunciator order
+				// bit 0 = SLA_HALT, bit 1 = SLA_SHIFT, bit 2 = SLA_ALPHA, bit 3 = SLA_BUSY
+				// bit 4 = SLA_BAT,  bit 5 = SLA_RAD,   bit 6 = SLA_PRINTER
+				const BYTE byUpdateMask[] = { 1<<3, 1<<2, 1<<4, 1<<1, 1<<5, 1<<0, 1<<6, 0x7F };
 
-			// Clamshell annunciator area
-			bAnnunciator |= d >= SLA_BUSY && d <= SLA_ALL + 7;
+				// get annunciator mask from table
+				_ASSERT(d / 8 < ARRAYSIZEOF(byUpdateMask));
+				dwAnnunciator |= byUpdateMask[d / 8];
+			}
+
+			ChipsetS.IORam[d] = c;			// write data
 
 			if (d >= TIMER2)				// timer2 update
 			{
@@ -1508,6 +1528,6 @@ static VOID WriteLewisSlaveIO(BYTE *a, DWORD d, DWORD s)
 	} while (--s);
 
 finish:
-	if (bAnnunciator) UpdateAnnunciators();
+	if (dwAnnunciator) UpdateAnnunciators(dwAnnunciator);
 	return;
 }

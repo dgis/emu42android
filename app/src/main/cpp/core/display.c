@@ -428,7 +428,7 @@ static VOID UpdateContrastLewis(VOID)
 		GdiFlush();
 	}
 	LeaveCriticalSection(&csGDILock);
-	UpdateAnnunciators();					// adjust annunciator color
+	UpdateAnnunciators(0x7F);				// adjust annunciator color
 	return;
 }
 
@@ -1328,7 +1328,7 @@ VOID StartDisplay(VOID)
 		if (nCurrentHardware == HDW_LEWIS)
 		{
 			_ASSERT(nCurrentHardware == HDW_LEWIS);
-			UpdateAnnunciators();			// switch on annunciators
+			UpdateAnnunciators(0x7F);		// switch on annunciators
 		}
 		else if (nCurrentHardware == HDW_SACA)
 		{
@@ -1369,7 +1369,7 @@ VOID StopDisplay(VOID)
 //
 // Lewis chip annunciator implementation
 //
-VOID UpdateAnnunciators(VOID)
+VOID UpdateAnnunciators(DWORD dwUpdateMask)
 {
 	const DWORD dwAnnAddrP[] = { LA_ALL, LA_UPDOWN, LA_SHIFT, LA_PRINTER, LA_BUSY, LA_BAT, LA_G, LA_RAD };
 	const DWORD dwAnnAddrO[] = { SLA_ALL, SLA_HALT, SLA_SHIFT, SLA_ALPHA, SLA_BUSY, SLA_BAT, SLA_RAD, SLA_PRINTER };
@@ -1399,27 +1399,32 @@ VOID UpdateAnnunciators(VOID)
 	// check all annuncators
 	for (i = 1; i < ARRAYSIZEOF(dwAnnAddrP); ++i)
 	{
-		nCount = 0;
-
-		if (bAnnOn)							// annunciators on
+		if ((dwUpdateMask & 0x1) != 0)
 		{
-			DWORD dwAnn = Npack(pbySource+dwAnnAddr[i],8) ^ Npack(pbySource+dwAnnAddr[0],8);
+			nCount = 0;
 
-			// count the number of set bits
-			for (;dwAnn != 0; ++nCount)
+			if (bAnnOn)						// annunciators on
 			{
-				dwAnn &= (dwAnn - 1);
+				DWORD dwAnn = Npack(pbySource+dwAnnAddr[i],8) ^ Npack(pbySource+dwAnnAddr[0],8);
+
+				// count the number of set bits
+				for (;dwAnn != 0; ++nCount)
+				{
+					dwAnn &= (dwAnn - 1);
+				}
 			}
+
+			// contrast table entry of annunciator
+			j = ((Chipset.IORam[DSPCTL] & CONT4) << 3) | Chipset.IORam[CONTRAST];
+			j = j + nCount - 16;
+			if (j < 0)  j = 0;
+			if (j > 31) j = 31;
+
+			DrawAnnunciator(i, nCount > 0 && dwKMLColor[j] != I, dwKMLColor[j]);
 		}
-
-		// contrast table entry of annunciator
-		j = ((Chipset.IORam[DSPCTL] & CONT4) << 3) | Chipset.IORam[CONTRAST];
-		j = j + nCount - 16;
-		if (j < 0)  j = 0;
-		if (j > 31) j = 31;
-
-		DrawAnnunciator(i, nCount > 0 && dwKMLColor[j] != I, dwKMLColor[j]);
+		dwUpdateMask >>= 1;
 	}
+	_ASSERT(dwUpdateMask == 0);
 	return;
 }
 

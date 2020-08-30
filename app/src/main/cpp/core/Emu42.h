@@ -194,7 +194,7 @@ extern VOID   SetAnnunBitmap(HDC hDC, HBITMAP hBitmap);
 extern VOID   DestroyAnnunBitmap(VOID);
 extern VOID   StartDisplay(VOID);
 extern VOID   StopDisplay(VOID);
-extern VOID   UpdateAnnunciators(VOID);
+extern VOID   UpdateAnnunciators(DWORD dwUpdateMask);
 extern VOID   GetLcdNumberBert(LPTSTR szContent);
 extern VOID   GetLcdNumberSaca(LPTSTR szContent);
 extern VOID   ResizeWindow(VOID);
@@ -378,10 +378,6 @@ extern DWORD RPL_Pick(UINT l);
 extern VOID  RPL_Replace(DWORD n);
 extern VOID  RPL_Push(UINT l,DWORD n);
 extern VOID  RPL_PushX(DWORD n);
-
-// External.c
-extern VOID  External0(CHIPSET_M* w);
-extern VOID  External1(CHIPSET_M* w);
 
 // SndEnum.c
 extern VOID SetSoundDeviceList(HWND hWnd,UINT uDeviceID);

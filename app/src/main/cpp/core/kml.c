@@ -2857,9 +2857,8 @@ BOOL InitKML(LPCTSTR szFilename, BOOL bNoLog)
 	}
 	if (CheckForBeepPatch())				// check if ROM contain beep patches
 	{
-		AddToLog(_T("Warning, ROM beep patch detected. Remove beep patches please."));
-		bNoLog = FALSE;
-		bAlwaysDisplayLog = TRUE;
+		AddToLog(_T("Error, ROM beep patch detected. Remove beep patches please."));
+		goto quit;
 	}
 	if (szAnnunBitmap)						// external annunciator bitmap defined
 	{

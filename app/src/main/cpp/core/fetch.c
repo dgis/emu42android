@@ -320,8 +320,8 @@ static JMPTAB o8A_[] =
 
 static JMPTAB o81B_[] =
 {
-	(LPCVOID) o81B0,		F,				// normally o_invalid4, =BPUTL patch
-	(LPCVOID) o81B1,		F,				// normally o_invalid4, =makebeep patch
+	(LPCVOID) o_invalid4,	F,
+	(LPCVOID) o_invalid4,	F,
 	(LPCVOID) o81B2,		F,
 	(LPCVOID) o81B3,		F,
 	(LPCVOID) o81B4,		F,

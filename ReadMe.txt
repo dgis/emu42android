@@ -46,6 +46,7 @@ CHANGES
 
 Version 1.4 (2020-09-XX)
 
+- Update from the original source code Emu42 version 1.25 from Christoph Gießelink.
 - If the KML folder does not exist (like the first time), prompt the user to choose a new KML folder.
 - Move the KML folder in the JSON settings embedded in the state file because Windows cannot open the state file with KML url longer than 256 byte.
 - Prevent to auto save before launching the "Open...", "Save As...", "Load Object...", "Save Object...", etc...
@@ -69,7 +70,7 @@ Version 1.3 (2020-05-24)
 
 Version 1.2 (2019-12-12)
 
-- Update from the original source code Emu42 version 1.24 from Christoph Gießelink which support HP10B, HP20S, HP21S too.
+- Update from the original source code Emu42 version 1.24 from Christoph Gießelink which supports HP10B, HP20S, HP21S too.
 - Add option to prevent the pinch zoom.
 - Prevent the white bottom bar when both options "Hide the status/navigation bar" and "Hide the menu button" are set (Github Fix: #9).
 - Prevent the BACK/ESCAPE key to end the application only from a hardware keyboard (Github Fix: #10).
