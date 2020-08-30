@@ -44,6 +44,13 @@ NOT WORKING YET
 
 CHANGES
 
+Version 1.4 (2020-09-XX)
+
+- If the KML folder does not exist (like the first time), prompt the user to choose a new KML folder.
+- Move the KML folder in the JSON settings embedded in the state file because Windows cannot open the state file with KML url longer than 256 byte.
+- Prevent to auto save before launching the "Open...", "Save As...", "Load Object...", "Save Object...", etc...
+
+
 Version 1.3 (2020-05-24)
 
 - Intercept the ESC keyboard key to allow the use of the BACK soft key.
@@ -109,7 +116,6 @@ You should have received a copy of the GNU General Public License along with thi
 TODO
 
 - In Autozoom mode, I could add a button which switches to the other half of the faceplate (Comments from @Nick and @Jean-Marc)
-- Anyway that the layout settings (zoom mode, fill screen...) be part of the saved state, rather than being global to the app (Vincent Weber).
 - Try to include the KML files without the ROMs.
 - Sometimes, the calculator seems to lag and finally freeze.
 

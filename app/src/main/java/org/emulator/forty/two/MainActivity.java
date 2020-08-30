@@ -51,6 +51,7 @@ import androidx.core.content.FileProvider;
 import androidx.core.view.GravityCompat;
 import androidx.documentfile.provider.DocumentFile;
 import androidx.drawerlayout.widget.DrawerLayout;
+import androidx.fragment.app.Fragment;
 
 import com.google.android.material.navigation.NavigationView;
 
@@ -107,15 +108,20 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
     public static final int INTENT_PORT2LOAD = 6;
     public static final int INTENT_PICK_KML_FOLDER_FOR_NEW_FILE = 7;
     public static final int INTENT_PICK_KML_FOLDER_FOR_CHANGING = 8;
-    public static final int INTENT_PICK_KML_FOLDER_FOR_SECURITY = 10;
-    public static final int INTENT_CREATE_RAM_CARD = 11;
-    public static final int INTENT_MACRO_LOAD = 12;
-    public static final int INTENT_MACRO_SAVE = 13;
+	public static final int INTENT_PICK_KML_FOLDER_FOR_SECURITY = 10;
+	public static final int INTENT_PICK_KML_FOLDER_FOR_KML_NOT_FOUND = 11;
+    public static final int INTENT_CREATE_RAM_CARD = 12;
+    public static final int INTENT_MACRO_LOAD = 13;
+    public static final int INTENT_MACRO_SAVE = 14;
 
-    private String kmlMimeType = "application/vnd.google-earth.kml+xml";
+	public static String intentPickKmlFolderForUrlToOpen;
+
+	private String kmlMimeType = "application/vnd.google-earth.kml+xml";
     private boolean kmlFolderUseDefault = true;
     private String kmlFolderURL = "";
-    private boolean kmlFolderChange = true;
+	private boolean kmlFolderChange = true;
+
+	private boolean saveWhenLaunchingActivity = true;
 
     private int selectedRAMSize = -1;
     private boolean[] objectsToSaveItemChecked = null;
@@ -207,9 +213,9 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
                     documentToOpenUri = intent.getData();
                     if (documentToOpenUri != null) {
                         String scheme = documentToOpenUri.getScheme();
-                        if(scheme != null && scheme.compareTo("file") == 0) {
+                        if(scheme != null && scheme.compareTo("file") == 0)
                             documentToOpenUrl = null;
-                        } else
+                        else
                             documentToOpenUrl = documentToOpenUri.toString();
                     }
                 } else if (action.equals(Intent.ACTION_SEND)) {
@@ -223,11 +229,8 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
 
         if(documentToOpenUrl != null && documentToOpenUrl.length() > 0)
             try {
-                if(onFileOpen(documentToOpenUrl) != 0) {
-                    saveLastDocument(documentToOpenUrl);
-                    if(intent != null && documentToOpenUri != null)
-                        Utils.makeUriPersistable(this, intent, documentToOpenUri);
-                }
+            	// FileOpen auto-open.
+                onFileOpen(documentToOpenUrl, intent, null);
             } catch (Exception e) {
                 if(debug) Log.e(TAG, e.getMessage());
             }
@@ -272,21 +275,21 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
 
     @Override
     protected void onStop() {
-        //TODO We cannot make the difference between going to the settings or loading/saving a file and a real app stop/kill!
-        // -> Maybe by settings some flags when loading/saving
-	    settings.putStringSet("MRU", mruLinkedHashMap.keySet());
-        if(lcdOverlappingView != null)
-            lcdOverlappingView.saveViewLayout();
+    	if(saveWhenLaunchingActivity) {
+		    settings.putStringSet("MRU", mruLinkedHashMap.keySet());
+		    if (lcdOverlappingView != null)
+			    lcdOverlappingView.saveViewLayout();
 
-	    if(NativeLib.isDocumentAvailable() && settings.getBoolean("settings_autosave", true)) {
-            String currentFilename = NativeLib.getCurrentFilename();
-		    if (currentFilename != null && currentFilename.length() > 0)
-			    onFileSave();
-        }
+		    if (NativeLib.isDocumentAvailable() && settings.getBoolean("settings_autosave", true)) {
+			    String currentFilename = NativeLib.getCurrentFilename();
+			    if (currentFilename != null && currentFilename.length() > 0)
+				    onFileSave();
+		    }
 
-	    settings.saveApplicationSettings();
+		    settings.saveApplicationSettings();
 
-        clearFolderCache();
+		    clearFolderCache();
+	    }
 
         super.onStop();
     }
@@ -393,19 +396,22 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
             mruLinkedHashMap.get(url);
 
             ensureDocumentSaved(() -> {
-                if(onFileOpen(url) != 0) {
-                    saveLastDocument(url);
-                } else {
-	                // We should remove this file from the MRU list because it might be deleted or the permissions does not allow to reach it anymore.
-	                mruLinkedHashMap.remove(url);
-	                navigationView.post(this::updateMRU);
-                }
+	            // FileOpen from MRU.
+				onFileOpen(url, null, null);
             });
 
         }
 
         drawer.closeDrawer(GravityCompat.START);
         return true;
+    }
+
+    private void removeMRU(String url) {
+        // We should remove this file from the MRU list because it might be deleted or the permissions does not allow to reach it anymore.
+	    if(mruLinkedHashMap.containsKey(url)) {
+		    mruLinkedHashMap.remove(url);
+		    navigationView.post(this::updateMRU);
+	    }
     }
 
     private void updateNavigationDrawerItems() {
@@ -437,8 +443,36 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         menu.findItem(R.id.nav_macro_stop).setEnabled(uRun && nMacroState != 0 /* MACRO_OFF */);
     }
 
-    class KMLScriptItem {
+	private void loadKMLFolder() {
+		kmlFolderUseDefault = settings.getBoolean("settings_kml_default", true);
+		if (!kmlFolderUseDefault) {
+			kmlFolderURL = settings.getString("settings_kml_folder", "");
+			// https://github.com/googlesamples/android-DirectorySelection
+			// https://stackoverflow.com/questions/44185477/intent-action-open-document-tree-doesnt-seem-to-return-a-real-path-to-drive/44185706
+			// https://stackoverflow.com/questions/26744842/how-to-use-the-new-sd-card-access-api-presented-for-android-5-0-lollipop
+		}
+		kmlFolderChange = true;
+	}
+
+	private void changeKMLFolder(String url) {
+		if(url == null || url.startsWith("assets/")) {
+			if(!kmlFolderUseDefault)
+				kmlFolderChange = true;
+			kmlFolderUseDefault = true;
+			settings.putBoolean("settings_kml_default", true);
+		} else {
+			if(kmlFolderUseDefault || !url.equals(kmlFolderURL))
+				kmlFolderChange = true;
+			kmlFolderUseDefault = false;
+			kmlFolderURL = url;
+			settings.putBoolean("settings_kml_default", false);
+			settings.putString("settings_kml_folder", kmlFolderURL);
+		}
+	}
+
+    static class KMLScriptItem {
         public String filename;
+	    public String folder;
         public String title;
         public String model;
     }
@@ -450,6 +484,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
             kmlScripts = new ArrayList<>();
 
             if(kmlFolderUseDefault) {
+            	// We use the default KML scripts and ROMs from the embedded asset folder inside the Android app.
                 AssetManager assetManager = getAssets();
                 String[] calculatorsAssetFilenames = new String[0];
                 try {
@@ -484,6 +519,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
                                         if (mLine.indexOf("End") == 0) {
                                             KMLScriptItem newKMLScriptItem = new KMLScriptItem();
                                             newKMLScriptItem.filename = calculatorFilename;
+	                                        newKMLScriptItem.folder = null;
                                             newKMLScriptItem.title = title;
                                             newKMLScriptItem.model = model;
                                             kmlScripts.add(newKMLScriptItem);
@@ -516,6 +552,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
                     }
                 }
             } else {
+	            // We use the custom KML scripts and ROMs from a chosen folder.
                 Uri kmlFolderUri = Uri.parse(kmlFolderURL);
                 List<String> calculatorsAssetFilenames = new LinkedList<>();
 
@@ -561,7 +598,8 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
                                     if (inGlobal) {
                                         if (mLine.indexOf("End") == 0) {
                                             KMLScriptItem newKMLScriptItem = new KMLScriptItem();
-                                            newKMLScriptItem.filename = kmlFolderUseDefault ? calculatorFilename : "document:" + kmlFolderURL + "|" + calculatorFilename;
+	                                        newKMLScriptItem.filename = documentFile.getName();
+	                                        newKMLScriptItem.folder = kmlFolderURL;
                                             newKMLScriptItem.title = title;
                                             newKMLScriptItem.model = model;
                                             kmlScripts.add(newKMLScriptItem);
@@ -647,7 +685,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         ensureDocumentSaved(() -> showKMLPicker(false) );
     }
 
-    private void newFileFromKML(String kmlScriptFilename) {
+    private void newFileFromKML(String kmlScriptFilename, String kmlScriptFolder) {
 	    // Eventually, close the previous state file
 	    NativeLib.onFileClose();
 	    showCalculatorView(false);
@@ -661,11 +699,16 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
 	    updateFromPreferences(null, false);
 
 	    // Create a new genuine state file
-        int result = NativeLib.onFileNew(kmlScriptFilename);
+	    int result = NativeLib.onFileNew(kmlScriptFilename, kmlScriptFolder);
         if(result > 0) {
             showCalculatorView(true);
             displayFilename("");
             showKMLLog();
+            if(kmlScriptFolder != null) {
+	            // Note: kmlScriptFolder should be equal to kmlFolderURL!
+	            // We keep the global settings_kml_folder distinct from embedded settings_kml_folder_embedded.
+	            settings.putString("settings_kml_folder_embedded", kmlScriptFolder);
+            }
             suggestToSaveNewFile();
         } else
             showKMLLogForce();
@@ -686,6 +729,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
             intent.addCategory(Intent.CATEGORY_OPENABLE);
             intent.setType("*/*");
             intent.putExtra(Intent.EXTRA_TITLE, getString(R.string.filename) + "-state.e42");
+	        saveWhenLaunchingActivity = false;
             startActivityForResult(intent, INTENT_GETOPENFILENAME);
         });
     }
@@ -736,6 +780,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
                 break;
         }
         intent.putExtra(Intent.EXTRA_TITLE, getString(R.string.filename) + "-state." + extension);
+	    saveWhenLaunchingActivity = false;
         startActivityForResult(intent, INTENT_GETSAVEFILENAME);
     }
     private void OnFileClose() {
@@ -787,6 +832,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         intent.addCategory(Intent.CATEGORY_OPENABLE);
         intent.setType("*/*");
         intent.putExtra(Intent.EXTRA_TITLE, getString(R.string.filename) + "-object.hp");
+	    saveWhenLaunchingActivity = false;
         startActivityForResult(intent, INTENT_OBJECT_LOAD);
     }
 
@@ -810,6 +856,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         intent.addCategory(Intent.CATEGORY_OPENABLE);
         intent.setType("*/*");
         intent.putExtra(Intent.EXTRA_TITLE, getString(R.string.filename) + "-object.hp");
+	    saveWhenLaunchingActivity = false;
         startActivityForResult(intent, INTENT_OBJECT_SAVE);
     }
     private void OnObjectSave() {
@@ -950,6 +997,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
                 .setTitle(getResources().getString(R.string.pick_calculator))
                 .setItems(kmlScriptTitles, (dialog, which) -> {
                     if(which == lastIndex) {
+                    	// [Select a Custom KML script folder...]
                         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.LOLLIPOP) { // < API 21
                             new AlertDialog.Builder(MainActivity.this)
                                     .setTitle(getString(R.string.message_kml_folder_selection_need_api_lollipop))
@@ -958,20 +1006,22 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
                                     }).show();
                         } else {
                             Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT_TREE);
+	                        saveWhenLaunchingActivity = false;
                             startActivityForResult(intent, changeKML ? INTENT_PICK_KML_FOLDER_FOR_CHANGING : INTENT_PICK_KML_FOLDER_FOR_NEW_FILE);
                         }
                     } else if(which == lastIndex + 1) {
-                        // Reset to default KML folder
-	                    settings.putBoolean("settings_kml_default", true);
-                        updateFromPreferences("settings_kml", true);
+                        // [Default KML script folder]
+                        changeKMLFolder(null);
                         if(changeKML)
                             OnViewScript();
                         else
                             OnFileNew();
                     } else {
-                        String kmlScriptFilename = kmlScriptsForCurrentModel.get(which).filename;
+                    	// We choose a calculator name from the list.
+	                    KMLScriptItem scriptItem = kmlScriptsForCurrentModel.get(which);
                         if(changeKML) {
-                            int result = NativeLib.onViewScript(kmlScriptFilename);
+                        	// We only change the KML script here.
+                            int result = NativeLib.onViewScript(scriptItem.filename, scriptItem.folder);
                             if(result > 0) {
                                 displayKMLTitle();
                                 showKMLLog();
@@ -979,7 +1029,8 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
                                 showKMLLogForce();
                             updateNavigationDrawerItems();
                         } else
-                            newFileFromKML(kmlScriptFilename);
+	                        // We create a new calculator with a specific KML script.
+                            newFileFromKML(scriptItem.filename, scriptItem.folder);
                     }
                 }).show();
     }
@@ -1025,6 +1076,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
                             break;
                     }
                     intent.putExtra(Intent.EXTRA_TITLE, "shared-" + sizeTitle + ".bin");
+	                saveWhenLaunchingActivity = false;
                     startActivityForResult(intent, INTENT_CREATE_RAM_CARD);
                 }).show();
     }
@@ -1034,6 +1086,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         intent.addCategory(Intent.CATEGORY_OPENABLE);
         intent.setType("*/*");
         intent.putExtra(Intent.EXTRA_TITLE, getString(R.string.filename) + "-macro.mac");
+	    saveWhenLaunchingActivity = false;
         startActivityForResult(intent, INTENT_MACRO_SAVE);
     }
 
@@ -1042,6 +1095,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         intent.addCategory(Intent.CATEGORY_OPENABLE);
         intent.setType("*/*");
         intent.putExtra(Intent.EXTRA_TITLE, getString(R.string.filename) + "-macro.mac");
+	    saveWhenLaunchingActivity = false;
         startActivityForResult(intent, INTENT_MACRO_LOAD);
     }
 
@@ -1070,30 +1124,18 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
                 switch (requestCode) {
                     case INTENT_GETOPENFILENAME: {
                     	if(debug) Log.d(TAG, "onActivityResult INTENT_GETOPENFILENAME " + url);
-                        int openResult = onFileOpen(url);
-                        if (openResult > 0) {
-                            saveLastDocument(url);
-                            Utils.makeUriPersistable(this, data, uri);
-                        } else if(openResult == -2 && Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) { // >= API 21
-                            // For security reason, you must select the folder where are the KML and ROM files and then, reopen this file!
-                            new AlertDialog.Builder(this)
-                                    .setTitle(getString(R.string.message_open_security))
-                                    .setMessage(getString(R.string.message_open_security_description))
-                                    .setPositiveButton(android.R.string.ok, (dialog, which) -> {
-                                        Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT_TREE);
-                                        startActivityForResult(intent, INTENT_PICK_KML_FOLDER_FOR_SECURITY);
-                                    }).show();
-                        }
+	                    // FileOpen from the "Open..." menu.
+                        onFileOpen(url, data, null);
                         break;
                     }
                     case INTENT_GETSAVEFILENAME: {
                     	if(debug) Log.d(TAG, "onActivityResult INTENT_GETSAVEFILENAME " + url);
                         if (NativeLib.onFileSaveAs(url) != 0) {
-                            showAlert(getString(R.string.message_state_saved));
                         	settings.saveInStateFile(this, url);
                             saveLastDocument(url);
                             Utils.makeUriPersistable(this, data, uri);
                             displayFilename(url);
+	                        showAlert(String.format(Locale.US, getString(R.string.message_state_saved), getFilenameFromURL(url)));
                             if (fileSaveAsCallback != null)
                                 fileSaveAsCallback.run();
                         }
@@ -1112,11 +1154,11 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
                     }
                     case INTENT_PICK_KML_FOLDER_FOR_NEW_FILE:
                     case INTENT_PICK_KML_FOLDER_FOR_CHANGING:
-                    case INTENT_PICK_KML_FOLDER_FOR_SECURITY: {
-                    	if(debug) Log.d(TAG, "onActivityResult INTENT_PICK_KML_FOLDER " + url);
-                    	settings.putBoolean("settings_kml_default", false);
-                    	settings.putString("settings_kml_folder", url);
-                        updateFromPreferences("settings_kml", true);
+                    case INTENT_PICK_KML_FOLDER_FOR_SECURITY:
+	                case INTENT_PICK_KML_FOLDER_FOR_KML_NOT_FOUND:
+                    {
+                    	if(debug) Log.d(TAG, "onActivityResult INTENT_PICK_KML_FOLDER_X " + url);
+	                    changeKMLFolder(url);
                         Utils.makeUriPersistableReadOnly(this, data, uri);
 
                         switch (requestCode) {
@@ -1126,13 +1168,17 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
                             case INTENT_PICK_KML_FOLDER_FOR_CHANGING:
                                 OnViewScript();
                                 break;
-                            case INTENT_PICK_KML_FOLDER_FOR_SECURITY:
-                                new AlertDialog.Builder(this)
-                                        .setTitle(getString(R.string.message_open_security_retry))
-                                        .setMessage(getString(R.string.message_open_security_retry_description))
-                                        .setPositiveButton(android.R.string.ok, (dialog, which) -> {
-                                        }).show();
-                                break;
+	                        case INTENT_PICK_KML_FOLDER_FOR_SECURITY:
+	                        case INTENT_PICK_KML_FOLDER_FOR_KML_NOT_FOUND:
+	                        	if(intentPickKmlFolderForUrlToOpen != null)
+			                        onFileOpen(intentPickKmlFolderForUrlToOpen, null, url);
+		                        else
+			                        new AlertDialog.Builder(this)
+					                        .setTitle(getString(R.string.message_open_security_retry))
+					                        .setMessage(getString(R.string.message_open_security_retry_description))
+					                        .setPositiveButton(android.R.string.ok, (dialog, which) -> {
+					                        }).show();
+		                        break;
                         }
                         break;
                     }
@@ -1177,8 +1223,9 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
                 }
             }
         }
+	    saveWhenLaunchingActivity = true;
         fileSaveAsCallback = null;
-        super.onActivityResult(requestCode, resultCode, data);
+	    super.onActivityResult(requestCode, resultCode, data);
     }
 
     private void saveLastDocument(String url) {
@@ -1203,43 +1250,133 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         }
     }
 
-    private int onFileOpen(String url) {
+    private void onFileOpen(String url, Intent intent, String openWithKMLScriptFolder) {
 
     	// Eventually, close the previous state file
 	    NativeLib.onFileClose();
 	    showCalculatorView(false);
 	    displayFilename("");
+	    intentPickKmlFolderForUrlToOpen = null;
 
 	    // Pre-Load the embedded settings from the end of the classic state file
 	    settings.setIsDefaultSettings(false);
 	    settings.clearEmbeddedStateSettings();
 	    settings.loadFromStateFile(this, url);
 
+	    if(intent != null)
+		    // Make this file persistable to allow a next access to this same file.
+		    Utils.makeUriPersistable(this, intent, Uri.parse(url));
 
-	    // Update the Emu VM with the new settings
-	    updateFromPreferences(null, false);
+	    String kmlScriptFolder = null;
+	    String embeddedKMLScriptFolder = settings.getString("settings_kml_folder_embedded", null);
 
-	    // Load the genuine state file
-        int result = NativeLib.onFileOpen(url);
-        if(result > 0) {
-            setPort1Settings(NativeLib.getPort1Plugged(), NativeLib.getPort1Writable()); //TODO is it in the true state file or in settings?
-            showCalculatorView(true);
-            displayFilename(url);
-            showKMLLog();
-        } else {
-        	// Because it failed to load the state file, we switch to the default settings
-	        settings.setIsDefaultSettings(true);
-	        settings.clearEmbeddedStateSettings();
-            showKMLLogForce();
-        }
-        updateNavigationDrawerItems();
-        return result;
+	    if(openWithKMLScriptFolder != null)
+		    kmlScriptFolder = openWithKMLScriptFolder;
+	    else
+		    kmlScriptFolder = embeddedKMLScriptFolder;
+
+	    if(kmlScriptFolder != null && !kmlScriptFolder.startsWith("assets/")) {
+		    // Change the default KMLFolder to allow getFirstKMLFilenameForType() to find in the specific folder!
+		    Uri kmlFolderUri = Uri.parse(kmlScriptFolder);
+		    DocumentFile kmlFolderDocumentFile = DocumentFile.fromTreeUri(this, kmlFolderUri);
+		    if(kmlFolderDocumentFile != null && kmlFolderDocumentFile.exists())
+		    	changeKMLFolder(kmlScriptFolder);
+	    }
+
+	    onFileOpenNative(url, kmlScriptFolder);
     }
+
+	private void onFileOpenNative(String url, String kmlScriptFolder) {
+		// Update the Emu VM with the new settings.
+		updateFromPreferences(null, false);
+
+		// Load the genuine state file
+		int result = NativeLib.onFileOpen(url, kmlScriptFolder);
+		if(result > 0) {
+			// Copy the port1 settings from the state file to the settings (for the UI).
+	        setPort1Settings(NativeLib.getPort1Plugged(), NativeLib.getPort1Writable());
+			// State file successfully opened.
+		    if(kmlScriptFolder == null) {
+			    // Needed for compatibility:
+			    // The KML folder is not in the JSON settings embedded in the state file,
+			    // so, we need to extract it and change the variable szCurrentKml.
+			    String currentKml = NativeLib.getCurrentKml();
+			    Pattern patternKMLDocumentURL = Pattern.compile("document:([^|]+)\\|(.+)");
+			    Matcher m = patternKMLDocumentURL.matcher(currentKml);
+			    if (m.find() && m.groupCount() == 2) {
+				    String kmlScriptFolderInDocument = m.group(1);
+				    String kmlScriptFilenameInDocument = m.group(2);
+				    kmlScriptFolder = kmlScriptFolderInDocument;
+				    NativeLib.setCurrentKml(kmlScriptFilenameInDocument);
+			    } else {
+				    // Should not happen... But in case.
+				    kmlScriptFolder = NativeLib.getEmuDirectory();
+			    }
+		    }
+			settings.putString("settings_kml_folder_embedded", kmlScriptFolder);
+			changeKMLFolder(kmlScriptFolder);
+	        showCalculatorView(true);
+	        displayFilename(url);
+			saveLastDocument(url);
+	        showKMLLog();
+	    } else {
+		    // Because the state file failed to load, we switch to the default settings.
+		    settings.setIsDefaultSettings(true);
+		    settings.clearEmbeddedStateSettings();
+		    if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP // >= API 21
+		    && (result < 0 || kmlScriptFolder == null)) {
+			    // If the KML file takes an access denied (-2) or the KML file has not been found (-3) or kmlScriptFolder is null,
+			    // we must prompt the use to choose one (after onFileOpen to know the model)!
+			    if(result == -2)
+				    // For security reason, you must select the folder where are the KML and ROM files and then, reopen this file!
+				    new AlertDialog.Builder(this)
+						    .setTitle(getString(R.string.message_open_security))
+						    .setMessage(getString(R.string.message_open_security_description))
+						    .setPositiveButton(android.R.string.ok, (dialog, which) -> {
+							    intentPickKmlFolderForUrlToOpen = url;
+							    saveWhenLaunchingActivity = false;
+							    startActivityForResult(new Intent(Intent.ACTION_OPEN_DOCUMENT_TREE), INTENT_PICK_KML_FOLDER_FOR_SECURITY);
+						    }).setNegativeButton(android.R.string.cancel, (dialog, which) -> {
+							    removeMRU(url);
+						    }).show();
+			    else if(result == -3 || kmlScriptFolder == null) {
+				    // KML file (or a compatible KML file) has not been found, you must select the folder where are the KML and ROM files and then, reopen this file!
+				    String currentKml = NativeLib.getCurrentKml();
+						String description;
+						if(currentKml != null) {
+							if(kmlScriptFolder != null)
+								description = String.format(Locale.US, getString(R.string.message_open_kml_not_found_description3), currentKml, kmlScriptFolder);
+							else
+								description = String.format(Locale.US, getString(R.string.message_open_kml_not_found_description2), currentKml);
+						} else
+							description = getString(R.string.message_open_kml_not_found_description);
+				    new AlertDialog.Builder(this)
+						    .setTitle(getString(R.string.message_open_kml_not_found))
+						    .setMessage(description)
+						    .setPositiveButton(android.R.string.ok, (dialog, which) -> {
+							    intentPickKmlFolderForUrlToOpen = url;
+							    saveWhenLaunchingActivity = false;
+							    startActivityForResult(new Intent(Intent.ACTION_OPEN_DOCUMENT_TREE), INTENT_PICK_KML_FOLDER_FOR_KML_NOT_FOUND);
+						    }).setNegativeButton(android.R.string.cancel, (dialog, which) -> {
+							    removeMRU(url);
+				            }).show();
+			    } else
+				    removeMRU(url);
+		    } else {
+		    	// Show the KML error
+			    showKMLLogForce();
+			    removeMRU(url);
+		    }
+	    }
+		updateNavigationDrawerItems();
+	}
 
 	private void onFileSave() {
 		if (NativeLib.onFileSave() == 1) {
-			settings.saveInStateFile(this, NativeLib.getCurrentFilename());
-			showAlert(getString(R.string.message_state_saved));
+			String currentFilenameUrl = NativeLib.getCurrentFilename();
+			settings.saveInStateFile(this, currentFilenameUrl);
+			String currentFilename = getFilenameFromURL(currentFilenameUrl);
+			showAlert(String.format(Locale.US, getString(R.string.message_state_saved), currentFilename));
 		}
 	}
 
@@ -1357,18 +1494,22 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
 
     @SuppressWarnings("unused")
     public int openFileInFolderFromContentResolver(String filename, String folderURL, int writeAccess) {
-        if(folderURLCached == null || !folderURLCached.equals(folderURL)) {
-            folderURLCached = folderURL;
-            folderCache.clear();
-            Uri folderURI = Uri.parse(folderURL);
-            DocumentFile folderDocumentFile = DocumentFile.fromTreeUri(this, folderURI);
-            if (folderDocumentFile != null)
-                for (DocumentFile file : folderDocumentFile.listFiles())
-                    folderCache.put(file.getName(), file.getUri().toString());
-        }
-        String filenameUrl = folderCache.get(filename);
-        if(filenameUrl != null)
-            return openFileFromContentResolver(filenameUrl, writeAccess);
+    	if(filename != null) {
+    		if(filename.startsWith("content://"))
+			    return openFileFromContentResolver(filename, writeAccess);
+		    if (folderURLCached == null || !folderURLCached.equals(folderURL)) {
+			    folderURLCached = folderURL;
+			    folderCache.clear();
+			    Uri folderURI = Uri.parse(folderURL);
+			    DocumentFile folderDocumentFile = DocumentFile.fromTreeUri(this, folderURI);
+			    if (folderDocumentFile != null)
+				    for (DocumentFile file : folderDocumentFile.listFiles())
+					    folderCache.put(file.getName(), file.getUri().toString());
+		    }
+		    String filenameUrl = folderCache.get(filename);
+		    if (filenameUrl != null)
+			    return openFileFromContentResolver(filenameUrl, writeAccess);
+	    }
         return -1;
     }
 
@@ -1389,8 +1530,12 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         return -1;
     }
 
-    public void showAlert(String text) {
-        Utils.showAlert(this, text);
+	public void showAlert(String text) {
+		showAlert(text, false);
+	}
+
+	public void showAlert(String text, boolean lengthLong) {
+        Utils.showAlert(this, text, lengthLong);
     }
 
     @SuppressWarnings("unused")
@@ -1473,30 +1618,38 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
     }
 
     @SuppressWarnings("unused")
-    public String getFirstKMLFilenameForType(char chipsetType) {
+    public int getFirstKMLFilenameForType(char chipsetType) {
+    	if(!kmlFolderUseDefault) {
+		    extractKMLScripts();
+
+		    for (int i = 0; i < kmlScripts.size(); i++) {
+			    KMLScriptItem kmlScriptItem = kmlScripts.get(i);
+			    if (kmlScriptItem.model.charAt(0) == chipsetType) {
+				    showAlert(String.format(Locale.US, "Existing KML script not found. Trying the compatible script: %s", kmlScriptItem.filename), true);
+				    NativeLib.setCurrentKml(kmlScriptItem.filename);
+				    NativeLib.setEmuDirectory(kmlFolderURL);
+				    return 1;
+			    }
+		    }
+
+		    // Not found, so we search in the default KML asset folder
+		    kmlFolderUseDefault = true;
+		    kmlFolderChange = true;
+	    }
+
         extractKMLScripts();
 
         for (int i = 0; i < kmlScripts.size(); i++) {
             KMLScriptItem kmlScriptItem = kmlScripts.get(i);
             if (kmlScriptItem.model.charAt(0) == chipsetType) {
-                return kmlScriptItem.filename;
+	            showAlert(String.format(Locale.US, "Existing KML script not found. Trying the embedded and compatible script: %s", kmlScriptItem.filename), true);
+	            NativeLib.setCurrentKml(kmlScriptItem.filename);
+	            NativeLib.setEmuDirectory("assets/calculators/");
+                return 1;
             }
         }
-
-        // Not found, so we search in the default KML asset folder
-        kmlFolderUseDefault = true;
-        kmlFolderChange = true;
-
-        extractKMLScripts();
-
-        for (int i = 0; i < kmlScripts.size(); i++) {
-            KMLScriptItem kmlScriptItem = kmlScripts.get(i);
-            if (kmlScriptItem.model.charAt(0) == chipsetType) {
-                return kmlScriptItem.filename;
-            }
-        }
-
-        return null;
+	    showAlert("Cannot find the KML template file, sorry.", true);
+        return 0;
     }
 
     @SuppressWarnings("unused")
@@ -1545,11 +1698,9 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
                 bitmapIcon.copyPixelsFromBuffer(buffer);
             } catch (Exception ex) {
                 // Cannot load the icon
-//                bitmapIcon.recycle();
                 bitmapIcon = null;
             }
         } else if(bitmapIcon != null) {
-//            bitmapIcon.recycle();
             bitmapIcon = null;
         }
         if(bitmapIcon == null)
@@ -1573,9 +1724,11 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
     }
 
     private void setPort1Settings(boolean port1Plugged, boolean port1Writable) {
-	    settings.putBoolean("settings_port1en", port1Plugged);
-	    settings.putBoolean("settings_port1wr", port1Writable);
-        updateFromPreferences("settings_port1", true);
+    	if(this.getClass().getPackage().getName().equals("org.emulator.forty.eight")) {
+		    settings.putBoolean("settings_port1en", port1Plugged);
+		    settings.putBoolean("settings_port1wr", port1Writable);
+		    updateFromPreferences("settings_port1", true);
+	    }
     }
 
     private void updateFromPreferences(String key, boolean isDynamic) {
@@ -1676,14 +1829,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
                 case "settings_kml":
                 case "settings_kml_default":
                 case "settings_kml_folder":
-					kmlFolderUseDefault = settings.getBoolean("settings_kml_default", true);
-                    if(!kmlFolderUseDefault) {
-						kmlFolderURL = settings.getString("settings_kml_folder", "");
-                        // https://github.com/googlesamples/android-DirectorySelection
-                        // https://stackoverflow.com/questions/44185477/intent-action-open-document-tree-doesnt-seem-to-return-a-real-path-to-drive/44185706
-                        // https://stackoverflow.com/questions/26744842/how-to-use-the-new-sd-card-access-api-presented-for-android-5-0-lollipop
-                    }
-                    kmlFolderChange = true;
+					loadKMLFolder();
                     break;
 
                 case "settings_macro":

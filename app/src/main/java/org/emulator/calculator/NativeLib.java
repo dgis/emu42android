@@ -18,6 +18,9 @@ import android.app.Activity;
 import android.content.res.AssetManager;
 import android.graphics.Bitmap;
 
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
 public class NativeLib {
 
     static {
@@ -43,14 +46,18 @@ public class NativeLib {
     public static native boolean isBackup();
     public static native String getKMLLog();
     public static native String getKMLTitle();
+	public static native String getCurrentKml();
+	public static native void setCurrentKml(String currentKml);
+	public static native String getEmuDirectory();
+	public static native void setEmuDirectory(String emuDirectory);
     public static native boolean getPort1Plugged();
     public static native boolean getPort1Writable();
     public static native boolean getSoundEnabled();
     public static native int getGlobalColor();
     public static native int getMacroState();
 
-    public static native int onFileNew(String kmlFilename);
-    public static native int onFileOpen(String filename);
+    public static native int onFileNew(String kmlFilename, String kmlFolder);
+    public static native int onFileOpen(String filename, String kmlFolder);
     public static native int onFileSave();
     public static native int onFileSaveAs(String newFilename);
     public static native int onFileClose();
@@ -62,7 +69,7 @@ public class NativeLib {
     public static native void onStackCopy();
     public static native void onStackPaste();
     public static native void onViewReset();
-    public static native int onViewScript(String kmlFilename);
+    public static native int onViewScript(String kmlFilename, String kmlFolder);
     public static native void onBackupSave();
     public static native void onBackupRestore();
     public static native void onBackupDelete();
