@@ -50,6 +50,7 @@ Version 1.4 (2020-09-XX)
 - If the KML folder does not exist (like the first time), prompt the user to choose a new KML folder.
 - Move the KML folder in the JSON settings embedded in the state file because Windows cannot open the state file with KML url longer than 256 byte.
 - Prevent to auto save before launching the "Open...", "Save As...", "Load Object...", "Save Object...", etc...
+- Prevent app not responding (ANR) in NativeLib.buttonUp().
 
 
 Version 1.3 (2020-05-24)
@@ -116,6 +117,7 @@ You should have received a copy of the GNU General Public License along with thi
 
 TODO
 
+- The render pixels are very nice. A solution to obtain uniform pixel size could be a preset (a multiplier, auto) so the user could decide and upscale/downscale (Michael P).
 - In Autozoom mode, I could add a button which switches to the other half of the faceplate (Comments from @Nick and @Jean-Marc)
 - Try to include the KML files without the ROMs.
 - Sometimes, the calculator seems to lag and finally freeze.
