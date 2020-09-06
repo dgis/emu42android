@@ -44,9 +44,9 @@ NOT WORKING YET
 
 CHANGES
 
-Version 1.4 (2020-09-XX)
+Version 1.4 (2020-09-07)
 
-- Update from the original source code Emu42 version 1.25 from Christoph Gießelink.
+- Update from the original source code Emu42 version 1.25 from Christoph Gießelink (which can read state file with KML url longer than 256 byte).
 - If the KML folder does not exist (like the first time), prompt the user to choose a new KML folder.
 - Move the KML folder in the JSON settings embedded in the state file because Windows cannot open the state file with KML url longer than 256 byte.
 - Prevent to auto save before launching the "Open...", "Save As...", "Load Object...", "Save Object...", etc...
