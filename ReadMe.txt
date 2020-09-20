@@ -44,6 +44,12 @@ NOT WORKING YET
 
 CHANGES
 
+Version 1.5 (2020-10-XX)
+
+- Fix transparency issue (RGB -> NGR).
+- Fix a printer issue from Christoph Gießelink's HP82240B Printer Simulator version 1.12.
+
+
 Version 1.4 (2020-09-07)
 
 - Update from the original source code Emu42 version 1.25 from Christoph Gießelink (which can read state file with KML url longer than 256 byte).
