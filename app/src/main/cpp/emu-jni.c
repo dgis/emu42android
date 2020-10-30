@@ -29,7 +29,8 @@ static jobject mainActivity = NULL;
 jobject bitmapMainScreen = NULL;
 AndroidBitmapInfo androidBitmapInfo;
 enum DialogBoxMode currentDialogBoxMode;
-enum ChooseKmlMode  chooseCurrentKmlMode;
+LPBYTE pbyRomBackup = NULL;
+enum ChooseKmlMode chooseCurrentKmlMode;
 TCHAR szChosenCurrentKml[MAX_PATH];
 TCHAR szKmlLog[10240];
 TCHAR szKmlLogBackup[10240];
@@ -1111,6 +1112,10 @@ JNIEXPORT void JNICALL Java_org_emulator_calculator_NativeLib_onToolMacroStop(JN
     OnToolMacroStop();
 }
 
+
+JNIEXPORT jboolean JNICALL Java_org_emulator_calculator_NativeLib_onLoadFlashROM(JNIEnv *env, jobject thisz, jstring filename) {
+	return JNI_FALSE;
+}
 
 JNIEXPORT void JNICALL Java_org_emulator_calculator_NativeLib_setConfiguration(JNIEnv *env, jobject thisz, jstring key, jint isDynamic, jint intValue1, jint intValue2, jstring stringValue) {
     const char *configKey = (*env)->GetStringUTFChars(env, key, NULL) ;

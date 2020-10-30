@@ -1858,7 +1858,10 @@ BOOL PatBlt(HDC hdcDest, int x, int y, int w, int h, DWORD rop) {
             destinationStride = (float)(4 * ((destinationWidth * hBitmapDestination->bitmapInfoHeader->biBitCount + 31) / 32));
         }
 
-        HPALETTE palette = hdcDest->realizedPalette;
+	    x -= hdcDest->windowOriginX;
+	    y -= hdcDest->windowOriginY;
+
+	    HPALETTE palette = hdcDest->realizedPalette;
         if(!palette)
             palette = hdcDest->selectedPalette;
         PALETTEENTRY * palPalEntry = palette && palette->paletteLog && palette->paletteLog->palPalEntry ?
@@ -2948,6 +2951,9 @@ int MulDiv(int nNumber, int nNumerator, int nDenominator) {
 
 BOOL GetKeyboardLayoutName(LPSTR pwszKLID) {
     //TODO
+    //Trick to bypass UnmapROM in KillKML
+    if(pbyRom == NULL && pbyRomBackup)
+		pbyRom = pbyRomBackup;
     return 0;
 }
 

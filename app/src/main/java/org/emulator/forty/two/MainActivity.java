@@ -29,14 +29,16 @@ import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.ParcelFileDescriptor;
+import android.os.Vibrator;
 import android.util.Log;
 import android.util.SparseArray;
-import android.view.HapticFeedbackConstants;
+import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.SubMenu;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.Button;
 import android.widget.FrameLayout;
 import android.widget.ImageButton;
 import android.widget.ImageView;
@@ -68,10 +70,12 @@ import org.emulator.calculator.Utils;
 
 import java.io.BufferedReader;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.io.OutputStream;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.text.SimpleDateFormat;
@@ -93,13 +97,14 @@ import java.util.regex.Pattern;
 public class MainActivity extends AppCompatActivity implements NavigationView.OnNavigationItemSelectedListener {
 
     private static final String TAG = "MainActivity";
-	private boolean debug = false;
+	private final boolean debug = false;
 	private Settings settings;
     private NavigationView navigationView;
     private DrawerLayout drawer;
     private MainScreenView mainScreenView;
     private LCDOverlappingView lcdOverlappingView;
     private ImageButton imageButtonMenu;
+	private Vibrator vibrator;
 
     public static final int INTENT_GETOPENFILENAME = 1;
     public static final int INTENT_GETSAVEFILENAME = 2;
@@ -113,10 +118,12 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
     public static final int INTENT_CREATE_RAM_CARD = 12;
     public static final int INTENT_MACRO_LOAD = 13;
     public static final int INTENT_MACRO_SAVE = 14;
+	public static final int INTENT_CREATE_FLASH_ROM = 15;
+	public static final int INTENT_LOAD_FLASH_ROM = 16;
 
 	public static String intentPickKmlFolderForUrlToOpen;
 
-	private String kmlMimeType = "application/vnd.google-earth.kml+xml";
+	private final String kmlMimeType = "application/vnd.google-earth.kml+xml";
     private boolean kmlFolderUseDefault = true;
     private String kmlFolderURL = "";
 	private boolean kmlFolderChange = true;
@@ -127,8 +134,8 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
     private boolean[] objectsToSaveItemChecked = null;
 
     // Most Recently Used state files
-    private int MRU_ID_START = 10000;
-    private int MAX_MRU = 5;
+    private final int MRU_ID_START = 10000;
+    private final int MAX_MRU = 5;
     private LinkedHashMap<String, String> mruLinkedHashMap = new LinkedHashMap<String, String>(5, 1.0f, true) {
         @Override
         protected boolean removeEldestEntry(Map.Entry eldest) {
@@ -136,8 +143,8 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         }
     };
 
-    private PrinterSimulator printerSimulator = new PrinterSimulator();
-    private PrinterSimulatorFragment fragmentPrinterSimulator = new PrinterSimulatorFragment();
+    private final PrinterSimulator printerSimulator = new PrinterSimulator();
+    private final PrinterSimulatorFragment fragmentPrinterSimulator = new PrinterSimulatorFragment();
     private Bitmap bitmapIcon;
 
 
@@ -154,6 +161,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
 	    settings = EmuApplication.getSettings();
 	    settings.setIsDefaultSettings(true);
 
+	    vibrator = (Vibrator) getSystemService(Context.VIBRATOR_SERVICE);
 
         ViewGroup mainScreenContainer = findViewById(R.id.main_screen_container);
         mainScreenView = new MainScreenView(this);
@@ -204,7 +212,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
 
 
         String documentToOpenUrl = settings.getString("lastDocument", "");
-        Uri documentToOpenUri = null;
+        Uri documentToOpenUri;
         Intent intent = getIntent();
         if(intent != null) {
             String action = intent.getAction();
@@ -232,7 +240,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
             	// FileOpen auto-open.
                 onFileOpen(documentToOpenUrl, intent, null);
             } catch (Exception e) {
-                if(debug) Log.e(TAG, e.getMessage());
+                if(debug && e.getMessage() != null) Log.e(TAG, e.getMessage());
             }
         else if(drawer != null)
             drawer.openDrawer(GravityCompat.START);
@@ -499,55 +507,45 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
                     Matcher m;
                     for (String calculatorFilename : calculatorsAssetFilenames) {
                         if (calculatorFilename.toLowerCase().lastIndexOf(".kml") != -1) {
-                            BufferedReader reader = null;
-                            try {
-                                reader = new BufferedReader(new InputStreamReader(assetManager.open("calculators/" + calculatorFilename), StandardCharsets.UTF_8));
-                                // do reading, usually loop until end of file reading
-                                String mLine;
-                                boolean inGlobal = false;
-                                String title = null;
-                                String model = null;
-                                while ((mLine = reader.readLine()) != null) {
-                                    //process line
-                                    if (mLine.indexOf("Global") == 0) {
-                                        inGlobal = true;
-                                        title = null;
-                                        model = null;
-                                        continue;
-                                    }
-                                    if (inGlobal) {
-                                        if (mLine.indexOf("End") == 0) {
-                                            KMLScriptItem newKMLScriptItem = new KMLScriptItem();
-                                            newKMLScriptItem.filename = calculatorFilename;
-	                                        newKMLScriptItem.folder = null;
-                                            newKMLScriptItem.title = title;
-                                            newKMLScriptItem.model = model;
-                                            kmlScripts.add(newKMLScriptItem);
-                                            break;
-                                        }
+	                        try (BufferedReader reader = new BufferedReader(new InputStreamReader(assetManager.open("calculators/" + calculatorFilename), StandardCharsets.UTF_8))) {
+		                        // do reading, usually loop until end of file reading
+		                        String mLine;
+		                        boolean inGlobal = false;
+		                        String title = null;
+		                        String model = null;
+		                        while ((mLine = reader.readLine()) != null) {
+			                        //process line
+			                        if (mLine.indexOf("Global") == 0) {
+				                        inGlobal = true;
+				                        title = null;
+				                        model = null;
+				                        continue;
+			                        }
+			                        if (inGlobal) {
+				                        if (mLine.indexOf("End") == 0) {
+					                        KMLScriptItem newKMLScriptItem = new KMLScriptItem();
+					                        newKMLScriptItem.filename = calculatorFilename;
+					                        newKMLScriptItem.folder = null;
+					                        newKMLScriptItem.title = title;
+					                        newKMLScriptItem.model = model;
+					                        kmlScripts.add(newKMLScriptItem);
+					                        break;
+				                        }
 
-                                        m = patternGlobalTitle.matcher(mLine);
-                                        if (m.find()) {
-                                            title = m.group(1);
-                                        }
-                                        m = patternGlobalModel.matcher(mLine);
-                                        if (m.find()) {
-                                            model = m.group(1);
-                                        }
-                                    }
-                                }
-                            } catch (IOException e) {
-                                //log the exception
-                                e.printStackTrace();
-                            } finally {
-                                if (reader != null) {
-                                    try {
-                                        reader.close();
-                                    } catch (IOException e) {
-                                        //log the exception
-                                    }
-                                }
-                            }
+				                        m = patternGlobalTitle.matcher(mLine);
+				                        if (m.find()) {
+					                        title = m.group(1);
+				                        }
+				                        m = patternGlobalModel.matcher(mLine);
+				                        if (m.find()) {
+					                        model = m.group(1);
+				                        }
+			                        }
+		                        }
+	                        } catch (IOException e) {
+		                        //log the exception
+		                        e.printStackTrace();
+	                        }
                         }
                     }
                 }
@@ -1132,10 +1130,12 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
                     	if(debug) Log.d(TAG, "onActivityResult INTENT_GETSAVEFILENAME " + url);
                         if (NativeLib.onFileSaveAs(url) != 0) {
                         	settings.saveInStateFile(this, url);
-                            saveLastDocument(url);
-                            Utils.makeUriPersistable(this, data, uri);
+
                             displayFilename(url);
-	                        showAlert(String.format(Locale.US, getString(R.string.message_state_saved), getFilenameFromURL(url)));
+
+							showAlert(String.format(Locale.US, getString(R.string.message_state_saved), getFilenameFromURL(url)));
+	                        saveLastDocument(url);
+	                        Utils.makeUriPersistable(this, data, uri);
                             if (fileSaveAsCallback != null)
                                 fileSaveAsCallback.run();
                         }
@@ -1250,6 +1250,13 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         }
     }
 
+	private void migrateDeprecatedSettings() {
+		if(settings.hasValue("settings_haptic_feedback")) {
+			settings.removeValue("settings_haptic_feedback");
+			settings.putInt("settings_haptic_feedback_duration", 25);
+		}
+	}
+
     private void onFileOpen(String url, Intent intent, String openWithKMLScriptFolder) {
 
     	// Eventually, close the previous state file
@@ -1263,11 +1270,13 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
 	    settings.clearEmbeddedStateSettings();
 	    settings.loadFromStateFile(this, url);
 
+	    migrateDeprecatedSettings();
+
 	    if(intent != null)
 		    // Make this file persistable to allow a next access to this same file.
 		    Utils.makeUriPersistable(this, intent, Uri.parse(url));
 
-	    String kmlScriptFolder = null;
+	    String kmlScriptFolder;
 	    String embeddedKMLScriptFolder = settings.getString("settings_kml_folder_embedded", null);
 
 	    if(openWithKMLScriptFolder != null)
@@ -1336,9 +1345,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
 							    intentPickKmlFolderForUrlToOpen = url;
 							    saveWhenLaunchingActivity = false;
 							    startActivityForResult(new Intent(Intent.ACTION_OPEN_DOCUMENT_TREE), INTENT_PICK_KML_FOLDER_FOR_SECURITY);
-						    }).setNegativeButton(android.R.string.cancel, (dialog, which) -> {
-							    removeMRU(url);
-						    }).show();
+						    }).setNegativeButton(android.R.string.cancel, (dialog, which) -> removeMRU(url)).show();
 			    else if(result == -3 || kmlScriptFolder == null) {
 				    // KML file (or a compatible KML file) has not been found, you must select the folder where are the KML and ROM files and then, reopen this file!
 				    String currentKml = NativeLib.getCurrentKml();
@@ -1357,9 +1364,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
 							    intentPickKmlFolderForUrlToOpen = url;
 							    saveWhenLaunchingActivity = false;
 							    startActivityForResult(new Intent(Intent.ACTION_OPEN_DOCUMENT_TREE), INTENT_PICK_KML_FOLDER_FOR_KML_NOT_FOUND);
-						    }).setNegativeButton(android.R.string.cancel, (dialog, which) -> {
-							    removeMRU(url);
-				            }).show();
+						    }).setNegativeButton(android.R.string.cancel, (dialog, which) -> removeMRU(url)).show();
 			    } else
 				    removeMRU(url);
 		    } else {
@@ -1380,8 +1385,9 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
 		}
 	}
 
-    private void displayFilename(String url) {
-        String displayName = getFilenameFromURL(url);
+    private void displayFilename(String stateFileURL) {
+        String displayName = getFilenameFromURL(stateFileURL == null ? "" : stateFileURL);
+
         View headerView = displayKMLTitle();
         if(headerView != null) {
             TextView textViewSubtitle = headerView.findViewById(R.id.nav_header_subtitle);
@@ -1446,7 +1452,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
 
     // Method used from JNI!
 
-    @SuppressWarnings("unused")
+	@SuppressWarnings("UnusedDeclaration")
     public int updateCallback(int type, int param1, int param2, String param3, String param4) {
 
         mainScreenView.updateCallback(type, param1, param2, param3, param4);
@@ -1492,7 +1498,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         folderCache.clear();
     }
 
-    @SuppressWarnings("unused")
+    @SuppressWarnings("UnusedDeclaration")
     public int openFileInFolderFromContentResolver(String filename, String folderURL, int writeAccess) {
     	if(filename != null) {
     		if(filename.startsWith("content://"))
@@ -1513,7 +1519,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         return -1;
     }
 
-    @SuppressWarnings("unused")
+    @SuppressWarnings("UnusedDeclaration")
     public int closeFileFromContentResolver(int fd) {
         if(parcelFileDescriptorPerFd != null) {
             ParcelFileDescriptor filePfd = parcelFileDescriptorPerFd.get(fd);
@@ -1538,7 +1544,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         Utils.showAlert(this, text, lengthLong);
     }
 
-    @SuppressWarnings("unused")
+    @SuppressWarnings("UnusedDeclaration")
     public void sendMenuItemCommand(int menuItem) {
         switch (menuItem) {
             case 1: // FILE_NEW
@@ -1617,7 +1623,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         }
     }
 
-    @SuppressWarnings("unused")
+    @SuppressWarnings("UnusedDeclaration")
     public int getFirstKMLFilenameForType(char chipsetType) {
     	if(!kmlFolderUseDefault) {
 		    extractKMLScripts();
@@ -1652,7 +1658,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         return 0;
     }
 
-    @SuppressWarnings("unused")
+    @SuppressWarnings("UnusedDeclaration")
     public void clipboardCopyText(String text) {
         // Gets a handle to the clipboard service.
         ClipboardManager clipboard = (ClipboardManager)getSystemService(Context.CLIPBOARD_SERVICE);
@@ -1662,7 +1668,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
             clipboard.setPrimaryClip(clip);
         }
     }
-    @SuppressWarnings("unused")
+    @SuppressWarnings("UnusedDeclaration")
     public String clipboardPasteText() {
         ClipboardManager clipboard = (ClipboardManager)getSystemService(Context.CLIPBOARD_SERVICE);
         if (clipboard != null && clipboard.hasPrimaryClip()) {
@@ -1678,18 +1684,17 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         return "";
     }
 
-    @SuppressWarnings("unused")
+    @SuppressWarnings("UnusedDeclaration")
     public void performHapticFeedback() {
-        if(settings.getBoolean("settings_haptic_feedback", true))
-            mainScreenView.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY, HapticFeedbackConstants.FLAG_IGNORE_GLOBAL_SETTING);
+	    Utils.vibrate(vibrator, settings.getInt("settings_haptic_feedback_duration", 25));
     }
 
-    @SuppressWarnings("unused")
+	@SuppressWarnings("UnusedDeclaration")
     public void sendByteUdp(int byteSent) {
         printerSimulator.write(byteSent);
     }
 
-    @SuppressWarnings("unused")
+    @SuppressWarnings("UnusedDeclaration")
     public synchronized void setKMLIcon(int imageWidth, int imageHeight, byte[] pixels) {
         if(imageWidth > 0 && imageHeight > 0 && pixels != null) {
             try {
@@ -1739,14 +1744,13 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
                     "settings_hide_bar", "settings_hide_button_menu", "settings_sound_volume", "settings_haptic_feedback",
                     "settings_background_kml_color", "settings_background_fallback_color",
 					"settings_printer_model", "settings_macro",
-                    "settings_kml", "settings_port1", "settings_port2" };
+                    "settings_kml", "settings_port1", "settings_port2",
+                    "settings_flash_port2" };
 			for (String settingKey : settingKeys)
                 updateFromPreferences(settingKey, false);
         } else {
             switch (key) {
                 case "settings_realspeed":
-					NativeLib.setConfiguration(key, isDynamicValue, settings.getBoolean(key, false) ? 1 : 0, 0, null);
-                    break;
                 case "settings_grayscale":
 					NativeLib.setConfiguration(key, isDynamicValue, settings.getBoolean(key, false) ? 1 : 0, 0, null);
                     break;
@@ -1761,7 +1765,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
                     mainScreenView.setRotationMode(rotationMode, isDynamic);
                     break;
                 case "settings_auto_layout":
-                    int autoLayoutMode = 2;
+					int autoLayoutMode = 1;
                     try {
 						autoLayoutMode = Integer.parseInt(settings.getString("settings_auto_layout", "2"));
                     } catch (NumberFormatException ex) {
@@ -1805,6 +1809,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
                     break;
                 }
                 case "settings_haptic_feedback":
+	            case "settings_haptic_feedback_duration":
                     // Nothing to do
                     break;
 
