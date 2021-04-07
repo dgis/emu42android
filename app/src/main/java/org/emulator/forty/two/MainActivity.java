@@ -239,6 +239,9 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
             try {
             	// FileOpen auto-open.
                 onFileOpen(documentToOpenUrl, intent, null);
+            } catch (SecurityException e) {
+	            showAlert(getString(R.string.message_open_security_open_last_document), true);
+	            if(debug && e.getMessage() != null) Log.e(TAG, e.getMessage());
             } catch (Exception e) {
                 if(debug && e.getMessage() != null) Log.e(TAG, e.getMessage());
             }
@@ -272,18 +275,11 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
     }
 
     @Override
-    protected void onResume() {
-        super.onResume();
-    }
-
-    @Override
     protected void onPause() {
-        super.onPause();
-    }
-
-    @Override
-    protected void onStop() {
-    	if(saveWhenLaunchingActivity) {
+    	// Following the Activity lifecycle (https://developer.android.com/reference/android/app/Activity),
+	    // the data must be saved in the onPause() event instead of onStop() simply because the onStop
+	    // method is killable and may lead to the data half saved!
+	    if(saveWhenLaunchingActivity) {
 		    settings.putStringSet("MRU", mruLinkedHashMap.keySet());
 		    if (lcdOverlappingView != null)
 			    lcdOverlappingView.saveViewLayout();
@@ -299,7 +295,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
 		    clearFolderCache();
 	    }
 
-        super.onStop();
+        super.onPause();
     }
 
     @Override
@@ -383,6 +379,8 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
             OnViewPrinter();
 //        } else if (id == R.id.nav_create_ram_card) {
 //            OnCreateRAMCard();
+//        } else if (id == R.id.nav_manage_flash_rom) {
+//	        OnManageFlashROM();
         } else if (id == R.id.nav_macro_record) {
             OnMacroRecord();
         } else if (id == R.id.nav_macro_play) {
@@ -1021,6 +1019,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
                         	// We only change the KML script here.
                             int result = NativeLib.onViewScript(scriptItem.filename, scriptItem.folder);
                             if(result > 0) {
+	                            settings.putString("settings_kml_folder_embedded", scriptItem.folder);
                                 displayKMLTitle();
                                 showKMLLog();
                             } else
@@ -1251,7 +1250,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
     }
 
 	private void migrateDeprecatedSettings() {
-		if(settings.hasValue("settings_haptic_feedback")) {
+		if(!settings.hasValue("settings_haptic_feedback_duration") && settings.hasValue("settings_haptic_feedback")) {
 			settings.removeValue("settings_haptic_feedback");
 			settings.putInt("settings_haptic_feedback_duration", 25);
 		}
@@ -1288,8 +1287,20 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
 		    // Change the default KMLFolder to allow getFirstKMLFilenameForType() to find in the specific folder!
 		    Uri kmlFolderUri = Uri.parse(kmlScriptFolder);
 		    DocumentFile kmlFolderDocumentFile = DocumentFile.fromTreeUri(this, kmlFolderUri);
-		    if(kmlFolderDocumentFile != null && kmlFolderDocumentFile.exists())
-		    	changeKMLFolder(kmlScriptFolder);
+		    if(kmlFolderDocumentFile != null) {
+			    // Check the permission of the folder kmlScriptFolder
+			    if (!kmlFolderDocumentFile.canRead()) {
+				    // Permission denied, switch to the default asset folder
+				    changeKMLFolder(null);
+				    kmlScriptFolder = null;
+				    showAlert(getString(R.string.message_open_kml_folder_permission_lost), true);
+			    } else if (kmlFolderDocumentFile.exists())
+				    changeKMLFolder(kmlScriptFolder);
+		    } else {
+			    // We are using the API < 21, so we
+			    changeKMLFolder(null);
+			    kmlScriptFolder = null;
+		    }
 	    }
 
 	    onFileOpenNative(url, kmlScriptFolder);
@@ -1631,7 +1642,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
 		    for (int i = 0; i < kmlScripts.size(); i++) {
 			    KMLScriptItem kmlScriptItem = kmlScripts.get(i);
 			    if (kmlScriptItem.model.charAt(0) == chipsetType) {
-				    showAlert(String.format(Locale.US, "Existing KML script not found. Trying the compatible script: %s", kmlScriptItem.filename), true);
+				    showAlert(String.format(Locale.US, getString(R.string.message_open_kml_not_found_alert_trying_other1), kmlScriptItem.filename), true);
 				    NativeLib.setCurrentKml(kmlScriptItem.filename);
 				    NativeLib.setEmuDirectory(kmlFolderURL);
 				    return 1;
@@ -1648,13 +1659,13 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         for (int i = 0; i < kmlScripts.size(); i++) {
             KMLScriptItem kmlScriptItem = kmlScripts.get(i);
             if (kmlScriptItem.model.charAt(0) == chipsetType) {
-	            showAlert(String.format(Locale.US, "Existing KML script not found. Trying the embedded and compatible script: %s", kmlScriptItem.filename), true);
+	            showAlert(String.format(Locale.US, getString(R.string.message_open_kml_not_found_alert_trying_other2), kmlScriptItem.filename), true);
 	            NativeLib.setCurrentKml(kmlScriptItem.filename);
 	            NativeLib.setEmuDirectory("assets/calculators/");
                 return 1;
             }
         }
-	    showAlert("Cannot find the KML template file, sorry.", true);
+	    showAlert(getString(R.string.message_open_kml_not_found_alert), true);
         return 0;
     }
 
@@ -1751,7 +1762,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         } else {
             switch (key) {
                 case "settings_realspeed":
-                case "settings_grayscale":
+	            case "settings_grayscale":
 					NativeLib.setConfiguration(key, isDynamicValue, settings.getBoolean(key, false) ? 1 : 0, 0, null);
                     break;
 

@@ -42,15 +42,27 @@ NOT WORKING YET
 - Debugger
 
 
+LINKS
+
+- Original Emu42 for Windows from Christoph Giesselink and Sébastien Carlier: https://hp.giesselink.com/emu42.htm
+- The Museum of HP Calculators Forum: https://www.hpmuseum.org/forum/thread-12540.html
+
+
 CHANGES
 
-Version 1.5 (2020-11-XX)
+Version 1.5 (2021-04-XX)
 
 - Replaces the haptic feedback switch with a slider to adjust the vibration duration.
 - Fix transparency issue (RGB -> BGR).
 - Fix a printer issue from Christoph Gießelink's HP82240B Printer Simulator version 1.12.
-- Fix the KML button Type 3 with a Background offset which was not display at the right location (Fix #15). But Type 3 does not work very well with Emu42.
+- Fix the KML button Type 3 with a Background offset which was not display at the right location. But Type 3 does not work very well with Emu42.
 - Fix a timer issue.
+- Fix an issue which prevents to save all the settings (Save in onPause instead of onStop).
+- The KML folder is now well saved when changing the KML script for a custom one via the menu "Change KML Script...".
+- Fix an issue when the permission to read the KML folder has been lost.
+- Allows pressing a calculator button with the right button of the mouse but prevents its release to allow the On+A+F key combination (with Android version >= 5.0).
+- Update the embedded help file "Emu42.html" to the latest version.
+- Open an external web browser when you click an external links in the Help.
 
 
 Version 1.4 (2020-09-07)

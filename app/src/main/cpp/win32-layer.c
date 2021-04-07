@@ -42,6 +42,8 @@ const TCHAR * contentScheme = _T("content://");
 size_t contentSchemeLength;
 const TCHAR * documentScheme = _T("document:");
 size_t documentSchemeLength;
+const TCHAR * comPrefix = _T("\\\\.\\");
+size_t comPrefixLength;
 TCHAR szFilePathTmp[MAX_PATH];
 
 
@@ -66,6 +68,7 @@ void win32Init() {
     assetsPrefixLength = _tcslen(assetsPrefix);
     contentSchemeLength = _tcslen(contentScheme);
 	documentSchemeLength = _tcslen(documentScheme);
+	comPrefixLength = _tcslen(comPrefix);
 }
 
 int abs (int i) {
@@ -109,8 +112,42 @@ BOOL SetCurrentDirectory(LPCTSTR path) {
 extern BOOL settingsPort2en;
 extern BOOL settingsPort2wr;
 
+#define MAX_CREATED_COMM 30
+static HANDLE comms[MAX_CREATED_COMM];
+static pthread_mutex_t commsLock;
+
+
 HANDLE CreateFile(LPCTSTR lpFileName, DWORD dwDesiredAccess, DWORD dwShareMode, LPVOID lpSecurityAttributes, DWORD dwCreationDisposition, DWORD dwFlagsAndAttributes, LPVOID hTemplateFile) {
     FILE_LOGD("CreateFile(lpFileName: \"%s\", dwDesiredAccess: 0x%08x)", lpFileName, dwShareMode);
+
+	BOOL foundCOMPrefix = _tcsncmp(lpFileName, comPrefix, comPrefixLength) == 0;
+	if(foundCOMPrefix) {
+
+		int serialPortId = openSerialPort(lpFileName);
+		if(serialPortId > 0) {
+			// We try to open a COM/Serial port
+			HANDLE handle = malloc(sizeof(struct _HANDLE));
+			memset(handle, 0, sizeof(struct _HANDLE));
+			handle->handleType = HANDLE_TYPE_COM;
+			handle->commEvent = CreateEvent(NULL, FALSE, FALSE, NULL);
+			handle->commId = serialPortId;
+
+			pthread_mutex_lock(&commsLock);
+			handle->commIndex = -1;
+			for(int i = 0; i < MAX_CREATED_COMM; i++) {
+				if(comms[i] == NULL) {
+					handle->commIndex = i;
+					comms[handle->commIndex] = handle;
+					break;
+				}
+			}
+			pthread_mutex_unlock(&commsLock);
+
+			return handle;
+		} else
+			return (HANDLE) INVALID_HANDLE_VALUE;
+	}
+
     BOOL forceNormalFile = FALSE;
     securityExceptionOccured = FALSE;
 #if EMUXX == 48
@@ -249,6 +286,8 @@ BOOL ReadFile(HANDLE hFile, LPVOID lpBuffer, DWORD nNumberOfBytesToRead, LPDWORD
         readByteCount = (DWORD) read(hFile->fileDescriptor, lpBuffer, nNumberOfBytesToRead);
     } else if(hFile->handleType == HANDLE_TYPE_FILE_ASSET) {
         readByteCount = (DWORD) AAsset_read(hFile->fileAsset, lpBuffer, nNumberOfBytesToRead);
+    } else if(hFile->handleType == HANDLE_TYPE_COM) {
+	    readByteCount = (DWORD) readSerialPort(hFile->commId, lpBuffer, nNumberOfBytesToRead);
     }
     if(lpNumberOfBytesRead)
         *lpNumberOfBytesRead = readByteCount;
@@ -257,12 +296,19 @@ BOOL ReadFile(HANDLE hFile, LPVOID lpBuffer, DWORD nNumberOfBytesToRead, LPDWORD
 
 BOOL WriteFile(HANDLE hFile, LPCVOID lpBuffer, DWORD nNumberOfBytesToWrite,LPDWORD lpNumberOfBytesWritten, LPOVERLAPPED lpOverlapped) {
     FILE_LOGD("WriteFile(hFile: %p, lpBuffer: 0x%08x, nNumberOfBytesToWrite: %d)", hFile, lpBuffer, nNumberOfBytesToWrite);
-    if(hFile->handleType == HANDLE_TYPE_FILE_ASSET)
-        return FALSE;
+	if(hFile->handleType == HANDLE_TYPE_FILE) {
     ssize_t writenByteCount = write(hFile->fileDescriptor, lpBuffer, nNumberOfBytesToWrite);
     if(lpNumberOfBytesWritten)
         *lpNumberOfBytesWritten = (DWORD) writenByteCount;
     return writenByteCount >= 0;
+	} else if(hFile->handleType == HANDLE_TYPE_COM) {
+		ssize_t writenByteCount = writeSerialPort(hFile->commId, lpBuffer, nNumberOfBytesToWrite);
+		commEvent(hFile->commId, EV_TXEMPTY); // Not sure about that (not the same thread)!
+		if(lpNumberOfBytesWritten)
+			*lpNumberOfBytesWritten = (DWORD) writenByteCount;
+		return writenByteCount >= 0;
+	}
+	return FALSE;
 }
 
 DWORD SetFilePointer(HANDLE hFile, LONG lDistanceToMove, PLONG lpDistanceToMoveHigh, DWORD dwMoveMethod) {
@@ -472,8 +518,7 @@ BOOL SetEvent(HANDLE hEvent) {
     return 0;
 }
 
-BOOL ResetEvent(HANDLE hEvent)
-{
+BOOL ResetEvent(HANDLE hEvent) {
     if(hEvent) {
         int result = pthread_mutex_lock(&hEvent->eventMutex);
         _ASSERT(result == 0);
@@ -488,8 +533,7 @@ BOOL ResetEvent(HANDLE hEvent)
     return FALSE;
 }
 
-int UnlockedWaitForEvent(HANDLE hHandle, uint64_t milliseconds)
-{
+int UnlockedWaitForEvent(HANDLE hHandle, uint64_t milliseconds) {
     int result = 0;
     if (!hHandle->eventState)
     {
@@ -612,8 +656,19 @@ DWORD ResumeThread(HANDLE hThread) {
 
 BOOL SetThreadPriority(HANDLE hThread, int nPriority) {
     THREAD_LOGD("SetThreadPriority()");
-    //TODO
-    return 0;
+//	if(hThread->handleType == HANDLE_TYPE_THREAD) {
+//		int policy;
+//		struct sched_param param;
+//		int result = pthread_getschedparam(hThread->threadId, &policy, &param);
+//		if(nPriority == THREAD_PRIORITY_HIGHEST) {
+//			param.sched_priority = sched_get_priority_min(policy);
+//			param.sched_priority = sched_get_priority_max(policy);
+//		}
+//		result = pthread_setschedparam(hThread->threadId, policy, &param);
+//      // THIS DOES NOT WORK WITH ANDROID!
+//		return TRUE;
+//	}
+    return FALSE;
 }
 
 
@@ -659,6 +714,8 @@ DWORD WaitForSingleObject(HANDLE hHandle, DWORD dwMilliseconds)
 
 BOOL WINAPI CloseHandle(HANDLE hObject) {
     FILE_LOGD("CloseHandle(hObject: %p)", hObject);
+    if(hObject)
+    	return FALSE;
     //https://msdn.microsoft.com/en-us/9b84891d-62ca-4ddc-97b7-c4c79482abd9
     // Can be a thread/event/file handle!
     switch(hObject->handleType) {
@@ -727,20 +784,48 @@ BOOL WINAPI CloseHandle(HANDLE hObject) {
             hObject->threadParameter = NULL;
             free(hObject);
             return TRUE;
+	    case HANDLE_TYPE_COM: {
+		    FILE_LOGD("CloseHandle() HANDLE_TYPE_COM");
+
+		    closeSerialPort(hObject->commId);
+		    hObject->commId = 0;
+
+		    hObject->handleType = HANDLE_TYPE_INVALID;
+		    if(hObject->commState) {
+			    free(hObject->commState);
+			    hObject->commState = NULL;
+		    }
+		    if(hObject->commEvent) {
+			    CloseHandle(hObject->commEvent);
+			    hObject->commEvent = NULL;
+		    }
+		    if(hObject->commIndex != -1) {
+			    pthread_mutex_lock(&commsLock);
+			    comms[hObject->commIndex] = NULL;
+			    pthread_mutex_unlock(&commsLock);
+		    }
+		    free(hObject);
+		    return TRUE;
+	    }
         default:
             break;
     }
     return FALSE;
 }
 
-void Sleep(int ms)
-{
-    time_t seconds = ms / 1000;
-    long milliseconds = ms - 1000 * seconds;
-    struct timespec timeOut, remains;
-    timeOut.tv_sec = seconds;
-    timeOut.tv_nsec = milliseconds * 1000000; /* 50 milliseconds */
-    nanosleep(&timeOut, &remains);
+void Sleep(int ms) {
+	if(ms == 0) {
+		// Because sched_yield() does not seem to work with Android, try to increase the pause duration,
+		// hoping to switch to the others thread (WorkerThread).
+		ms = 1;
+	}
+	sched_yield();
+	time_t seconds = ms / 1000;
+	long milliseconds = ms - 1000 * seconds;
+	struct timespec timeOut, remains;
+	timeOut.tv_sec = seconds;
+	timeOut.tv_nsec = milliseconds * 1000000;
+	nanosleep(&timeOut, &remains);
 }
 
 BOOL QueryPerformanceFrequency(PLARGE_INTEGER l) {
@@ -2482,128 +2567,6 @@ HANDLE WINAPI GetClipboardData(UINT uFormat) {
     return szText;
 }
 
-#if defined WIN32_TIMER_THREAD
-struct timerEvent {
-    BOOL valid;
-    int timerId;
-    LPTIMECALLBACK fptc;
-    DWORD_PTR dwUser;
-    UINT fuEvent;
-    timer_t timer;
-};
-
-#define MAX_TIMER 10
-struct timerEvent timerEvents[MAX_TIMER];
-pthread_mutex_t timerEventsLock;
-static void initTimer() {
-    for (int i = 0; i < MAX_TIMER; ++i) {
-        timerEvents[i].valid = FALSE;
-    }
-}
-
-void deleteTimeEvent(UINT uTimerID) {
-    pthread_mutex_lock(&timerEventsLock);
-    timer_delete(timerEvents[uTimerID - 1].timer);
-    timerEvents[uTimerID - 1].valid = FALSE;
-    pthread_mutex_unlock(&timerEventsLock);
-}
-
-MMRESULT timeKillEvent(UINT uTimerID) {
-    TIMER_LOGD("timeKillEvent(uTimerID: [%d])", uTimerID);
-    deleteTimeEvent(uTimerID);
-    return 0; //No error
-}
-
-void timerCallback(int timerId) {
-    if(timerId >= 0 && timerId < MAX_TIMER && timerEvents[timerId].valid) {
-        timerEvents[timerId].fptc((UINT) (timerId + 1), 0, (DWORD) timerEvents[timerId].dwUser, 0, 0);
-
-        if(timerEvents[timerId].fuEvent == TIME_ONESHOT) {
-            TIMER_LOGD("timerCallback remove timer uTimerID [%d]", timerId + 1);
-            deleteTimeEvent((UINT) (timerId + 1));
-        }
-
-        jniDetachCurrentThread();
-    }
-}
-MMRESULT timeSetEvent(UINT uDelay, UINT uResolution, LPTIMECALLBACK fptc, DWORD_PTR dwUser, UINT fuEvent) {
-    TIMER_LOGD("timeSetEvent(uDelay: %d, fuEvent: %d)", uDelay, fuEvent);
-
-    pthread_mutex_lock(&timerEventsLock);
-
-    // Find a timer id
-    int timerId = -1;
-    for (int i = 0; i < MAX_TIMER; ++i) {
-        if(!timerEvents[i].valid) {
-            timerId = i;
-            break;
-        }
-    }
-    if(timerId == -1) {
-        LOGD("timeSetEvent() ERROR: No more timer available");
-        pthread_mutex_unlock(&timerEventsLock);
-        return NULL;
-    }
-    timerEvents[timerId].timerId = timerId;
-    timerEvents[timerId].fptc = fptc;
-    timerEvents[timerId].dwUser = dwUser;
-    timerEvents[timerId].fuEvent = fuEvent;
-
-
-    struct sigevent sev;
-    sev.sigev_notify = SIGEV_THREAD;
-    sev.sigev_notify_function = (void (*)(sigval_t)) timerCallback; //this function will be called when timer expires
-    sev.sigev_value.sival_int = timerEvents[timerId].timerId; //this argument will be passed to cbf
-    sev.sigev_notify_attributes = NULL;
-    timer_t * timer = &(timerEvents[timerId].timer);
-
-    // CLOCK_REALTIME 0 OK but X intervals only
-    // CLOCK_MONOTONIC 1 OK but X intervals only
-    // CLOCK_PROCESS_CPUTIME_ID 2 NOTOK, not working with PERIODIC!
-    // CLOCK_THREAD_CPUTIME_ID 3 NOTOK
-    // CLOCK_MONOTONIC_RAW 4 NOTOK
-    // CLOCK_REALTIME_COARSE 5 NOTOK
-    // CLOCK_MONOTONIC_COARSE 6 NOTOK
-    // CLOCK_BOOTTIME 7 OK but X intervals only
-    // CLOCK_REALTIME_ALARM 8 NOTOK EPERM
-    // CLOCK_BOOTTIME_ALARM 9 NOTOK EPERM
-    // CLOCK_SGI_CYCLE 10 NOTOK EINVAL
-    // CLOCK_TAI 11
-
-    if (timer_create(CLOCK_REALTIME, &sev, timer) == -1) {
-        LOGD("timeSetEvent() ERROR in timer_create, errno: %d (EAGAIN 11 / EINVAL 22 / ENOMEM 12)", errno);
-        //        EAGAIN Temporary error during kernel allocation of timer structures.
-        //        EINVAL Clock ID, sigev_notify, sigev_signo, or sigev_notify_thread_id is invalid.
-        //        ENOMEM Could not allocate memory.
-        pthread_mutex_unlock(&timerEventsLock);
-        return NULL;
-    }
-
-    long freq_nanosecs = uDelay;
-    struct itimerspec its;
-    its.it_value.tv_sec = freq_nanosecs / 1000;
-    its.it_value.tv_nsec = (freq_nanosecs % 1000) * 1000000;
-    if(fuEvent == TIME_PERIODIC) {
-        its.it_interval.tv_sec = its.it_value.tv_sec;
-        its.it_interval.tv_nsec = its.it_value.tv_nsec;
-    } else /*if(fuEvent == TIME_ONESHOT)*/ {
-        its.it_interval.tv_sec = 0;
-        its.it_interval.tv_nsec = 0;
-    }
-    if (timer_settime(timerEvents[timerId].timer, 0, &its, NULL) == -1) {
-        LOGD("timeSetEvent() ERROR in timer_settime, errno: %d (EFAULT 14 / EINVAL 22)", errno);
-        //        EFAULT new_value, old_value, or curr_value is not a valid pointer.
-        //        EINVAL timerid is invalid. Or new_value.it_value is negative; or new_value.it_value.tv_nsec is negative or greater than 999,999,999.
-        timer_delete(timerEvents[timerId].timer);
-        pthread_mutex_unlock(&timerEventsLock);
-        return NULL;
-    }
-    timerEvents[timerId].valid = TRUE;
-    TIMER_LOGD("timeSetEvent() -> timerId+1: [%d]", timerId + 1);
-    pthread_mutex_unlock(&timerEventsLock);
-    return (MMRESULT) (timerId + 1); // No error
-}
-#else
 struct timerEvent {
     int timerId;
     UINT uDelay;
@@ -2691,7 +2654,7 @@ static void insertTimer(struct timerEvent * newTimer) {
 }
 
 static void timerThreadStart(LPVOID lpThreadParameter) {
-	LOGD("timerThreadStart() START");
+	TIMER_LOGD("timerThreadStart() START");
 	pthread_mutex_lock(&timerEventsLock);
     while (!timerThreadToEnd) {
         TIMER_LOGD("timerThreadStart() %ld", GetTickCount64());
@@ -2752,7 +2715,7 @@ static void timerThreadStart(LPVOID lpThreadParameter) {
     timerThreadId = 0;
     pthread_mutex_unlock(&timerEventsLock);
     jniDetachCurrentThread();
-	LOGD("timerThreadStart() END");
+	TIMER_LOGD("timerThreadStart() END");
 }
 
 MMRESULT timeSetEvent(UINT uDelay, UINT uResolution, LPTIMECALLBACK fptc, DWORD_PTR dwUser, UINT fuEvent) {
@@ -2777,9 +2740,9 @@ MMRESULT timeSetEvent(UINT uDelay, UINT uResolution, LPTIMECALLBACK fptc, DWORD_
 
     if(!timerThreadId) {
         // If not yet created, create the thread which will handle all the timers
-	    LOGD("timeSetEvent() pthread_create");
+	    TIMER_LOGD("timeSetEvent() pthread_create");
         if (pthread_create(&timerThreadId, NULL, (void *(*)(void *)) timerThreadStart, NULL) != 0) {
-            LOGD("timeSetEvent() ERROR in pthread_create, errno: %d (EAGAIN 11 / EINVAL 22 / EPERM 1)", errno);
+            TIMER_LOGD("timeSetEvent() ERROR in pthread_create, errno: %d (EAGAIN 11 / EINVAL 22 / EPERM 1)", errno);
             //        EAGAIN Insufficient resources to create another thread.
             //        EINVAL Invalid settings in attr.
             //        ENOMEM No permission to set the scheduling policy and parameters specified in attr.
@@ -2792,7 +2755,6 @@ MMRESULT timeSetEvent(UINT uDelay, UINT uResolution, LPTIMECALLBACK fptc, DWORD_
     pthread_mutex_unlock(&timerEventsLock);
     return (MMRESULT) newTimer->timerId; // No error
 }
-#endif
 
 MMRESULT timeGetDevCaps(LPTIMECAPS ptc, UINT cbtc) {
     if(ptc) {
@@ -3078,8 +3040,36 @@ BOOL GetOverlappedResult(HANDLE hFile, LPOVERLAPPED lpOverlapped, LPDWORD lpNumb
     //TODO
     return FALSE;
 }
+
+// This is not a win32 API
+void commEvent(int commId, int eventMask) {
+	HANDLE commHandleFound = NULL;
+	pthread_mutex_lock(&commsLock);
+	for(int i = 0; i < MAX_CREATED_COMM; i++) {
+		HANDLE commHandle = comms[i];
+		if (commHandle && commHandle->commId == commId) {
+			commHandleFound = commHandle;
+			break;
+		}
+	}
+	pthread_mutex_unlock(&commsLock);
+	if(commHandleFound) {
+		commHandleFound->commEventMask = eventMask;
+		SetEvent(commHandleFound->commEvent);
+	}
+}
+
 BOOL WaitCommEvent(HANDLE hFile, LPDWORD lpEvtMask, LPOVERLAPPED lpOverlapped) {
-    //TODO
+	if(hFile && hFile->handleType == HANDLE_TYPE_COM) {
+		WaitForSingleObject(hFile->commEvent, INFINITE);
+		pthread_mutex_lock(&commsLock);
+		if(lpEvtMask && hFile->commEventMask) {
+			*lpEvtMask = hFile->commEventMask; //EV_RXCHAR | EV_TXEMPTY | EV_ERR
+			hFile->commEventMask = 0;
+		}
+		pthread_mutex_unlock(&commsLock);
+		return TRUE;
+	}
     return FALSE;
 }
 BOOL ClearCommError(HANDLE hFile, LPDWORD lpErrors, LPCOMSTAT lpStat) {
@@ -3092,10 +3082,26 @@ BOOL SetCommTimeouts(HANDLE hFile, LPCOMMTIMEOUTS lpCommTimeouts) {
 }
 BOOL SetCommMask(HANDLE hFile, DWORD dwEvtMask) {
     //TODO
+	if(hFile && hFile->handleType == HANDLE_TYPE_COM) {
+		if(dwEvtMask == 0) {
+			// When 0, clear all events and force WaitCommEvent to return.
+			SetEvent(hFile->commEvent);
+			return TRUE;
+		}
+	}
     return FALSE;
 }
 BOOL SetCommState(HANDLE hFile, LPDCB lpDCB) {
-    //TODO
+    if(hFile && hFile->handleType == HANDLE_TYPE_COM && lpDCB) {
+	    int result = setSerialPortParameters(hFile->commId, lpDCB->BaudRate); //TODO 2 stop bits?
+	    if(result > 0) {
+		    if (hFile->commState)
+			    free(hFile->commState);
+		    hFile->commState = malloc(sizeof(struct _DCB));
+		    memcpy(hFile->commState, lpDCB, sizeof(struct _DCB));
+	    }
+	    return TRUE;
+    }
     return FALSE;
 }
 BOOL PurgeComm(HANDLE hFile, DWORD dwFlags) {
@@ -3103,13 +3109,16 @@ BOOL PurgeComm(HANDLE hFile, DWORD dwFlags) {
     return FALSE;
 }
 BOOL SetCommBreak(HANDLE hFile) {
-    //TODO
+	if(hFile && hFile->handleType == HANDLE_TYPE_COM)
+		return serialPortSetBreak(hFile->commId);
     return FALSE;
 }
 BOOL ClearCommBreak(HANDLE hFile) {
-    //TODO
+	if(hFile && hFile->handleType == HANDLE_TYPE_COM)
+		return serialPortClearBreak(hFile->commId);
     return FALSE;
 }
+
 
 int WSAGetLastError() {
     //TODO
