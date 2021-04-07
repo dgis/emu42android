@@ -22,7 +22,7 @@ QUICK START
 
 1. From the left side, slide your finger to open the menu.
 2. Touch the "New..." menu item.
-3. "Select a Custom KML script folder..." where you have copied the KML scripts and ROM files.
+3. "Select a Custom KML script folder..." where you have copied the KML scripts and ROM files (Android 11 cannot use the folder Download).
 4. Pick a calculator.
 5. And the calculator should now be opened.
 
@@ -31,7 +31,7 @@ NOTES
 
 - For technical reason, this application need the Android 5.0 (API 21).
 - The Help menu displays Emu42's original help HTML page and may not accurately reflect the behavior of this Android version.
-- When using a custom KML script by selecting a folder, you must take care of the case sensitivity of its dependency files.
+- When using a custom KML script by selecting a folder (Not the folder Download for Android 11), you must take care of the case sensitivity of its dependency files.
 - This Emulator does not include the ROM files or the KML files.
 - To speed up printing, set the 'delay' to 0 in the calculator's print options.
 
@@ -50,7 +50,7 @@ LINKS
 
 CHANGES
 
-Version 1.5 (2021-04-XX)
+Version 1.5 (2021-04-07)
 
 - Replaces the haptic feedback switch with a slider to adjust the vibration duration.
 - Fix transparency issue (RGB -> BGR).
