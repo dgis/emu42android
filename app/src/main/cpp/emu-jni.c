@@ -375,6 +375,20 @@ int writeSerialPort(int serialPortId, LPBYTE buffer, int bufferSize) {
 	return result;
 }
 
+int serialPortPurgeComm(int serialPortId, int dwFlags) {
+	int result = 0;
+	JNIEnv *jniEnv = getJNIEnvironment();
+	if(jniEnv) {
+		jclass mainActivityClass = (*jniEnv)->GetObjectClass(jniEnv, mainActivity);
+		if(mainActivityClass) {
+			jmethodID midStr = (*jniEnv)->GetMethodID(jniEnv, mainActivityClass, "serialPortPurgeComm", "(II)I");
+			result = (*jniEnv)->CallIntMethod(jniEnv, mainActivity, midStr, serialPortId);
+			(*jniEnv)->DeleteLocalRef(jniEnv, mainActivityClass);
+		}
+	}
+	return result;
+}
+
 int serialPortSetBreak(int serialPortId) {
 	int result = 0;
 	JNIEnv *jniEnv = getJNIEnvironment();

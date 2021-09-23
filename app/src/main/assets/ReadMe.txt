@@ -50,6 +50,11 @@ LINKS
 
 CHANGES
 
+Version 1.6 (2021-09-xx)
+
+- Show KML log on request.
+
+
 Version 1.5 (2021-04-07)
 
 - Replaces the haptic feedback switch with a slider to adjust the vibration duration.

@@ -59,6 +59,11 @@
 #   define FILE_LOGD(...)
 #endif
 
+#if defined DEBUG_ANDROID_SERIAL
+#   define SERIAL_LOGD(...) LOGD(__VA_ARGS__)
+#else
+#   define SERIAL_LOGD(...)
+#endif
 
 #define _MSC_VER 1914
 #define GetWindowLongPtr	GetWindowLong
@@ -1272,6 +1277,7 @@ extern int closeSerialPort(int serialPortId);
 extern int setSerialPortParameters(int serialPortId, int baudRate);
 extern int readSerialPort(int serialPortId, LPBYTE buffer, int nNumberOfBytesToRead);
 extern int writeSerialPort(int serialPortId, LPBYTE buffer, int bufferSize);
+extern int serialPortPurgeComm(int serialPortId, int dwFlags);
 extern int serialPortSetBreak(int serialPortId);
 extern int serialPortClearBreak(int serialPortId);
 extern int showAlert(const TCHAR * messageText, int flags);
