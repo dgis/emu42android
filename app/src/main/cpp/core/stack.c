@@ -374,11 +374,15 @@ static TCHAR GetRadix(VOID)
 	// get calculator decimal point
 	switch (cCurrentRomType)
 	{
+	case 'A': // HP22S (Plato)
+		Npeek(&byFlag,A_SysFlags,sizeof(byFlag));
+		bPoint = (byFlag & A_nRadix) == 0;
+		break;
 	case 'C': // HP21S (Monte Carlo)
 	case 'E': // HP10B (Ernst)
 	case 'F': // HP20S (Erni)
 		Npeek(&byFlag,F_SysFlags,sizeof(byFlag));
-		bPoint = (byFlag & (1 << F_nRadix)) == 0;
+		bPoint = (byFlag & (1 << F_sRadix)) == 0;
 		break;
 	case 'D': // HP42S (Davinci)
 		Npeek(&byFlag,D_CALCLFLAGS,sizeof(byFlag));
@@ -387,6 +391,10 @@ static TCHAR GetRadix(VOID)
 	case 'I': // HP14B (Midas)
 		Npeek(&byFlag,I_SysFlags,sizeof(byFlag));
 		bPoint = (byFlag & I_nRadix) == 0;
+		break;
+	case 'L': // HP32S (Leonardo)
+		Npeek(&byFlag,L_SysFlags,sizeof(byFlag));
+		bPoint = (byFlag & L_nRadix) == 0;
 		break;
 	case 'M': // HP27S (Mentor)
 		Npeek(&byFlag,M_CALCSTATUS,sizeof(byFlag));
@@ -517,6 +525,10 @@ LRESULT OnStackCopy(VOID)					// copy data to clipboard
 
 	switch (cCurrentRomType)
 	{
+	case 'A': // HP22S (Plato)
+		dwAddress = A_X;					// x register object
+		dwObject = D_DOREAL;				// interpret object as real
+		break;
 	case 'C': // HP21S (Monte Carlo)
 	case 'F': // HP20S (Erni)
 		dwAddress = F_X;					// x register object
@@ -533,6 +545,10 @@ LRESULT OnStackCopy(VOID)					// copy data to clipboard
 		break;
 	case 'I': // HP14B (Midas)
 		dwAddress = I_X;					// x register object
+		dwObject = D_DOREAL;				// interpret object as real
+		break;
+	case 'L': // HP32S (Leonardo)
+		dwAddress = L_StackX;				// x register object
 		dwObject = D_DOREAL;				// interpret object as real
 		break;
 	case 'M': // HP27S (Mentor)

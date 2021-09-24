@@ -22,8 +22,8 @@
 #define MODELS_SACA		_T("AILN")			// valid calculator models for Sacajawea hardware
 #define MODELS_LEWIS	_T("DMOTUY")		// valid calculator models for Lewis hardware
 
-#define OBJECT_EN		_T("DNO")			// valid calculator models for Load/Save Object enable
-#define STACK_C_EN		_T("CDEFIMNOTUY")	// valid calculator models for Stack Copy enable
+#define OBJECT_EN		_T("DLNO")			// valid calculator models for Load/Save Object enable
+#define STACK_C_EN		_T("ACDEFILMNOTUY")	// valid calculator models for Stack Copy enable
 #define STACK_P_EN		_T("DO")			// valid calculator models for Stack Paste enable
 
 #define BINARYHEADER28S "HPHP28-S"

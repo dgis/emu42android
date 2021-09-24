@@ -53,6 +53,8 @@ CHANGES
 Version 1.6 (2021-09-xx)
 
 - Show KML log on request.
+- Update from the original source code Emu42 version 1.26 from Christoph Gießelink.
+- Update the embedded help file "Emu42.html" to the latest version.
 
 
 Version 1.5 (2021-04-07)

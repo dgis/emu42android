@@ -824,18 +824,19 @@ JNIEXPORT jint JNICALL Java_org_emulator_calculator_NativeLib_onObjectLoad(JNIEn
 //                goto cancel;
 //        }
 //    }
-    if (   cCurrentRomType == 'N'			// HP32SII
-           || cCurrentRomType == 'D')			// HP42S
+    if (   cCurrentRomType == 'L'			// HP32S
+        || cCurrentRomType == 'N'			// HP32SII
+        || cCurrentRomType == 'D')			// HP42S
     {
 //        if (!GetLoadObjectFilename(_T(RAW_FILTER),_T("RAW")))
 //        {
 //            SwitchToState(SM_RUN);
 //            goto cancel;
 //        }
-        if (cCurrentRomType == 'N')
-            GetUserCode32(filenameUTF8);
+	    if (cCurrentRomType == 'D')
+		    GetUserCode42(filenameUTF8);
         else
-            GetUserCode42(filenameUTF8);
+		    GetUserCode32(filenameUTF8);
         SwitchToState(SM_RUN);
     }
     else									// HP28S
@@ -886,10 +887,11 @@ JNIEXPORT jobjectArray JNICALL Java_org_emulator_calculator_NativeLib_getObjects
     _ASSERT(nState == SM_SLEEP);
 
     labels[0] = 0;
-    if (cCurrentRomType == 'N') { // HP32SII
-        currentDialogBoxMode = DialogBoxMode_GET_USRPRG32;
+	if (   cCurrentRomType == 'L'			// HP32S
+		|| cCurrentRomType == 'N') {		// HP32SII
+		currentDialogBoxMode = DialogBoxMode_GET_USRPRG32;
         OnSelectProgram32();
-    } else if(cCurrentRomType == 'D') { // HP42S
+    } else if(cCurrentRomType == 'D') {     // HP42S
         currentDialogBoxMode = DialogBoxMode_GET_USRPRG42;
         OnSelectProgram42();
     }
@@ -951,7 +953,8 @@ JNIEXPORT jint JNICALL Java_org_emulator_calculator_NativeLib_onObjectSave(JNIEn
 
 
     if(objectsToSaveItemChecked &&
-        (cCurrentRomType == 'N' // HP32SII
+        (  cCurrentRomType == 'L'  // HP32S
+        || cCurrentRomType == 'N'  // HP32SII
         || cCurrentRomType == 'D') // HP42S
     ) {
         jsize len = (*env)->GetArrayLength(env, objectsToSaveItemChecked);
@@ -966,7 +969,8 @@ JNIEXPORT jint JNICALL Java_org_emulator_calculator_NativeLib_onObjectSave(JNIEn
 
         _tcscpy(getSaveObjectFilenameResult, filenameUTF8);
 
-        if (cCurrentRomType == 'N') {
+        if (cCurrentRomType == 'L'
+        ||  cCurrentRomType == 'N') {
             currentDialogBoxMode = DialogBoxMode_SET_USRPRG32;
             OnSelectProgram32();
         } else {

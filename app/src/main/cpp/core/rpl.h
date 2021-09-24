@@ -119,7 +119,7 @@
 #define D_CALCLFLAGS	0x5046B
 
 // HP10B RAM entry
-#define E_nRadix		0			// nRadix,
+#define E_sRadix		0			// nRadix,
 
 #define E_SysFlags		0x0800E
 #define E_X				0x08016
@@ -131,12 +131,28 @@
 #define I_X				0x20355
 
 // HP20S, HP21S RAM entry
-#define F_nRadix		0			// nRadix,
+#define F_sRadix		0			// nRadix,
 
 #define F_SysFlags		0x0800E
 #define F_X				0x08187
 
-// HP32SII RAM entries
+// HP22S RAM entry
+#define A_nRadix		8			// nRadix,
+
+#define A_SysFlags		0x20080
+#define A_X				0x200E6
+
+// HP32S RAM entries
+#define L_nRadix		1			// nRadix,
+
+#define L_SysFlags		0x20064
+#define L_StackLastX	0x20094
+#define L_StackT		0x200A4
+#define L_StackZ		0x200B4
+#define L_StackY		0x200C4
+#define L_StackX		0x200D4
+
+// HP32SII rev. A RAM entries
 #define N_nRadix		4			// nRadix,
 
 #define N_SysFlags		0x2005D

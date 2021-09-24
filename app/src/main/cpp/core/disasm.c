@@ -424,8 +424,8 @@ static LPTSTR disasm_1 (DWORD *addr, LPTSTR out)
 			fn = read_nibble (addr);
 			c = (fn < 8);					// flag for operand register
 			fn = (fn & 7);					// get register number
-			if (fn > 4)						// illegal opcode
-				break;						// no output
+			if (fn > 4)						// unsupported opcode
+				fn -= 4;					// map to valid scratch register
 			switch (disassembler_mode)
 			{
 				case HP_MNEMONICS:
@@ -456,8 +456,8 @@ static LPTSTR disasm_1 (DWORD *addr, LPTSTR out)
 			fn = read_nibble (addr);
 			c = (fn < 8);					// flag for operand register
 			fn = (fn & 7);					// get register number
-			if (fn > 4)						// illegal opcode
-				break;						// no output
+			if (fn > 4)						// unsupported opcode
+				fn -= 4;					// map to valid scratch register
 			switch (disassembler_mode)
 			{
 				case HP_MNEMONICS:
@@ -679,6 +679,7 @@ static LPTSTR disasm_8 (DWORD *addr, LPTSTR out)
 {
 	BYTE n;
 	BYTE fn;
+	BYTE rn;
 	LPTSTR p = out;
 	TCHAR c;
 	TCHAR buf[20];
@@ -764,7 +765,7 @@ static LPTSTR disasm_8 (DWORD *addr, LPTSTR out)
 							{
 								case HP_MNEMONICS:
 									wsprintf (buf, _T("%cBIT=%d"), (fn & 8) ? _T('C') : _T('A'),
-									         (fn & 1) ? 1 : 0);
+											 (fn & 1) ? 1 : 0);
 									p = append_str (out, buf);
 									p = append_tab (out);
 									p = append_imm_nibble (p, addr, 1);
@@ -838,7 +839,7 @@ static LPTSTR disasm_8 (DWORD *addr, LPTSTR out)
 					{
 						case HP_MNEMONICS:
 							wsprintf (buf, (n == 0xf) ? _T("%c%cEX") : _T("%c=%c"),
-							         (n == 0xd) ? _T('P') : _T('C'), (n == 0xd) ? _T('C') : _T('P'));
+									 (n == 0xd) ? _T('P') : _T('C'), (n == 0xd) ? _T('C') : _T('P'));
 							p = append_str (out, buf);
 							p = append_tab (out);
 							wsprintf (buf, _T("%d"), fn);
@@ -848,7 +849,7 @@ static LPTSTR disasm_8 (DWORD *addr, LPTSTR out)
 							p = append_str (out, (n == 0xf) ? _T("exg.1") : _T("move.1"));
 							p = append_tab (out);
 							wsprintf (buf, (n == 0xd) ? _T("p, c.%d") : _T("c.%d, p"), fn);
-							         p = append_str (p, buf);
+									 p = append_str (p, buf);
 							break;
 						default:
 							p = append_str (out, _T("Unknown disassembler mode"));
@@ -917,9 +918,9 @@ static LPTSTR disasm_8 (DWORD *addr, LPTSTR out)
 					{
 						case HP_MNEMONICS:
 							wsprintf (buf, _T("%s=%s%cCON"),
-							         op_str_81[(n & 3) + 4 * disassembler_mode],
-							         op_str_81[(n & 3) + 4 * disassembler_mode],
-							         (n < 8) ? _T('+') : _T('-'));
+									 op_str_81[(n & 3) + 4 * disassembler_mode],
+									 op_str_81[(n & 3) + 4 * disassembler_mode],
+									 (n < 8) ? _T('+') : _T('-'));
 							p = append_str (out, buf);
 							p = append_tab (out);
 							p = append_field (p, fn);
@@ -974,48 +975,49 @@ static LPTSTR disasm_8 (DWORD *addr, LPTSTR out)
 					if (n > 2)				// illegal opcode
 						break;				// no output
 					c = (TCHAR) read_nibble (addr);
-					if (((int) c & 7) > 4)	// illegal opcode
-						break;				// no output
+					rn = (c & 7);			// get register number
+					c = (c < 8);			// flag for operand register
+					if (rn > 4)				// unsupported opcode
+						rn -= 4;			// map to valid scratch register
 					switch (disassembler_mode)
 					{
 						case HP_MNEMONICS:
+							c = (TCHAR) (c ? _T('A') : _T('C'));
 							if (n == 2)
 							{
-								wsprintf (buf, _T("%cR%dEX.F"), ((int) c < 8) ? _T('A') : _T('C'),
-								         (int) c & 7);
+								wsprintf (buf, _T("%cR%dEX.F"), c, rn);
 							}
 							else
 								if (n == 1)
 								{
-									wsprintf (buf, _T("%c=R%d.F"), ((int) c < 8) ? _T('A') : _T('C'),
-									         (int) c & 7);
+									wsprintf (buf, _T("%c=R%d.F"), c, rn);
 								}
 								else
 								{
-									wsprintf (buf, _T("R%d=%c.F"), (int) c & 7,
-									         ((int) c < 8) ? _T('A') : _T('C'));
+									wsprintf (buf, _T("R%d=%c.F"), rn, c);
 								}
 							p = append_str (out, buf);
 							p = append_tab (out);
 							p = append_field (p, fn);
 							break;
 						case CLASS_MNEMONICS:
+							c = (TCHAR) (c ? _T('a') : _T('c'));
 							p = append_str (out, (n == 2) ? _T("exg") : _T("move"));
 							p = append_field (p, fn);
 							p = append_tab (out);
 							if (n == 1)
 							{
-								wsprintf (buf, _T("r%d"), (int) c & 7);
+								wsprintf (buf, _T("r%d"), rn);
 								p = append_str (p, buf);
 							}
 							else
-								p = append_str (p, ((int) c < 8) ? _T("a") : _T("c"));
+								*p++ = c;
 							p = append_str (p, _T(", "));
 							if (n == 1)
-								p = append_str (p, ((int) c < 8) ? _T("a") : _T("c"));
+								*p++ = c;
 							else
 							{
-								wsprintf (buf, _T("r%d"), (int) c & 7);
+								wsprintf (buf, _T("r%d"), rn);
 								p = append_str (p, buf);
 							}
 							break;
@@ -1324,7 +1326,7 @@ DWORD disassemble (DWORD addr, LPTSTR out)
 			{
 				case HP_MNEMONICS:
 					wsprintf (buf, op_str_0[(n & 7) + 8 * HP_MNEMONICS],
-					          (n < 8) ? _T('&') : _T('!'));
+							  (n < 8) ? _T('&') : _T('!'));
 					p = append_str (out, buf);
 					p = append_tab (out);
 					p = append_field (p, fn);
@@ -1538,10 +1540,10 @@ DWORD disassemble (DWORD addr, LPTSTR out)
 				case HP_MNEMONICS:
 					if ((c == 0) && (n >= 8))
 						wsprintf (buf, op_str_9[(n & 3) + 8 * HP_MNEMONICS + 4],
-						          in_str_9[((n >> 2) & 3) + 4 * c + 8 * HP_MNEMONICS]);
+								  in_str_9[((n >> 2) & 3) + 4 * c + 8 * HP_MNEMONICS]);
 					else
 						wsprintf (buf, op_str_9[(n & 3) + 8 * HP_MNEMONICS],
-						          in_str_9[((n >> 2) & 3) + 4 * c + 8 * HP_MNEMONICS]);
+								  in_str_9[((n >> 2) & 3) + 4 * c + 8 * HP_MNEMONICS]);
 					p = append_str (out, buf);
 					p = append_tab (out);
 					p = append_field (p, fn);

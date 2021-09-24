@@ -3,7 +3,7 @@
  *
  *   This file is part of Emu42
  *
- *   Copyright (C) 2006 Christoph Gieﬂelink
+ *   Copyright (C) 2006-2021 Christoph Gieﬂelink
  *
  */
 #include "pch.h"
@@ -11,47 +11,90 @@
 #include "Emu42.h"
 #include "ops.h"
 
+// HP32S RAM entries
+#define L_PCADDR	0x200EB
+#define L_PGMEND	0x200EE
+#define L_VAREND	0x200F1
+#define L_PGMST		0x200F4
+#define L_IntgMem	0x202E8
+#define L_SolveMem	0x203BD
+#define L_EndURAM	0x20400
+
+// HP32S status register defines
+#define L_sSlvIntg	0x00007
+#define L_sSlvSolve	0x0000B
+
+// HP32S program codes
+#define L_NUMBER	0x000					// code for number
+#define L_XNEY		0x151					// code x<>y?
+#define L_XLTY		0x152					// code x<y?
+#define L_XGTY		0x153					// code x>y?
+#define L_XEQY		0x154					// code x=y?
+#define L_XNE0		0x155					// code x<>0?
+#define L_XLT0		0x156					// code x<0?
+#define L_XGT0		0x157					// code x>0?
+#define L_XEQ0		0x158					// code x=0?
+#define L_RTN		0x159					// code RTN
+#define L_FS_0		0x641					// code FS? 0
+#define L_FS_6		0x647					// code FS? 6
+#define L_GTO_A		0x741					// code GoTO A
+#define L_GTO_Z		0x75A					// code GoTO Z
+#define L_GTO_(I)	0x75C					// code GoTO(i)
+#define L_LBL_A		0x661					// code LaBeL A
+#define L_LBL_Z		0x67A					// code LaBeL Z
+#define L_ISG_A		0x501					// code ISG A
+#define L_ISG_Z		0x51A					// code ISG Z
+#define L_ISG_I		0x51B					// code ISG i
+#define L_ISG_(I)	0x51C					// code ISG(i)
+#define L_DSE_A		0x521					// code DSE A
+#define L_DSE_Z		0x53A					// code DSE Z
+#define L_DSE_I		0x53B					// code DSE i
+#define L_DSE_(I)	0x53C					// code DSE(i)
+
 // HP32SII RAM entries
-#define PGMEND		0x200E9
-#define VAREND		0x200F2
-#define PGMST		0x20100
-#define IntgMem		0x202E8
-#define SolveMem	0x203BD
-#define EndURAM		0x20400
+#define N_PCADDR	0x200E6
+#define N_PGMEND	0x200E9
+#define N_EQNADDR	0x200EC
+#define N_EQNEND	0x200EF
+#define N_VAREND	0x200F2
+#define N_PGMST		0x20100
+#define N_IntgMem	0x202E8
+#define N_SolveMem	0x203BD
+#define N_EndURAM	0x20400
 
 // HP32SII status register defines
-#define sSlvIntg	0x00007
+#define N_sSlvIntg	0x00007
 
 // HP32SII program codes
-#define NUMBER		0x000					// code for number
-#define XNEY		0x179					// code x<>y?
-#define XLEY		0x17A					// code x<=y?
-#define XLTY		0x17B					// code x<y?
-#define XGTY		0x17C					// code x>y?
-#define XGEY		0x17D					// code x>=y?
-#define XEQY		0x17E					// code x=y?
-#define XNE0		0x17F					// code x<>0?
-#define XLE0		0x180					// code x<=0?
-#define XLT0		0x181					// code x<0?
-#define XGT0		0x182					// code x>0?
-#define XGE0		0x183					// code x>=0?
-#define XEQ0		0x184					// code x=0?
-#define RTN			0x185					// code RTN
-#define FS_0		0x5A1					// code FS? 0
-#define FS_11		0x5AC					// code FS? 11
-#define GTO_A		0x621					// code GoTO A
-#define GTO_Z		0x63A					// code GoTO Z
-#define GTO_(I)		0x63C					// code GoTO(i)
-#define LBL_A		0x6A1					// code LaBeL A
-#define LBL_Z		0x6BA					// code LaBeL Z
-#define ISG_A		0x701					// code ISG A
-#define ISG_Z		0x71A					// code ISG Z
-#define ISG_I		0x71B					// code ISG i
-#define ISG_(I)		0x71C					// code ISG(i)
-#define DSE_A		0x721					// code DSE A
-#define DSE_Z		0x73A					// code DSE Z
-#define DSE_I		0x73B					// code DSE i
-#define DSE_(I)		0x73C					// code DSE(i)
+#define N_NUMBER	0x000					// code for number
+#define N_XNEY		0x179					// code x<>y?
+#define N_XLEY		0x17A					// code x<=y?
+#define N_XLTY		0x17B					// code x<y?
+#define N_XGTY		0x17C					// code x>y?
+#define N_XGEY		0x17D					// code x>=y?
+#define N_XEQY		0x17E					// code x=y?
+#define N_XNE0		0x17F					// code x<>0?
+#define N_XLE0		0x180					// code x<=0?
+#define N_XLT0		0x181					// code x<0?
+#define N_XGT0		0x182					// code x>0?
+#define N_XGE0		0x183					// code x>=0?
+#define N_XEQ0		0x184					// code x=0?
+#define N_RTN		0x185					// code RTN
+#define N_FS_0		0x5A1					// code FS? 0
+#define N_FS_11		0x5AC					// code FS? 11
+#define N_GTO_A		0x621					// code GoTO A
+#define N_GTO_Z		0x63A					// code GoTO Z
+#define N_GTO_(I)	0x63C					// code GoTO(i)
+#define N_LBL_A		0x6A1					// code LaBeL A
+#define N_LBL_Z		0x6BA					// code LaBeL Z
+#define N_ISG_A		0x701					// code ISG A
+#define N_ISG_Z		0x71A					// code ISG Z
+#define N_ISG_I		0x71B					// code ISG i
+#define N_ISG_(I)	0x71C					// code ISG(i)
+#define N_DSE_A		0x721					// code DSE A
+#define N_DSE_Z		0x73A					// code DSE Z
+#define N_DSE_I		0x73B					// code DSE i
+#define N_DSE_(I)	0x73C					// code DSE(i)
 
 enum										// for LoopStatus variable in Catalog()
 {
@@ -71,7 +114,8 @@ typedef struct
 // macro for checking bit in CPU status register
 #define ST_BIT(b) ((Chipset.ST[b>>2] & (1<<(b&3))) != 0)
 
-static CONST BYTE pbySignature[] = "RAW32";	// object signature
+static CONST BYTE pbySignatureL[] = "RAW31";	// object signature
+static CONST BYTE pbySignatureN[] = "RAW32";	// object signature
 
 //################
 //#
@@ -108,28 +152,49 @@ static VOID Write3(DWORD d, DWORD n)
 //
 static __inline DWORD GetPgmEnd(VOID)
 {
-	DWORD dwAddr = PGMEND;
+	const DWORD dwAddr = (cCurrentRomType == 'N') ? N_PGMEND : L_PGMEND;
 	return (dwAddr & 0xFF000) | Read3(dwAddr);
 }
 
 //
-// =MEMCHK
+// =MEMCHK (#0260B for HP32S)
 //
-static __inline BOOL MEMCHK(
+static __inline BOOL MEMCHK_L(
 	DWORD dwOffset)							// C[X], offset
 {
 	DWORD dwBound;
 
-	if (ST_BIT(sSlvIntg))					// inside SOLVE
+	if (ST_BIT(L_sSlvIntg))					// inside SOLVE
 	{
-		dwOffset = Read5(VAREND);
-		dwOffset *= 4;
-		dwBound = ((dwOffset & 0x100000) != 0) ? SolveMem : IntgMem;
+		dwBound = (ST_BIT(L_sSlvSolve)) ? L_SolveMem : L_IntgMem;
 	}
 	else
 	{
-		dwOffset += Read3(VAREND);
-		dwBound = EndURAM;
+		dwOffset += Read3(L_VAREND);
+		dwBound = L_EndURAM;
+	}
+
+	return (dwBound & 0xFFF) < (dwOffset & 0xFFF);
+}
+
+//
+// =MEMCHK (#01F10 for HP32SII)
+//
+static __inline BOOL MEMCHK_N(
+	DWORD dwOffset)							// C[X], offset
+{
+	DWORD dwBound;
+
+	if (ST_BIT(N_sSlvIntg))					// inside SOLVE
+	{
+		dwOffset = Read5(N_VAREND);
+		dwOffset *= 4;
+		dwBound = ((dwOffset & 0x100000) != 0) ? N_SolveMem : N_IntgMem;
+	}
+	else
+	{
+		dwOffset += Read3(N_VAREND);
+		dwBound = N_EndURAM;
 	}
 
 	return (dwBound & 0xFFF) < (dwOffset & 0xFFF);
@@ -146,9 +211,18 @@ static __inline BOOL ALLOC(
 	DWORD dwSource,dwDest;
 	INT   i;
 
-	if (MEMCHK(dwOffset)) return TRUE;	// check if there is enough room
+	if (cCurrentRomType == 'N')
+	{
+		if (MEMCHK_N(dwOffset)) return TRUE; // check if there is enough room
 
-	dwSource = ((VAREND & 0xFF000) | Read3(VAREND));
+		dwSource = ((N_VAREND & 0xFF000) | Read3(N_VAREND));
+	}
+	else
+	{
+		if (MEMCHK_L(dwOffset)) return TRUE; // check if there is enough room
+
+		dwSource = ((L_VAREND & 0xFF000) | Read3(L_VAREND));
+	}
 	dwDest = dwSource + dwOffset;		// new end
 
 	// move bytes, works only with positive offsets!!
@@ -169,23 +243,34 @@ static __inline VOID MEMADJ(
 	DWORD dwAddr,							// C[X], insert addr
 	DWORD dwOffset)							// B[X], size
 {
-	INT i;
-	DWORD dwContent;
+	UINT  i,iNumPtr;
+	DWORD dwPointer;
 
-	DWORD dwPointer = VAREND;
+	if (cCurrentRomType == 'N')
+	{
+		// last pointer, no. of pointers
+		dwPointer = N_VAREND;
+		iNumPtr = (N_VAREND - N_PGMEND) / 3 + 1;
+	}
+	else
+	{
+		// last pointer, no. of pointers
+		dwPointer = L_VAREND;
+		iNumPtr = (L_VAREND - L_PGMEND) / 3 + 1;
+	}
 
 	dwAddr &= 0xFFF;						// only last three nibble
 
-	for (i = 0; i < 4; ++i)					// adjust 4 pointer
+	for (i = 0; i < iNumPtr; ++i)			// adjust pointer
 	{
-		dwContent = Read3(dwPointer);
+		DWORD dwContent = Read3(dwPointer);
 
 		if (dwContent == 0 || dwAddr <= dwContent)
 		{
 			Write3(dwPointer,dwContent + dwOffset);
 		}
 
-		dwPointer -= 3;
+		dwPointer -= 3;						// next pointer
 	}
 	return;
 }
@@ -203,7 +288,8 @@ static __inline DWORD GetProgLength(LPBYTE pbyProg,DWORD dwLastEnd)
 		nCmdType |= pbyProg[dwCurrAddr++] << 4;
 		nCmdType |= pbyProg[dwCurrAddr++] << 8;
 
-		if (nCmdType == NUMBER)
+		_ASSERT(L_NUMBER == N_NUMBER);
+		if (nCmdType == N_NUMBER)
 		{
 			dwCurrAddr += (3+12+1);			// skip exp., mant. and sign
 
@@ -211,7 +297,6 @@ static __inline DWORD GetProgLength(LPBYTE pbyProg,DWORD dwLastEnd)
 				return 0;
 		}
 	}
-	
 	return dwCurrAddr;
 }
 
@@ -223,6 +308,8 @@ static VOID GetUsedLabels(
 {
 	INT nCmdType;							// type of current command
 
+	const INT nLblA = (cCurrentRomType == 'N') ? N_LBL_A : L_LBL_A;
+
 	INT i = 0;
 
 	while (dwStartAddr < dwEndAddr)
@@ -230,15 +317,16 @@ static VOID GetUsedLabels(
 		nCmdType = fnread(dwStartAddr);
 		dwStartAddr += 3;
 
-		if (nCmdType == NUMBER)
+		_ASSERT(L_NUMBER == N_NUMBER);
+		if (nCmdType == N_NUMBER)
 		{
 			dwStartAddr += (3+12+1);		// skip exp., mant. and sign
 			continue;
 		}
 
-		if (nCmdType >= LBL_A && nCmdType <= (LBL_A + _T('Z') - _T('A')))
+		if (nCmdType >= nLblA && nCmdType <= (nLblA + _T('Z') - _T('A')))
 		{
-			lpszLabels[i++] = _T('A') + (nCmdType - LBL_A);
+			lpszLabels[i++] = _T('A') + (nCmdType - nLblA);
 		}
 	}
 	lpszLabels[i++] = 0;					// EOS
@@ -260,10 +348,13 @@ static BOOL Catalog(BOOL *pbFirst, CatLabel32 *pLbl)
 	INT  nLblPos = 0;						// position in LBL string
 	BOOL bCondCode = FALSE;					// conditional jump code
 
+	const INT nLblA = (cCurrentRomType == 'N') ? N_LBL_A : L_LBL_A;
+	const INT nRtn = (cCurrentRomType == 'N') ? N_RTN : L_RTN;
+
 	// first call, get .END. address
 	if (*pbFirst)
 	{
-		dwCurrAddr = PGMST;
+		dwCurrAddr = (cCurrentRomType == 'N') ? N_PGMST : L_PGMST;
 		dwLastEnd = GetPgmEnd();
 		*pbFirst = FALSE;
 	}
@@ -280,13 +371,14 @@ static BOOL Catalog(BOOL *pbFirst, CatLabel32 *pLbl)
 		nCmdType = Read3(dwCurrAddr);
 		dwCurrAddr += 3;
 
-		if (nCmdType == NUMBER)				// floating point number
+		_ASSERT(L_NUMBER == N_NUMBER);
+		if (nCmdType == N_NUMBER)			// floating point number
 		{
 			dwCurrAddr += (3+12+1);			// skip exp., mant. and sign
 		}
 
 		// found label
-		if (nCmdType >= LBL_A && nCmdType <= (LBL_A + _T('Z') - _T('A')))
+		if (nCmdType >= nLblA && nCmdType <= (nLblA + _T('Z') - _T('A')))
 		{
 			if (nLoopStatus == FIND)		// label
 			{
@@ -294,7 +386,7 @@ static BOOL Catalog(BOOL *pbFirst, CatLabel32 *pLbl)
 				if (dwCurrAddr == pLbl->dwStartAddr + 3)
 					nLblPos = 0;			// overwrite "0"
 
-				pLbl->cLabel[nLblPos++] = _T('A') + (nCmdType - LBL_A);
+				pLbl->cLabel[nLblPos++] = _T('A') + (nCmdType - nLblA);
 				pLbl->cLabel[nLblPos] = 0;	// EOS
 			}
 
@@ -305,16 +397,27 @@ static BOOL Catalog(BOOL *pbFirst, CatLabel32 *pLbl)
 			}
 		}
 
-		if (!bCondCode && nCmdType == RTN)	// found a non conditional RTN
+		if (!bCondCode && nCmdType == nRtn)	// found a non conditional RTN
 		{
 			nLoopStatus = RETURN;			// RTN, leave on next label
 		}
 
 		// check for conditional jump code
-		bCondCode = ((nCmdType >= XNEY)  && (nCmdType <= XEQ0))
-				  | ((nCmdType >= FS_0)  && (nCmdType <= FS_11))
-				  | ((nCmdType >= ISG_A) && (nCmdType <= ISG_(I)))
-				  | ((nCmdType >= DSE_A) && (nCmdType <= DSE_(I)));
+		if (cCurrentRomType == 'N')
+		{
+			bCondCode = ((nCmdType >= N_XNEY)  && (nCmdType <= N_XEQ0))
+					  | ((nCmdType >= N_FS_0)  && (nCmdType <= N_FS_11))
+					  | ((nCmdType >= N_ISG_A) && (nCmdType <= N_ISG_(I)))
+					  | ((nCmdType >= N_DSE_A) && (nCmdType <= N_DSE_(I)));
+		}
+		else
+		{
+			_ASSERT(cCurrentRomType == 'L');
+			bCondCode = ((nCmdType >= L_XNEY)  && (nCmdType <= L_XEQ0))
+					  | ((nCmdType >= L_FS_0)  && (nCmdType <= L_FS_6))
+					  | ((nCmdType >= L_ISG_A) && (nCmdType <= L_ISG_(I)))
+					  | ((nCmdType >= L_DSE_A) && (nCmdType <= L_DSE_(I)));
+		}
 	}
 
 	pLbl->dwEndAddr = dwCurrAddr;			// save actual end address
@@ -342,6 +445,8 @@ BOOL GetUserCode32(LPCTSTR szUCFile)
 	DWORD  dwEndAddr;						// the .END. address
 	INT    i;
 
+	CONST BYTE *pbySignature = (cCurrentRomType == 'N') ? pbySignatureN : pbySignatureL;
+
 	BOOL   bOK = FALSE;						// error detected
 
 	hFile = CreateFile(szUCFile,
@@ -356,16 +461,16 @@ BOOL GetUserCode32(LPCTSTR szUCFile)
 		return FALSE;
 
 	// read file signature
-	_ASSERT(ARRAYSIZEOF(byBuffer) >= ARRAYSIZEOF(pbySignature));
-	ReadFile(hFile,byBuffer,ARRAYSIZEOF(pbySignature)-1,&dwRead,NULL);
-	if (   dwRead != ARRAYSIZEOF(pbySignature)-1
-		|| memcmp(byBuffer,pbySignature,ARRAYSIZEOF(pbySignature)-1) != 0)
+	_ASSERT(ARRAYSIZEOF(byBuffer) >= ARRAYSIZEOF(pbySignatureN));
+	ReadFile(hFile,byBuffer,ARRAYSIZEOF(pbySignatureN)-1,&dwRead,NULL);
+	if (   dwRead != ARRAYSIZEOF(pbySignatureN)-1
+		|| memcmp(byBuffer,pbySignature,ARRAYSIZEOF(pbySignatureN)-1) != 0)
 	{
 		AbortMessage(_T("Detected wrong object file."));
 		goto cancel;
 	}
 
-	dwFileSize = GetFileSize(hFile,NULL) - ARRAYSIZEOF(pbySignature) + 1;
+	dwFileSize = GetFileSize(hFile,NULL) - ARRAYSIZEOF(pbySignatureN) + 1;
 	dwProgSize = dwFileSize * 2;			// program size
 
 	pbyBuffer = (LPBYTE) malloc(dwProgSize);
@@ -390,7 +495,7 @@ BOOL GetUserCode32(LPCTSTR szUCFile)
 	dwEndAddr = GetPgmEnd();				// last program address
 
 	// get in use calculator labels
-	GetUsedLabels(PGMST,dwEndAddr,Read3,cCalLbl);
+	GetUsedLabels((cCurrentRomType == 'N') ? N_PGMST : L_PGMST,dwEndAddr,Read3,cCalLbl);
 	// get in use program labels
 	GetUsedLabels(0,dwProgSize,ReadBuffer3,cPrgLbl);
 
@@ -449,6 +554,8 @@ static BOOL PutUserCode(LPCTSTR szUCFile,HWND hWnd)
 	DWORD  dwPos,dwNibSize,dwBytesWritten;
 	INT    i,nItems;
 
+	CONST BYTE *pbySignature = (cCurrentRomType == 'N') ? pbySignatureN : pbySignatureL;
+
 	BOOL bOK = FALSE;
 
 	nItems = (INT) SendMessage(hWnd,LB_GETCOUNT,0,0);
@@ -506,8 +613,8 @@ static BOOL PutUserCode(LPCTSTR szUCFile,HWND hWnd)
 		}
 
 		// write file signature
-		WriteFile(hFile,pbySignature,ARRAYSIZEOF(pbySignature)-1,&dwBytesWritten,NULL);
-		_ASSERT(ARRAYSIZEOF(pbySignature)-1 == dwBytesWritten);
+		WriteFile(hFile,pbySignature,ARRAYSIZEOF(pbySignatureN)-1,&dwBytesWritten,NULL);
+		_ASSERT(ARRAYSIZEOF(pbySignatureN)-1 == dwBytesWritten);
 
 		// write data
 		WriteFile(hFile,pbyBuffer,dwPos/2,&dwBytesWritten,NULL);

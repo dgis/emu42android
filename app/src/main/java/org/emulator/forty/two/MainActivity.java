@@ -429,8 +429,8 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         int nMacroState = NativeLib.getMacroState();
 
         boolean uRun = NativeLib.isDocumentAvailable();
-        boolean bObjectEnable = (cCurrentRomType == 'D' || cCurrentRomType == 'N' || cCurrentRomType == 'O');
-        boolean bStackCEnable = (cCurrentRomType == 'C' || cCurrentRomType == 'D' || cCurrentRomType == 'E' || cCurrentRomType == 'F' || cCurrentRomType == 'I' || cCurrentRomType == 'M' || cCurrentRomType == 'N' || cCurrentRomType == 'O' || cCurrentRomType == 'T' || cCurrentRomType == 'U' || cCurrentRomType == 'Y');
+        boolean bObjectEnable = (cCurrentRomType == 'D' || cCurrentRomType == 'L' || cCurrentRomType == 'N' || cCurrentRomType == 'O');
+        boolean bStackCEnable = (cCurrentRomType == 'A' || cCurrentRomType == 'C' || cCurrentRomType == 'D' || cCurrentRomType == 'E' || cCurrentRomType == 'F' || cCurrentRomType == 'I' || cCurrentRomType == 'L' || cCurrentRomType == 'M' || cCurrentRomType == 'N' || cCurrentRomType == 'O' || cCurrentRomType == 'T' || cCurrentRomType == 'U' || cCurrentRomType == 'Y');
         boolean bStackPEnable = (cCurrentRomType == 'D' || cCurrentRomType == 'O');
 
         menu.findItem(R.id.nav_save).setEnabled(uRun);
@@ -860,8 +860,9 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
     }
     private void OnObjectSave() {
         int model = NativeLib.getCurrentModel();
-        if(model == 'N' // HP32SII # Nardo
-        || model == 'D') { // HP42S # Davinci
+        if(model == 'L'     // HP32S    # Leonardo
+		|| model == 'N'     // HP32SII  # Nardo
+        || model == 'D') {  // HP42S    # Davinci
             final String[] objectsToSave = NativeLib.getObjectsToSave();
             objectsToSaveItemChecked = new boolean[objectsToSave.length];
             new AlertDialog.Builder(MainActivity.this)
@@ -871,7 +872,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
                         SaveObject();
                     }).setNegativeButton("Cancel", (dialog, id) -> objectsToSaveItemChecked = null).show();
         } else
-            SaveObject();
+            SaveObject(); // HP28S
     }
     
     private void OnViewCopyFullscreen() {
