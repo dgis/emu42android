@@ -50,6 +50,11 @@ LINKS
 
 CHANGES
 
+Version 1.7 (2021-10-xx)
+
+- Fix the upside down background of the LCD screen on high contrast (actually, fix a general top-down issue in the bitmap).
+
+
 Version 1.6 (2021-09-27)
 
 - Show KML log on request.
@@ -150,6 +155,7 @@ TODO
 - In Autozoom mode, I could add a button which switches to the other half of the faceplate (Comments from @Nick and @Jean-Marc)
 - Try to include the KML files without the ROMs.
 - Sometimes, the calculator seems to lag and finally freeze.
+- In drawPixelBorder(), use canvas.drawLines() instead of multiple canvas.drawLine() to save CPU.
 
 
 BUILD

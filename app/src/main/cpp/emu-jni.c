@@ -666,9 +666,9 @@ JNIEXPORT jint JNICALL Java_org_emulator_calculator_NativeLib_onFileNew(JNIEnv *
     chooseCurrentKmlMode = ChooseKmlMode_UNKNOWN;
 
     if(result) {
-        if(hLcdDC && hLcdDC->selectedBitmap) {
-            hLcdDC->selectedBitmap->bitmapInfoHeader->biHeight = -abs(hLcdDC->selectedBitmap->bitmapInfoHeader->biHeight);
-        }
+//        if(hLcdDC && hLcdDC->selectedBitmap) {
+//            hLcdDC->selectedBitmap->bitmapInfoHeader->biHeight = -abs(hLcdDC->selectedBitmap->bitmapInfoHeader->biHeight);
+//        }
 
         mainViewResizeCallback(nBackgroundW, nBackgroundH);
         draw();
@@ -709,11 +709,11 @@ JNIEXPORT jint JNICALL Java_org_emulator_calculator_NativeLib_onFileOpen(JNIEnv 
 	kmlFileNotFound = FALSE;
     lastKMLFilename[0] = '\0';
     BOOL result = OpenDocument(szBufferFilename);
-    if (result) {
-        if(hLcdDC && hLcdDC->selectedBitmap) {
-            hLcdDC->selectedBitmap->bitmapInfoHeader->biHeight = -abs(hLcdDC->selectedBitmap->bitmapInfoHeader->biHeight);
-        }
-    }
+//    if (result) {
+//        if(hLcdDC && hLcdDC->selectedBitmap) {
+//            hLcdDC->selectedBitmap->bitmapInfoHeader->biHeight = -abs(hLcdDC->selectedBitmap->bitmapInfoHeader->biHeight);
+//        }
+//    }
     chooseCurrentKmlMode = ChooseKmlMode_UNKNOWN;
     mainViewResizeCallback(nBackgroundW, nBackgroundH);
     if(result) {
@@ -1176,9 +1176,9 @@ JNIEXPORT jint JNICALL Java_org_emulator_calculator_NativeLib_onViewScript(JNIEn
     chooseCurrentKmlMode = ChooseKmlMode_UNKNOWN;
 
     if(bSucc) {
-        if(hLcdDC && hLcdDC->selectedBitmap) {
-            hLcdDC->selectedBitmap->bitmapInfoHeader->biHeight = -abs(hLcdDC->selectedBitmap->bitmapInfoHeader->biHeight);
-        }
+//        if(hLcdDC && hLcdDC->selectedBitmap) {
+//            hLcdDC->selectedBitmap->bitmapInfoHeader->biHeight = -abs(hLcdDC->selectedBitmap->bitmapInfoHeader->biHeight);
+//        }
 
         mainViewResizeCallback(nBackgroundW, nBackgroundH);
         draw();
@@ -1209,9 +1209,9 @@ JNIEXPORT void JNICALL Java_org_emulator_calculator_NativeLib_onBackupSave(JNIEn
 JNIEXPORT void JNICALL Java_org_emulator_calculator_NativeLib_onBackupRestore(JNIEnv *env, jobject thisz) {
     SwitchToState(SM_INVALID);
     RestoreBackup();
-    if(hLcdDC && hLcdDC->selectedBitmap) {
-        hLcdDC->selectedBitmap->bitmapInfoHeader->biHeight = -abs(hLcdDC->selectedBitmap->bitmapInfoHeader->biHeight);
-    }
+//    if(hLcdDC && hLcdDC->selectedBitmap) {
+//        hLcdDC->selectedBitmap->bitmapInfoHeader->biHeight = -abs(hLcdDC->selectedBitmap->bitmapInfoHeader->biHeight);
+//    }
     if (pbyRom) SwitchToState(SM_RUN);
 }
 

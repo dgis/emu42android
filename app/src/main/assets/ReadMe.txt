@@ -50,6 +50,11 @@ LINKS
 
 CHANGES
 
+Version 1.7 (2021-10-xx)
+
+- Fix the upside down background of the LCD screen on high contrast (actually, fix a general top-down issue in the bitmap).
+
+
 Version 1.6 (2021-09-27)
 
 - Show KML log on request.
