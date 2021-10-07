@@ -325,10 +325,10 @@ BOOL ReadFile(HANDLE hFile, LPVOID lpBuffer, DWORD nNumberOfBytesToRead, LPDWORD
 BOOL WriteFile(HANDLE hFile, LPCVOID lpBuffer, DWORD nNumberOfBytesToWrite,LPDWORD lpNumberOfBytesWritten, LPOVERLAPPED lpOverlapped) {
     FILE_LOGD("WriteFile(hFile: %p, lpBuffer: 0x%08x, nNumberOfBytesToWrite: %d)", hFile, lpBuffer, nNumberOfBytesToWrite);
 	if(hFile->handleType == HANDLE_TYPE_FILE) {
-    ssize_t writenByteCount = write(hFile->fileDescriptor, lpBuffer, nNumberOfBytesToWrite);
-    if(lpNumberOfBytesWritten)
-        *lpNumberOfBytesWritten = (DWORD) writenByteCount;
-    return writenByteCount >= 0;
+		ssize_t writenByteCount = write(hFile->fileDescriptor, lpBuffer, nNumberOfBytesToWrite);
+		if(lpNumberOfBytesWritten)
+			*lpNumberOfBytesWritten = (DWORD) writenByteCount;
+		return writenByteCount >= 0;
 	} else if(hFile->handleType == HANDLE_TYPE_COM) {
 		ssize_t writenByteCount = writeSerialPort(hFile->commId, lpBuffer, nNumberOfBytesToWrite);
 #if defined DEBUG_ANDROID_SERIAL
@@ -336,7 +336,7 @@ BOOL WriteFile(HANDLE hFile, LPCVOID lpBuffer, DWORD nNumberOfBytesToWrite,LPDWO
 		SERIAL_LOGD("WriteFile(hFile: %p, lpBuffer: 0x%08x, nNumberOfBytesToWrite: %d) -> %d bytes\n%s", hFile, lpBuffer, nNumberOfBytesToWrite, writenByteCount, hexAsciiDump);
 		free(hexAsciiDump);
 #endif
-		//Sleep(4); // Seems to be needed else the kermit packet does not fully reach the genuine calculator.
+		Sleep(4); // Seems to be needed else the kermit packet does not fully reach the genuine calculator.
 		if(lpNumberOfBytesWritten)
 			*lpNumberOfBytesWritten = (DWORD) writenByteCount;
 		return writenByteCount >= 0;
@@ -1757,14 +1757,13 @@ HGDIOBJ SelectObject(HDC hdc, HGDIOBJ h) {
             case HGDIOBJ_TYPE_BRUSH: {
                 HBRUSH oldSelectedBrushColor = hdc->selectedBrushColor;
                 hdc->selectedBrushColor = h;
-                return oldSelectedBrushColor; //h;
+                return oldSelectedBrushColor;
             }
             case HGDIOBJ_TYPE_FONT:
                 break;
             case HGDIOBJ_TYPE_BITMAP: {
                 HBITMAP oldSelectedBitmap = hdc->selectedBitmap;
                 hdc->selectedBitmap = h;
-	            //return h; //oldSelectedBitmap;
 	            return oldSelectedBitmap;
             }
             case HGDIOBJ_TYPE_REGION:
@@ -1772,7 +1771,6 @@ HGDIOBJ SelectObject(HDC hdc, HGDIOBJ h) {
             case HGDIOBJ_TYPE_PALETTE: {
                 HPALETTE oldSelectedPalette = hdc->selectedPalette;
                 hdc->selectedPalette = h;
-	            //return h;
 	            return oldSelectedPalette;
             }
             default:
@@ -1981,7 +1979,7 @@ BOOL PatBlt(HDC hdcDest, int x, int y, int w, int h, DWORD rop) {
 
             destinationWidth = hBitmapDestination->bitmapInfoHeader->biWidth;
             destinationHeight = abs(hBitmapDestination->bitmapInfoHeader->biHeight);
-	        //TODO hBitmapDestination->bitmapInfoHeader->biHeight < 0
+	        //TODO destinationTopDown = hBitmapDestination->bitmapInfoHeader->biHeight < 0;
 
             destinationStride = (float)(4 * ((destinationWidth * hBitmapDestination->bitmapInfoHeader->biBitCount + 31) / 32));
         }
@@ -2115,10 +2113,7 @@ BOOL StretchBlt(HDC hdcDest, int xDest, int yDest, int wDest, int hDest, HDC hdc
 
             destinationWidth = hBitmapDestination->bitmapInfoHeader->biWidth;
             destinationHeight = abs(hBitmapDestination->bitmapInfoHeader->biHeight);
-            if(hBitmapDestination->bitmapInfoHeader->biHeight < 0) {
-	            PAINT_LOGD("PAINT StretchBlt() DESTINATION biHeight < 0");
-	            destinationTopDown = hBitmapSource->bitmapInfoHeader->biHeight < 0;
-            }
+            destinationTopDown = hBitmapSource->bitmapInfoHeader->biHeight < 0;
             destinationBitCount = hBitmapDestination->bitmapInfoHeader->biBitCount;
             destinationStride = 4 * ((destinationWidth * hBitmapDestination->bitmapInfoHeader->biBitCount + 31) / 32);
         }
@@ -2188,7 +2183,7 @@ void StretchBltInternal(int xDest, int yDest, int wDest, int hDest,
         dst_maxy = destinationHeight;
 
     int src_cury, dst_cury;
-	for (int y = yDest; y < dst_maxy; y++) {
+    for (int y = yDest; y < dst_maxy; y++) {
 		if(sourceTopDown)
 			src_cury = ySrc + (y - yDest) * hSrc / hDest; // Source top-down
 		else
@@ -2367,7 +2362,6 @@ HBITMAP CreateBitmap( int nWidth, int nHeight, UINT nPlanes, UINT nBitCount, CON
     newBitmapInfo->bmiHeader.biBitCount = (WORD) nBitCount;
     newBitmapInfo->bmiHeader.biClrUsed = 0;
     newBitmapInfo->bmiHeader.biWidth = nWidth;
-	//newBitmapInfo->bmiHeader.biHeight = -nHeight; //TODO Should not be negative but >0 and bottom-up by default!!!!
 	newBitmapInfo->bmiHeader.biHeight = nHeight;
     newBitmapInfo->bmiHeader.biPlanes = (WORD) nPlanes;
     newHBITMAP->bitmapInfo = newBitmapInfo;
@@ -3183,13 +3177,13 @@ BOOL SetCommBreak(HANDLE hFile) {
 	SERIAL_LOGD("SetCommBreak(hFile: %p)", hFile);
 	if(hFile && hFile->handleType == HANDLE_TYPE_COM)
 		return serialPortSetBreak(hFile->commId);
-    return FALSE;
+	return FALSE;
 }
 BOOL ClearCommBreak(HANDLE hFile) {
 	SERIAL_LOGD("ClearCommBreak(hFile: %p)", hFile);
 	if(hFile && hFile->handleType == HANDLE_TYPE_COM)
 		return serialPortClearBreak(hFile->commId);
-    return FALSE;
+	return FALSE;
 }
 
 
