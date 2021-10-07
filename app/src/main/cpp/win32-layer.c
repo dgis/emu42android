@@ -2113,7 +2113,7 @@ BOOL StretchBlt(HDC hdcDest, int xDest, int yDest, int wDest, int hDest, HDC hdc
 
             destinationWidth = hBitmapDestination->bitmapInfoHeader->biWidth;
             destinationHeight = abs(hBitmapDestination->bitmapInfoHeader->biHeight);
-            destinationTopDown = hBitmapSource->bitmapInfoHeader->biHeight < 0;
+            destinationTopDown = hBitmapDestination->bitmapInfoHeader->biHeight < 0;
             destinationBitCount = hBitmapDestination->bitmapInfoHeader->biBitCount;
             destinationStride = 4 * ((destinationWidth * hBitmapDestination->bitmapInfoHeader->biBitCount + 31) / 32);
         }
