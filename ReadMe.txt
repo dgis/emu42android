@@ -7,7 +7,7 @@ It can open or save the exact same state files (state.e??) than the original Win
 
 This application does NOT come with the ROM files!
 You will need KML scripts and ROM files already copied into your Android filesystem.
-You can download the KML scripts here: http://regis.cosnier.free.fr/soft/androidEmu42/KML-original-126.zip
+You can download the KML scripts here: http://regis.cosnier.free.fr/soft/androidEmu42/KML-original-127.zip
 Or you can download the KML scripts from the original Emu42 Windows application archive (https://hp.giesselink.com/emu42.htm)
 and you can extract the ROM file from a real calculator (or be lucky on internet).
 Be careful about the case sensitivity of the filename in the KML script (Linux is case sensitive, not Windows).
