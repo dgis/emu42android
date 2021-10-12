@@ -178,7 +178,7 @@ static __inline BOOL MEMCHK_L(
 }
 
 //
-// =MEMCHK (#01F10 for HP32SII)
+// =MEMCHK (#01F10/#01F1B for HP32SII rev.A/B)
 //
 static __inline BOOL MEMCHK_N(
 	DWORD dwOffset)							// C[X], offset
@@ -213,6 +213,7 @@ static __inline BOOL ALLOC(
 
 	if (cCurrentRomType == 'N')
 	{
+		// #01F4D/#01F58 for HP32SII rev.A/B
 		if (MEMCHK_N(dwOffset)) return TRUE; // check if there is enough room
 
 		dwSource = ((N_VAREND & 0xFF000) | Read3(N_VAREND));

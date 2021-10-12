@@ -819,6 +819,8 @@ extern COLORREF SetBkColor(HDC hdc, COLORREF color);
 #define RDH_RECTANGLES  1
 extern BOOL SetRect(LPRECT lprc, int xLeft, int yTop, int xRight, int yBottom);
 extern BOOL SetRectEmpty(LPRECT lprc);
+extern BOOL IsRectEmpty(CONST RECT *lprc);
+extern BOOL UnionRect(LPRECT dest, CONST RECT *src1, CONST RECT *src2);
 
 struct HRGN__ { int unused; };
 typedef struct HRGN__ *HRGN;
@@ -1003,7 +1005,6 @@ extern BOOL InsertMenu(HMENU hMenu, UINT uPosition, UINT uFlags, UINT_PTR uIDNew
 #define SWP_NOMOVE          0x0002
 #define SWP_NOZORDER        0x0004
 extern BOOL SetWindowPos(HWND hWnd, HWND hWndInsertAfter, int X, int Y, int cx, int cy, UINT uFlags);
-extern BOOL IsRectEmpty(CONST RECT *lprc);
 extern BOOL WINAPI SetWindowOrgEx(HDC hdc, int x, int y, LPPOINT lppt);
 
 #define _MAX_PATH   260 // max. length of full pathname

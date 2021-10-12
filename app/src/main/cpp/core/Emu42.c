@@ -13,7 +13,7 @@
 #include "kml.h"
 #include "debugger.h"
 
-#define VERSION   "1.26"
+#define VERSION   "1.27"
 
 #ifdef _DEBUG
 LPCTSTR szNoTitle = _T("Emu42 ")_T(VERSION)_T(" Debug");
@@ -1044,7 +1044,7 @@ static LRESULT OnViewScript(VOID)
 	{
 		if (Chipset.wRomCrc != wRomCrc)		// ROM changed
 		{
-			CpuReset();
+			Chipset.pc = 0;					// continue from a safe PC address
 			Chipset.Shutdn = FALSE;			// automatic restart
 
 			Chipset.wRomCrc = wRomCrc;		// update current ROM fingerprint
@@ -1775,7 +1775,7 @@ int WINAPI WinMain(HINSTANCE hInst, HINSTANCE hPrevInst, LPSTR lpCmdLine, int nC
 	// initialization
 	szCurrentKml[0] = 0;					// no KML file selected
 	SetSpeed(bRealSpeed);					// set speed
-	MruInit(4);								// init MRU entries
+	MruInit(6);								// init MRU entries
 
 	// create auto event handle
 	hEventShutdn = CreateEvent(NULL,FALSE,FALSE,NULL);

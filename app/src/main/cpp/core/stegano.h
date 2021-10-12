@@ -18,6 +18,10 @@
 #ifndef STG_NO_COMPILE_ENCODER
 #define STG_COMPILE_ENCODER
 #endif
+// stegano 3bit/byte encoding
+#ifndef STG_NO_3BIT_ENCODER
+#define STG_3BIT_ENCODER
+#endif
 // stegano HBITMAP interface
 #ifndef STG_NO_COMPILE_HBITMAP
 #define STG_COMPILE_HBITMAP

@@ -394,7 +394,6 @@ static VOID ChipResetSlave(VOID)
 
 VOID CpuReset(VOID)							// register setting after Cpu Reset
 {
-	StopTimerBert();						// reset Bert timer chip
 	ChipResetMaster();						// reset master chip
 	if (Chipset.bSlave)						// 2nd display controller
 	{

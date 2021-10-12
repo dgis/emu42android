@@ -38,6 +38,13 @@ static WORD xcrc(BYTE c, WORD wCrc)
 	return wCrc;
 }
 
+// no. of bytes to code dwDataBytes
+static DWORD CodingLength(DWORD dwDataBytes, int nBitPerByte)
+{
+	_ASSERT(nBitPerByte > 0);
+	return (dwDataBytes * 8 + (nBitPerByte - 1)) / nBitPerByte;
+}
+
 static LONG StegBmpOff(CONST BMPDIM *pBmpDim, LONG lPos)
 {
 	LONG y = lPos / pBmpDim->lColPerLine;	// coordinate in bitmap
@@ -59,24 +66,28 @@ static LONG StegBmpOff(CONST BMPDIM *pBmpDim, LONG lPos)
 // stegano decoder
 static VOID StegDataRead(CONST BMPDIM *pBmpDim, LPBYTE pbyBase, LONG *plPos, INT nSrcBitPerByte, LPBYTE pbyData, DWORD dwLength, INT nOutBitPerByte, WORD *pwCrc)
 {
-	DWORD dwPos = 0;
+	CONST BYTE bySrcMask = (1 << nSrcBitPerByte) - 1;
+	CONST BYTE byOutMask = (1 << nOutBitPerByte) - 1;
 
-	BYTE bySrcMask = (1 << nSrcBitPerByte) - 1;
-	BYTE byOutMask = (1 << nOutBitPerByte) - 1;
+	DWORD dwPos = 0;
+	WORD wData = 0;
+	INT nBits = 0;
 
 	_ASSERT(nOutBitPerByte == 8 || nOutBitPerByte == 4 || nOutBitPerByte == 2 || nOutBitPerByte == 1);
 
 	while (dwPos < dwLength)
 	{
-		INT nBits;
+		BYTE byVal;
 
-		BYTE byVal = 0;
-
-		for (nBits = 0; nBits < 8; nBits += nSrcBitPerByte)
+		while (nBits < 8)					// need 8 bit
 		{
-			byVal <<= nSrcBitPerByte;
-			byVal |= (pbyBase[StegBmpOff(pBmpDim,(*plPos)++)] & bySrcMask);
+			wData <<= nSrcBitPerByte;
+			wData |= (pbyBase[StegBmpOff(pBmpDim,(*plPos)++)] & bySrcMask);
+			nBits += nSrcBitPerByte;
 		}
+
+		nBits -= 8;							// extract byte from bitstream
+		byVal = (BYTE) (wData >> nBits);
 
 		if (pwCrc != NULL)					// update crc
 		{
@@ -84,7 +95,9 @@ static VOID StegDataRead(CONST BMPDIM *pBmpDim, LPBYTE pbyBase, LONG *plPos, INT
 		}
 		if (pbyData != NULL)				// have target buffer
 		{
-			for (nBits = 0; nBits < 8; nBits += nOutBitPerByte)
+			int nOutBits;
+
+			for (nOutBits = 0; nOutBits < 8; nOutBits += nOutBitPerByte)
 			{
 				pbyData[dwPos++] = byVal & byOutMask;
 				byVal >>= nOutBitPerByte;
@@ -124,8 +137,7 @@ enum STG_ERRCODE SteganoDecodeDib(LPBYTE *ppbyData, DWORD *pdwDataSize, INT nOut
 	// no true color bitmap
 	if (pbmiHeader->biBitCount != 24 && pbmiHeader->biBitCount != 32)
 	{
-		eErr = STG_ERR_24COL;
-		goto quit;
+		return STG_ERR_24COL;				// not a true color bitmap
 	}
 
 	// bitmap dimension information
@@ -140,11 +152,13 @@ enum STG_ERRCODE SteganoDecodeDib(LPBYTE *ppbyData, DWORD *pdwDataSize, INT nOut
 		pbyData += 3 * sizeof(RGBQUAD);		// additional color masks
 	}
 
+	// maximum no. of bytes in the bitmap
+	dwBmpSize = sBmpDim.lColPerLine * labs(sBmpDim.lLines);
+
 	// check if bitmap dimension is smaller than file size
-	if (dwDibSize < (DWORD) labs(sBmpDim.lLines * sBmpDim.lBytesPerLine))
+	if (dwBmpSize == 0 || (dwDibSize < (DWORD) labs(sBmpDim.lLines * sBmpDim.lBytesPerLine)))
 	{
-		eErr = STG_ERR_DATALENGTH;
-		goto quit;							// illegal data length
+		return STG_ERR_DATALENGTH;			// illegal data length
 	}
 
 	lTargetPos = 0;
@@ -165,37 +179,39 @@ enum STG_ERRCODE SteganoDecodeDib(LPBYTE *ppbyData, DWORD *pdwDataSize, INT nOut
 
 	if (nBitPerByte > 4)
 	{
-		eErr = STG_ERR_BITWIDTH;
-		goto quit;							// illegal bitwidth info
+		return STG_ERR_BITWIDTH;			// illegal bitwidth info
 	}
 
-	// check if data length fit into bitmap data
-	// no of color bytes
-	dwBmpSize = sBmpDim.lColPerLine * labs(sBmpDim.lLines);
-
-	// size for data bytes without bitwidth info field
-	dwBmpSize = (dwBmpSize * nBitPerByte) / 8 - 1;
-
 	wCrc = 0;								// reset CRC
+
+	// check for marker and extra length inside BMP file
+	dwAllSize = 1
+			  + CodingLength(sizeof(dwMarker),nBitPerByte)
+			  + CodingLength(sizeof(wLength),nBitPerByte);
+
+	if (dwBmpSize < dwAllSize)
+	{
+		return STG_ERR_DATALENGTH;			// illegal data length
+	}
 
 	// stegano marker
 	StegDataRead(&sBmpDim,pbyData,&lTargetPos,nBitPerByte,(LPBYTE) &dwMarker,sizeof(dwMarker),8,&wCrc);
 	if (dwMarker != BDAT)
 	{
-		eErr = STG_ERR_STGMARKER;
-		goto quit;							// illegal stegano marker
+		return STG_ERR_STGMARKER;			// illegal stegano marker
 	}
 
 	// extra length field (unused)
 	StegDataRead(&sBmpDim,pbyData,&lTargetPos,nBitPerByte,(LPBYTE) &wLength,sizeof(wLength),8,&wCrc);
+	_ASSERT((DWORD) lTargetPos == dwAllSize);
 
-	dwAllSize = sizeof(dwMarker)			// check if extra data is inside BMP file
-			  + sizeof(wLength) + wLength;
+	// check for extra data and main data length inside BMP file
+	dwAllSize += CodingLength(wLength,nBitPerByte)
+			  +  CodingLength(sizeof(*pdwDataSize),nBitPerByte);
 
 	if (dwBmpSize < dwAllSize)
 	{
-		eErr = STG_ERR_DATALENGTH;
-		goto quit;							// illegal data length
+		return STG_ERR_DATALENGTH;			// illegal data length
 	}
 
 	// skip extra data
@@ -203,17 +219,18 @@ enum STG_ERRCODE SteganoDecodeDib(LPBYTE *ppbyData, DWORD *pdwDataSize, INT nOut
 
 	// data length
 	StegDataRead(&sBmpDim,pbyData,&lTargetPos,nBitPerByte,(LPBYTE) pdwDataSize,sizeof(*pdwDataSize),8,&wCrc);
+	_ASSERT((DWORD) lTargetPos == dwAllSize);
 
-	dwAllSize += sizeof(*pdwDataSize) + *pdwDataSize
-			  +  sizeof(wCrc);
-
+	// check for main data and crc inside BMP file
+	dwAllSize += CodingLength(*pdwDataSize,nBitPerByte)
+			  +  CodingLength(sizeof(WORD),nBitPerByte);
+	
 	if (dwBmpSize < dwAllSize)
 	{
-		eErr = STG_ERR_DATALENGTH;
-		goto quit;							// illegal data length
+		return STG_ERR_DATALENGTH;			// illegal data length
 	}
 
-	*pdwDataSize *= 8 / nOutBitPerByte;		// new length bit/byte adjusted
+	*pdwDataSize *= 8 / nOutBitPerByte;		// new output length bit/byte adjusted
 
 	// allocate mem
 	if ((*ppbyData = (LPBYTE) malloc(*pdwDataSize)) != NULL)
@@ -236,16 +253,13 @@ enum STG_ERRCODE SteganoDecodeDib(LPBYTE *ppbyData, DWORD *pdwDataSize, INT nOut
 		{
 			eErr = STG_NOERROR;
 		}
-
 		// check read data length from calculated one
-		_ASSERT(lTargetPos == (LONG) dwAllSize * 8 / nBitPerByte + 1);
+		_ASSERT((DWORD) lTargetPos == dwAllSize);
 	}
 	else
 	{
 		eErr = STG_ERR_MALLOC;
 	}
-
-quit:
 	return eErr;
 }
 
@@ -376,26 +390,41 @@ static VOID StegDataWrite(CONST BMPDIM *pBmpDim, LPBYTE pbyBase, LONG *plPos, IN
 	LPBYTE pbyBmpAddr;
 	DWORD  dwPos;
 
-	BYTE byMask = (1 << nBitPerByte) - 1;	// bitmask
+	CONST BYTE byMask = (1 << nBitPerByte) - 1;	// bitmask
 
-	for (dwPos = 0; dwPos < dwLength; ++dwPos)
+	INT nBits = 0;
+	WORD wData = 0;
+
+	for (dwPos = 0; dwPos < dwLength;)
 	{
-		INT nBits;
+		INT nFill;
 
-		BYTE byVal = pbyData[dwPos];
-
+		BYTE byVal = pbyData[dwPos++];
 		if (pwCrc != NULL)					// update crc
 		{
 			*pwCrc = xcrc(byVal,*pwCrc);
 		}
 
-		for (nBits = 8 - nBitPerByte; nBits >= 0; nBits -= nBitPerByte)
+		wData = (wData << 8) | byVal;		// add byte to data stream
+		nBits += 8;
+
+		// read last data byte and have a bit remainder
+		if (dwPos == dwLength && (nFill = nBitPerByte - (nBits % nBitPerByte)) != nBitPerByte)
 		{
+			// fill data that nBits is a multiple of nBitPerByte
+			wData <<= nFill;
+			nBits += nFill;
+		}
+
+		while (nBits >= nBitPerByte)		// write out bits
+		{
+			nBits -= nBitPerByte;
+
 			// address in bitmap
 			pbyBmpAddr = pbyBase + StegBmpOff(pBmpDim,(*plPos)++);
 
 			// patch value
-			*pbyBmpAddr = (*pbyBmpAddr & ~byMask) | ((byVal >> nBits) & byMask);
+			*pbyBmpAddr = (*pbyBmpAddr & ~byMask) | ((wData >> nBits) & byMask);
 		}
 	}
 	return;
@@ -403,8 +432,6 @@ static VOID StegDataWrite(CONST BMPDIM *pBmpDim, LPBYTE pbyBase, LONG *plPos, IN
 
 enum STG_ERRCODE SteganoEncodeDib(LPBYTE byDib, DWORD dwDibSize, LPBYTE byData, DWORD dwDataSize)
 {
-	enum STG_ERRCODE eErr;
-
 	PBITMAPINFOHEADER pbmiHeader;
 	BMPDIM sBmpDim;
 	LPBYTE pbyData;
@@ -427,8 +454,7 @@ enum STG_ERRCODE SteganoEncodeDib(LPBYTE byDib, DWORD dwDibSize, LPBYTE byData, 
 	// no true color bitmap
 	if (pbmiHeader->biBitCount != 24 && pbmiHeader->biBitCount != 32)
 	{
-		eErr = STG_ERR_24COL;
-		goto quit;
+		return STG_ERR_24COL;				// not a true color bitmap
 	}
 
 	// bitmap dimension information
@@ -446,27 +472,42 @@ enum STG_ERRCODE SteganoEncodeDib(LPBYTE byDib, DWORD dwDibSize, LPBYTE byData, 
 	// check if bitmap dimension is smaller than DIB size
 	if (dwDibSize < (DWORD) labs(sBmpDim.lLines * sBmpDim.lBytesPerLine))
 	{
-		eErr = STG_ERR_DATALENGTH;
-		goto quit;							// illegal data length
+		return STG_ERR_DATALENGTH;			// illegal data length
 	}
 
 	// no of color bytes
 	dwBmpSize = sBmpDim.lColPerLine * labs(sBmpDim.lLines);
 
-	// calculate necessary bits in a byte
+	// calculate overall bytes to code
 	dwAllSize = sizeof(dwMarker)
 			  + sizeof(wLength)    + wLength
 			  + sizeof(dwDataSize) + dwDataSize
 			  + sizeof(wCrc);
 
-	nBitPerByte = (dwAllSize * 8 + 1) / dwBmpSize + 1;
+	// calculate bit the depth for one byte
+	nBitPerByte = ((dwAllSize * 8 + 1) / dwBmpSize) + 1;
 
+#ifdef STG_3BIT_ENCODER
+	if (nBitPerByte == 3)					// need remainder locations from bit stuffing
+	{
+		// calculate no. of bytes in bitmap with current nBitPerByte setting
+		dwAllSize = 1
+					+ CodingLength(sizeof(dwMarker),nBitPerByte)
+					+ CodingLength(sizeof(wLength),nBitPerByte)    + CodingLength(wLength,nBitPerByte)
+					+ CodingLength(sizeof(dwDataSize),nBitPerByte) + CodingLength(dwDataSize,nBitPerByte)
+					+ CodingLength(sizeof(wCrc),nBitPerByte);
+
+		// check for nBitPerByte overflow after bit stuffing
+		nBitPerByte += (dwAllSize / (dwBmpSize + 1));
+	}
+#else
+	// 3bit/byte encoding not supported
 	if (nBitPerByte == 3) nBitPerByte = 4;
+#endif // STG_3BIT_ENCODER
 
 	if (nBitPerByte > 4)
 	{
-		eErr = STG_ERR_DATALENGTH;
-		goto quit;							// data too large
+		return STG_ERR_DATALENGTH;			// data too large
 	}
 
 	lTargetPos = 0;
@@ -499,12 +540,15 @@ enum STG_ERRCODE SteganoEncodeDib(LPBYTE byDib, DWORD dwDibSize, LPBYTE byData, 
 	StegDataWrite(&sBmpDim,pbyData,&lTargetPos,nBitPerByte,(LPBYTE) &wCrc,sizeof(wCrc),NULL);
 
 	// check written data length from calculated one
-	_ASSERT(lTargetPos == (LONG) dwAllSize * 8 / nBitPerByte + 1);
-
-	eErr = STG_NOERROR;
-
-quit:
-	return eErr;
+	_ASSERT(lTargetPos == 
+			(1
+			+ CodingLength(sizeof(dwMarker),nBitPerByte)
+			+ CodingLength(sizeof(wLength),nBitPerByte)    + CodingLength(wLength,nBitPerByte)
+			+ CodingLength(sizeof(dwDataSize),nBitPerByte) + CodingLength(dwDataSize,nBitPerByte)
+			+ CodingLength(sizeof(wCrc),nBitPerByte)
+			)
+		);
+	return STG_NOERROR;
 }
 
 // stegano disk interface

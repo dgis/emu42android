@@ -30,6 +30,7 @@
 extern JavaVM *java_machine;
 extern jobject bitmapMainScreen;
 extern AndroidBitmapInfo androidBitmapInfo;
+//extern RECT mainViewRectangleToUpdate;
 
 extern HANDLE hWnd;
 extern LPTSTR szTitle;
@@ -1737,7 +1738,7 @@ BOOL DeleteMenu(HMENU hMenu, UINT uPosition, UINT uFlags) { return FALSE; }
 BOOL InsertMenu(HMENU hMenu, UINT uPosition, UINT uFlags, UINT_PTR uIDNewItem, LPCTSTR lpNewItem) { return FALSE; }
 
 BOOL SetWindowPos(HWND hWnd, HWND hWndInsertAfter, int X, int Y, int cx, int cy, UINT uFlags) { return 0; }
-BOOL IsRectEmpty(CONST RECT *lprc) { return 0; }
+
 BOOL WINAPI SetWindowOrgEx(HDC hdc, int x, int y, LPPOINT lppt) {
     if(lppt) {
         lppt->x = hdc->windowOriginX;
@@ -1969,6 +1970,13 @@ BOOL PatBlt(HDC hdcDest, int x, int y, int w, int h, DWORD rop) {
 
             destinationStride = androidBitmapInfo.stride;
 
+//	        RECT newRectangleToUpdate;
+//	        newRectangleToUpdate.left = x;
+//	        newRectangleToUpdate.top = y;
+//	        newRectangleToUpdate.right = x + w;
+//	        newRectangleToUpdate.bottom = y + h;
+//	        UnionRect(&mainViewRectangleToUpdate, &mainViewRectangleToUpdate, &newRectangleToUpdate);
+
             if ((ret = AndroidBitmap_lockPixels(jniEnv, bitmapMainScreen, &pixelsDestination)) < 0) {
                 LOGD("AndroidBitmap_lockPixels() failed ! error=%d", ret);
                 return FALSE;
@@ -2103,7 +2111,14 @@ BOOL StretchBlt(HDC hdcDest, int xDest, int yDest, int wDest, int hDest, HDC hdc
 
 	        destinationTopDown = TRUE;
 
-            if ((ret = AndroidBitmap_lockPixels(jniEnv, bitmapMainScreen, &pixelsDestination)) < 0) {
+//	        RECT newRectangleToUpdate;
+//	        newRectangleToUpdate.left = xDest;
+//	        newRectangleToUpdate.top = yDest;
+//	        newRectangleToUpdate.right = xDest + wDest;
+//	        newRectangleToUpdate.bottom = yDest + hDest;
+//	        UnionRect(&mainViewRectangleToUpdate, &mainViewRectangleToUpdate, &newRectangleToUpdate);
+
+	        if ((ret = AndroidBitmap_lockPixels(jniEnv, bitmapMainScreen, &pixelsDestination)) < 0) {
                 LOGD("AndroidBitmap_lockPixels() failed ! error=%d", ret);
                 return FALSE;
             }
@@ -2538,8 +2553,12 @@ COLORREF GetPixel(HDC hdc, int x ,int y) {
     return resultColor;
 }
 BOOL SetRect(LPRECT lprc, int xLeft, int yTop, int xRight, int yBottom) {
-    //TODO
-    return 0;
+	if (!lprc) return FALSE;
+	lprc->left   = xLeft;
+	lprc->right  = xRight;
+	lprc->top    = yTop;
+	lprc->bottom = yBottom;
+	return TRUE;
 }
 BOOL SetRectEmpty(LPRECT lprc) {
     if(lprc) {
@@ -2550,6 +2569,38 @@ BOOL SetRectEmpty(LPRECT lprc) {
         return TRUE;
     }
     return FALSE;
+}
+
+BOOL IsRectEmpty(CONST RECT *lprc) {
+	if (!lprc)
+		return TRUE;
+	return lprc->left >= lprc->right || lprc->top >= lprc->bottom;
+}
+
+// This comes from Wine source code
+BOOL UnionRect(LPRECT dest, CONST RECT *src1, CONST RECT *src2) {
+	if (!dest) return FALSE;
+	if (IsRectEmpty(src1))
+	{
+		if (IsRectEmpty(src2))
+		{
+			SetRectEmpty( dest );
+			return FALSE;
+		}
+		else *dest = *src2;
+	}
+	else
+	{
+		if (IsRectEmpty(src2)) *dest = *src1;
+		else
+		{
+			dest->left   = min( src1->left, src2->left );
+			dest->right  = max( src1->right, src2->right );
+			dest->top    = min( src1->top, src2->top );
+			dest->bottom = max( src1->bottom, src2->bottom );
+		}
+	}
+	return TRUE;
 }
 int SetWindowRgn(HWND hWnd, HRGN hRgn, BOOL bRedraw) {
     //TODO

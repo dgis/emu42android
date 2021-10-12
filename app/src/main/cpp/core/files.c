@@ -273,7 +273,25 @@ BOOL CheckForBeepPatch(VOID)
 #define n1	1								// #Reads/Half-Sector
 #define s1	0x1000							// #Sectors (Sector Size=2*d)
 
-// rebuild of the calculator =CHECKSUM function
+// rebuild of the calculator =CHECKSUM function for the Bert chip ROM
+static WORD ChecksumChk(LPBYTE pbyROM, DWORD dwChkAddr)
+{
+	DWORD i;
+
+	WORD wChk = 0;							// reset checksum
+
+	for (i = 0; i < dwChkAddr; ++i)
+	{
+		// checksum calculation
+		wChk <<= 4;
+		wChk += pbyROM[i];
+		wChk += ((wChk >> 8)  & 0xF) + 1;
+		wChk += ((wChk >> 12) & 0xF) + 1;
+	}
+	return wChk;
+}
+
+// rebuild of the calculator =CHECKSUM function for the Sacajawea and the Lewis chip ROM
 static WORD Checksum(LPBYTE pbyROM, DWORD dwStart, DWORD dwOffset, INT nReads, INT nSector)
 {
 	int i,j;
@@ -308,6 +326,11 @@ static VOID CorrectCrc(BYTE *a, WORD wCrc)
 
 static VOID RebuildRomCrc(VOID)
 {
+	if (dwRomSize == _KB(10))				// Bert chip
+	{
+		// patch Bert chip
+		Nunpack(&pbyRom[0x4FFC],ChecksumChk(pbyRom,0x4FFC),4);
+	}
 	if (dwRomSize == _KB(16))				// Sacajawea chip
 	{
 		// patch Sacajawea chip
@@ -1073,7 +1096,7 @@ BOOL OpenDocument(LPCTSTR szFilename)
 
 	if (Chipset.wRomCrc != wRomCrc)			// ROM changed
 	{
-		CpuReset();
+		Chipset.pc = 0;						// continue from a safe PC address
 		Chipset.Shutdn = FALSE;				// automatic restart
 	}
 
