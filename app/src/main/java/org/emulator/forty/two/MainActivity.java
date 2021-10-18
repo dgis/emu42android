@@ -985,7 +985,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         } else
             kmlScriptsForCurrentModel = kmlScripts;
 
-        boolean showDefaultKMLScriptFolderItem = !kmlFolderUseDefault && getPackageName().contains("org.emulator.forty.eight");
+        boolean showDefaultKMLScriptFolderItem = !kmlFolderUseDefault && (getPackageName().contains("org.emulator.forty.eight") || getPackageName().contains("org.emulator.forty.two"));
         int lastIndex = kmlScriptsForCurrentModel.size();
         String[] kmlScriptTitles = new String[lastIndex + (showDefaultKMLScriptFolderItem ? 2 : 1)];
         for (int i = 0; i < kmlScriptsForCurrentModel.size(); i++)
@@ -994,7 +994,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         if(showDefaultKMLScriptFolderItem)
             kmlScriptTitles[lastIndex + 1] = getResources().getString(R.string.load_default_kml);
         new AlertDialog.Builder(MainActivity.this)
-                .setTitle(getResources().getString(R.string.pick_calculator))
+                .setTitle(getResources().getString(kmlFolderUseDefault ? R.string.pick_default_calculator : R.string.pick_custom_calculator))
                 .setItems(kmlScriptTitles, (dialog, which) -> {
                     if(which == lastIndex) {
                     	// [Select a Custom KML script folder...]

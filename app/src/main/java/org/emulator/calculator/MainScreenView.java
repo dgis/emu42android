@@ -63,7 +63,7 @@ public class MainScreenView extends PanAndScaleView {
     public float defaultViewPanOffsetX = 0.0f;
     public float defaultViewPanOffsetY = 0.0f;
 
-	private Rect invalidateRectangle = new Rect();
+//	private Rect invalidateRectangle = new Rect();
 
     public MainScreenView(Context context) {
         super(context);
@@ -81,7 +81,6 @@ public class MainScreenView extends PanAndScaleView {
         DisplayMetrics displayMetrics = new DisplayMetrics();
         ((Activity)context).getWindowManager().getDefaultDisplay().getMetrics(displayMetrics);
         bitmapMainScreen = Bitmap.createBitmap(1, 1, Bitmap.Config.ARGB_8888);
-	    bitmapMainScreen.setDensity(Bitmap.DENSITY_NONE);
         bitmapMainScreen.eraseColor(Color.BLACK);
         enableZoomKeyboard = false;
 
@@ -403,19 +402,20 @@ public class MainScreenView extends PanAndScaleView {
 	protected void onCustomDraw(Canvas canvas) {
 		if (debug) Log.d(TAG, "onCustomDraw()");
 
-//		canvas.drawColor(getBackgroundColor());
-//		// Copy the full calculator with antialiasing
-//		canvas.drawBitmap(bitmapMainScreen, 0, 0, paintFullCalc);
+		canvas.drawColor(getBackgroundColor());
 
-		synchronized (invalidateRectangle) {
-			if (invalidateRectangle.isEmpty()) {
-				canvas.drawColor(getBackgroundColor());
-				canvas.drawBitmap(bitmapMainScreen, 0, 0, paintFullCalc);
-			} else {
-				canvas.drawBitmap(bitmapMainScreen, invalidateRectangle, invalidateRectangle, paintFullCalc);
-				invalidateRectangle.setEmpty();
-			}
-		}
+		// Copy the full calculator with antialiasing
+		canvas.drawBitmap(bitmapMainScreen, 0, 0, paintFullCalc);
+
+//		synchronized (invalidateRectangle) {
+//			if (invalidateRectangle.isEmpty()) {
+//				canvas.drawColor(getBackgroundColor());
+//				canvas.drawBitmap(bitmapMainScreen, 0, 0, paintFullCalc);
+//			} else {
+//				canvas.drawBitmap(bitmapMainScreen, invalidateRectangle, invalidateRectangle, paintFullCalc);
+//				invalidateRectangle.setEmpty();
+//			}
+//		}
 
 		if(usePixelBorders) {
 			// Copy the LCD part only without antialiasing
@@ -470,14 +470,15 @@ public class MainScreenView extends PanAndScaleView {
 	public void updateCallback(int type, int param1, int param2, String param3, String param4) {
         switch (type) {
             case NativeLib.CALLBACK_TYPE_INVALIDATE:
-	            int left = param1 >> 16;
-	            int top = param1 & 0xFFFF;
-	            int right = param2 >> 16;
-	            int bottom = param2 & 0xFFFF;
-	            if (debug) Log.d(TAG, "updateCallback() CALLBACK_TYPE_INVALIDATE postInvalidate() left: " + left + ", top: " + top + ", right: " + right + ", bottom: " + bottom);
-	            synchronized (invalidateRectangle) {
-		            invalidateRectangle.union(left, top, right, bottom);
-	            }
+//	            int left = param1 >> 16;
+//	            int top = param1 & 0xFFFF;
+//	            int right = param2 >> 16;
+//	            int bottom = param2 & 0xFFFF;
+//	            if (debug) Log.d(TAG, "updateCallback() CALLBACK_TYPE_INVALIDATE postInvalidate() left: " + left + ", top: " + top + ", right: " + right + ", bottom: " + bottom);
+//	            synchronized (invalidateRectangle) {
+//		            invalidateRectangle.union(left, top, right, bottom);
+//	            }
+	            if (debug) Log.d(TAG, "updateCallback() CALLBACK_TYPE_INVALIDATE postInvalidate()");
 	            postInvalidate();
 	            if(this.onUpdateDisplayListener != null)
 		            this.onUpdateDisplayListener.run();
@@ -489,7 +490,6 @@ public class MainScreenView extends PanAndScaleView {
                     if(debug) Log.d(TAG, "updateCallback() Bitmap.createBitmap(x: " + Math.max(1, param1) + ", y: " + Math.max(1, param2) + ")");
                     Bitmap  oldBitmapMainScreen = bitmapMainScreen;
                     bitmapMainScreen = Bitmap.createBitmap(Math.max(1, param1), Math.max(1, param2), Bitmap.Config.ARGB_8888);
-	                bitmapMainScreen.setDensity(Bitmap.DENSITY_NONE);
                     int globalColor = NativeLib.getGlobalColor();
                     kmlBackgroundColor = Color.argb(255, (globalColor & 0x00FF0000) >> 16, (globalColor & 0x0000FF00) >> 8, globalColor & 0x000000FF);
 

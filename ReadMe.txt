@@ -5,12 +5,10 @@ It uses the Android NDK. The former Emu42 source code (written by Christoph Gies
 This win32 layer will allow to easily update from the original Emu42 source code.
 It can open or save the exact same state files (state.e??) than the original Windows application!
 
-This application does NOT come with the ROM files!
-You will need KML scripts and ROM files already copied into your Android filesystem.
-You can download the KML scripts here: http://regis.cosnier.free.fr/soft/androidEmu42/KML-original-127.zip
-Or you can download the KML scripts from the original Emu42 Windows application archive (https://hp.giesselink.com/emu42.htm)
-and you can extract the ROM file from a real calculator (or be lucky on internet).
-Be careful about the case sensitivity of the filename in the KML script (Linux is case sensitive, not Windows).
+Some KML files with theirs faceplates are embedded in the application but it is still possible to open a KML file and its dependencies by selecting a folder on your Android file system.
+If you want to modify them, you can download the already embedded KML scripts here: http://regis.cosnier.free.fr/soft/androidEmu42/KML-original-127.zip
+Or you can download the KML scripts from the original Emu42 Windows application archive (https://hp.giesselink.com/emu42.htm) and add your ROM files.
+Be careful about the case sensitivity of the filename in the KML script (Linux/Android is case sensitive, not Windows).
 
 The application does not request any permission (because it opens the files or the KML folders using the content:// scheme).
 
@@ -20,11 +18,10 @@ https://github.com/dgis/emu42android
 
 QUICK START
 
-1. From the left side, slide your finger to open the menu.
+1. Click on the 3 dots button at the top left (or from the left side, slide your finger to open the menu).
 2. Touch the "New..." menu item.
-3. "Select a Custom KML script folder..." where you have copied the KML scripts and ROM files (Android 11 cannot use the folder Download).
-4. Pick a calculator.
-5. And the calculator should now be opened.
+3. Select a default calculator (or "[Select a Custom KML script folder...]" where you have copied the KML scripts and ROM files (Android 11 cannot use the folder Download)).
+4. And the calculator should now be opened.
 
 
 NOTES
@@ -32,7 +29,6 @@ NOTES
 - For technical reason, this application need the Android 5.0 (API 21).
 - The Help menu displays Emu42's original help HTML page and may not accurately reflect the behavior of this Android version.
 - When using a custom KML script by selecting a folder (Not the folder Download for Android 11), you must take care of the case sensitivity of its dependency files.
-- This Emulator does not include the ROM files or the KML files.
 - To speed up printing, set the 'delay' to 0 in the calculator's print options.
 
 
@@ -49,6 +45,12 @@ LINKS
 
 
 CHANGES
+
+Version 1.8 (2021-10-17)
+
+- Add the KML scripts and the calculator images in the application.
+- Remove unneeded code.
+
 
 Version 1.7 (2021-10-12)
 
@@ -154,7 +156,6 @@ TODO
 
 - The render pixels are very nice. A solution to obtain uniform pixel size could be a preset (a multiplier, auto) so the user could decide and upscale/downscale (Michael P).
 - In Autozoom mode, I could add a button which switches to the other half of the faceplate (Comments from @Nick and @Jean-Marc)
-- Try to include the KML files without the ROMs.
 - Sometimes, the calculator seems to lag and finally freeze.
 - In drawPixelBorder(), use canvas.drawLines() instead of multiple canvas.drawLine() to save CPU.
 

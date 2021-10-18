@@ -1,0 +1,448 @@
+Global
+	Print    "================================================="
+	Print    ""
+	Print    "This Real 20S graphic is by Christoph Giesselink."
+	Print    "http://hp.giesselink.com/"
+	Print    "Graphic based on a scan by Hewlett-Packard."
+	Print    ""
+	Print    "================================================="
+	Title    "Christoph's Real HP20S for 1024x768"
+	Author   "Christoph Giesselink"
+	Hardware "Lewis"	# Bert
+	Model    "F"		# Erni
+	Rom      "HP20S.ROM"
+	Bitmap   "REAL20S.PNG"
+	Color    3 255 255 255
+	Debug    0
+End
+
+Background
+	Offset   0   0
+	Size   296 550
+End
+
+Lcd
+	Offset 31 117		# position of display area
+	Color  0 148 161 152	# segment color table
+	Color  1 116 128 120
+	Color  2  87  96  90
+	Color  3  58  64  60
+	Color  4  29  32  30
+	Color  5   0   0   0
+	Color  6   0   0   0
+	Color  7   0   0   0
+End
+
+Digit
+	Distance 18		# distance between segments
+End
+
+# the offset positions of the annunciators are relative to the LCD offset,
+# this makes it possible to move the complete display as a whole
+
+Annunciator 1			# segment a   +-a-+
+	Size 10 3		#             f   b
+	Offset 15 0		#             +-g-+
+	Down 22 552		#             e   c dp
+End				#             +-d-+ cm
+
+Annunciator 2			# segment b
+	Size 3 10
+	Offset 23 1
+	Down 6 552
+End
+
+Annunciator 3			# segment c
+	Size 3 12
+	Offset 23 12
+	Down 16 552
+End
+
+Annunciator 4			# segment d
+	Size 10 3
+	Offset 15 22
+	Down 22 560
+End
+
+Annunciator 5			# segment e
+	Size 3 12
+	Offset 14 12
+	Down 11 552
+End
+
+Annunciator 6			# segment f
+	Size 3 10
+	Offset 14 1
+	Down 1 552
+End
+
+Annunciator 7			# segment g
+	Size 10 3
+	Offset 15 10
+	Down 22 556
+End
+
+Annunciator 8			# segment dp
+	Size 4 4
+	Offset 27 21
+	Down 36 552
+End
+
+Annunciator 9			# segment cm
+	Size 5 4
+	Offset 26 25
+	Down 35 558
+End
+
+Annunciator 10			# segment SIGN
+	Size 10 3
+	Offset 0 10
+	Down 22 556
+End
+
+Annunciator 11			# segment SHIFT
+	Size 14 6
+	Offset 0 33
+	Down 80 552
+End
+
+Annunciator 12			# segment LSHF
+	Size 14 10
+	Offset 19 31
+	Down 49 552
+End
+
+Annunciator 13			# segment RSHF
+	Size 14 10
+	Offset 37 31
+	Down 64 552
+End
+
+Annunciator 14			# segment COLN
+	Size 3 9
+	Offset 55 32
+	Down 44 553
+End
+
+Annunciator 15			# segment PEND
+	Size 19 7
+	Offset 64 33
+	Down 113 552
+End
+
+Annunciator 16			# segment BEGN
+	Size 21 7
+	Offset 88 33
+	Down 133 552
+End
+
+Annunciator 17			# segment BATT
+	Size 16 7
+	Offset 114 33
+	Down 95 552
+End
+
+Annunciator 18			# segment G
+	Size 4 7
+	Offset 136 33
+	Down 155 552
+End
+
+Annunciator 19			# segment RAD
+	Size 14 7
+	Offset 141 33
+	Down 160 552
+End
+
+Annunciator 20			# segment HEX
+	Size 14 7
+	Offset 162 33
+	Down 175 552
+End
+
+Annunciator 21			# segment OCT
+	Size 13 7
+	Offset 177 33
+	Down 190 552
+End
+
+Annunciator 22			# segment BIN
+	Size 11 7
+	Offset 191 33
+	Down 204 552
+End
+
+Annunciator 23			# segment PRGM
+	Size 20 7
+	Offset 209 33
+	Down 216 552
+End
+
+Button 71			# ON, should be the first defined key
+	Type 0
+	Size 27 20
+	Offset 26 491
+	Down 26 493
+	OutIn 0 32768
+End
+
+Button 11
+	Type 0
+	Size 27 19
+	Offset 26 229
+	Down 26 231
+	OutIn 5 64
+End
+Button 12
+	Type 0
+	Size 27 19
+	Offset 69 229
+	Down 69 231
+	OutIn 4 64
+End
+Button 13
+	Type 0
+	Size 27 19
+	Offset 114 229
+	Down 114 231
+	OutIn 3 64
+End
+Button 14
+	Type 0
+	Size 27 19
+	Offset 157 229
+	Down 157 231
+	OutIn 2 64
+End
+Button 15
+	Type 0
+	Size 27 19
+	Offset 201 229
+	Down 201 231
+	OutIn 1 64
+End
+Button 16
+	Type 0
+	Size 27 19
+	Offset 245 229
+	Down 245 231
+	OutIn 0 64
+End
+
+Button 21
+	Type 0
+	Size 27 19
+	Offset 26 274
+	Down 26 276
+	OutIn 5 32
+End
+Button 22
+	Type 0
+	Size 27 19
+	Offset 69 274
+	Down 69 276
+	OutIn 4 32
+End
+Button 23
+	Type 0
+	Size 27 19
+	Offset 114 274
+	Down 114 276
+	OutIn 3 32
+End
+Button 24
+	Type 0
+	Size 27 19
+	Offset 157 274
+	Down 157 276
+	OutIn 2 32
+End
+Button 25
+	Type 0
+	Size 27 19
+	Offset 201 274
+	Down 201 276
+	OutIn 1 32
+End
+Button 26
+	Type 0
+	Size 27 19
+	Offset 245 274
+	Down 245 276
+	OutIn 0 32
+End
+
+Button 31
+	Type 0
+	Size 69 19
+	Offset 26 318
+	Down 26 320
+	OutIn 4 16
+End
+Button 32
+	Type 0
+	Size 27 19
+	Offset 114 318
+	Down 114 320
+	OutIn 3 16
+End
+Button 33
+	Type 0
+	Size 27 19
+	Offset 157 318
+	Down 157 320
+	OutIn 2 16
+End
+Button 34
+	Type 0
+	Size 27 19
+	Offset 201 318
+	Down 201 320
+	OutIn 1 16
+End
+Button 35
+	Type 0
+	Size 27 19
+	Offset 245 318
+	Down 245 320
+	OutIn 0 16
+End
+
+Button 41
+	Type 0
+	Size 27 20
+	Offset 26 361
+	Down 26 363
+	OutIn 5 8
+End
+Button 42
+	Type 0
+	Size 35 20
+	Offset 76 361
+	Down 76 363
+	OutIn 3 8
+End
+Button 43
+	Type 0
+	Size 35 20
+	Offset 130 361
+	Down 130 363
+	OutIn 2 8
+End
+Button 44
+	Type 0
+	Size 35 20
+	Offset 184 361
+	Down 184 363
+	OutIn 1 8
+End
+Button 45
+	Type 0
+	Size 35 20
+	Offset 237 361
+	Down 237 363
+	OutIn 0 8
+End
+
+Button 51
+	Type 0
+	Size 27 20
+	Offset 26 404
+	Down 26 406
+	OutIn 5 4
+End
+Button 52
+	Type 0
+	Size 35 20
+	Offset 76 404
+	Down 76 406
+	OutIn 3 4
+End
+Button 53
+	Type 0
+	Size 35 20
+	Offset 130 404
+	Down 130 406
+	OutIn 2 4
+End
+Button 54
+	Type 0
+	Size 35 20
+	Offset 184 404
+	Down 184 406
+	OutIn 1 4
+End
+Button 55
+	Type 0
+	Size 35 20
+	Offset 237 404
+	Down 237 406
+	OutIn 0 4
+End
+
+Button 61
+	Type 0
+	Size 27 20
+	Offset 26 448
+	Down 26 450
+	OutIn 5 2
+End
+Button 62
+	Type 0
+	Size 35 20
+	Offset 76 448
+	Down 76 450
+	OutIn 3 2
+End
+Button 63
+	Type 0
+	Size 35 20
+	Offset 130 448
+	Down 130 450
+	OutIn 2 2
+End
+Button 64
+	Type 0
+	Size 35 20
+	Offset 184 448
+	Down 184 450
+	OutIn 1 2
+End
+Button 65
+	Type 0
+	Size 35 20
+	Offset 237 448
+	Down 237 450
+	OutIn 0 2
+End
+
+Button 72
+	Type 0
+	Size 35 20
+	Offset 76 491
+	Down 76 493
+	OutIn 3 1
+End
+Button 73
+	Type 0
+	Size 35 20
+	Offset 130 491
+	Down 130 493
+	OutIn 2 1
+End
+Button 74
+	Type 0
+	Size 35 20
+	Offset 184 491
+	Down 184 493
+	OutIn 1 1
+End
+Button 75
+	Type 0
+	Size 35 20
+	Offset 237 491
+	Down 237 493
+	OutIn 0 1
+End
+
+Include "Keyb10b.kmi"

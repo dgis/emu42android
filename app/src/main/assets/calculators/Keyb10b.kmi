@@ -1,0 +1,131 @@
+Scancode 16			# Shift
+	Map 16 61
+End
+
+Scancode 8			# <-
+	Map 8 35
+End
+
+Scancode 9			# TAB -> INPUT
+	Map 9 31
+End
+
+Scancode 13			# ENTER
+	Map 13 74
+End
+
+Scancode 27			# ESC -> EXIT
+	Map 27 71
+End
+
+Scancode 48			# 0
+	Map 48 72
+End
+
+Scancode 49			# 1
+	Map 49 62
+End
+
+Scancode 50			# 2
+	Map 50 63
+End
+
+Scancode 51			# 3
+	Map 51 64
+End
+
+Scancode 52			# 4
+	Map 52 52
+End
+
+Scancode 53			# 5
+	Map 53 53
+End
+
+Scancode 54			# 6
+	Map 54 54
+End
+
+Scancode 55			# 7
+	Map 55 42
+End
+
+Scancode 56			# 8
+	Map 56 43
+End
+
+Scancode 57			# 9
+	Map 57 44
+End
+
+Scancode 96			# Num 0
+	Map 96 72
+End
+
+Scancode 97			# Num 1
+	Map 97 62
+End
+
+Scancode 98			# Num 2
+	Map 98 63
+End
+
+Scancode 99			# Num 3
+	Map 99 64
+End
+
+Scancode 100			# Num 4
+	Map 100 52
+End
+
+Scancode 101			# Num 5
+	Map 101 53
+End
+
+Scancode 102			# Num 6
+	Map 102 54
+End
+
+Scancode 103			# Num 7
+	Map 103 42
+End
+
+Scancode 104			# Num 8
+	Map 104 43
+End
+
+Scancode 105			# Num 9
+	Map 105 44
+End
+
+Scancode 110			# Num , -> .
+	Map 110 73
+End
+
+Scancode 106			# Num *
+	Map 106 55
+End
+
+Scancode 107			# Num +
+	Map 107 75
+End
+
+Scancode 109			# Num -
+	Map 109 65
+End
+
+Scancode 111			# Num /
+	Map 111 45
+End
+
+Scancode 187			# +
+	Map 187 75
+End
+
+Scancode 189			# -
+	Map 189 65
+End
+
+Scancode 190			# .
+	Map 190 73
+End

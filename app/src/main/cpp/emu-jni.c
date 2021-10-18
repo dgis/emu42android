@@ -28,7 +28,7 @@ extern AAssetManager * assetManager;
 static jobject mainActivity = NULL;
 jobject bitmapMainScreen = NULL;
 AndroidBitmapInfo androidBitmapInfo;
-RECT mainViewRectangleToUpdate = { 0, 0, 0, 0 };
+//RECT mainViewRectangleToUpdate = { 0, 0, 0, 0 };
 enum DialogBoxMode currentDialogBoxMode;
 LPBYTE pbyRomBackup = NULL;
 enum ChooseKmlMode chooseCurrentKmlMode;
@@ -107,15 +107,15 @@ int mainViewCallback(int type, int param1, int param2, const TCHAR * param3, con
 }
 
 void mainViewUpdateCallback() {
-	if(!IsRectEmpty(&mainViewRectangleToUpdate)) {
-		int param1 = ((mainViewRectangleToUpdate.left & 0xFFFF) << 16) | (mainViewRectangleToUpdate.top & 0xFFFF);
-		int param2 = ((mainViewRectangleToUpdate.right & 0xFFFF) << 16) | (mainViewRectangleToUpdate.bottom & 0xFFFF);
-		mainViewCallback(CALLBACK_TYPE_INVALIDATE,
-		                 param1,
-		                 param2,
-		                 NULL, NULL);
-		SetRectEmpty(&mainViewRectangleToUpdate);
-	} else
+//	if(!IsRectEmpty(&mainViewRectangleToUpdate)) {
+//		int param1 = ((mainViewRectangleToUpdate.left & 0xFFFF) << 16) | (mainViewRectangleToUpdate.top & 0xFFFF);
+//		int param2 = ((mainViewRectangleToUpdate.right & 0xFFFF) << 16) | (mainViewRectangleToUpdate.bottom & 0xFFFF);
+//		mainViewCallback(CALLBACK_TYPE_INVALIDATE,
+//		                 param1,
+//		                 param2,
+//		                 NULL, NULL);
+//		SetRectEmpty(&mainViewRectangleToUpdate);
+//	} else
 		mainViewCallback(CALLBACK_TYPE_INVALIDATE,
 		                 0,
 		                 0,
