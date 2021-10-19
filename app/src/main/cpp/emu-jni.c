@@ -1111,11 +1111,11 @@ JNIEXPORT void JNICALL Java_org_emulator_calculator_NativeLib_onViewCopy(JNIEnv 
     size_t strideSource = (size_t)(4 * ((hBmp->bitmapInfoHeader->biWidth * hBmp->bitmapInfoHeader->biBitCount + 31) / 32));
     size_t strideDestination = bitmapScreenInfo.stride;
     VOID * bitmapBitsSource = (VOID *)hBmp->bitmapBits;
-    VOID * bitmapBitsDestination = pixelsDestination;
+    VOID * bitmapBitsDestination = pixelsDestination + (hBmp->bitmapInfoHeader->biHeight - 1) * strideDestination;
     for(int y = 0; y < hBmp->bitmapInfoHeader->biHeight; y++) {
         memcpy(bitmapBitsDestination, bitmapBitsSource, strideSource);
         bitmapBitsSource += strideSource;
-        bitmapBitsDestination += strideDestination;
+        bitmapBitsDestination -= strideDestination;
     }
 
 
@@ -1189,10 +1189,6 @@ JNIEXPORT jint JNICALL Java_org_emulator_calculator_NativeLib_onViewScript(JNIEn
     chooseCurrentKmlMode = ChooseKmlMode_UNKNOWN;
 
     if(bSucc) {
-//        if(hLcdDC && hLcdDC->selectedBitmap) {
-//            hLcdDC->selectedBitmap->bitmapInfoHeader->biHeight = -abs(hLcdDC->selectedBitmap->bitmapInfoHeader->biHeight);
-//        }
-
         mainViewResizeCallback(nBackgroundW, nBackgroundH);
         draw();
         if (Chipset.wRomCrc != wRomCrc)		// ROM changed
@@ -1222,9 +1218,6 @@ JNIEXPORT void JNICALL Java_org_emulator_calculator_NativeLib_onBackupSave(JNIEn
 JNIEXPORT void JNICALL Java_org_emulator_calculator_NativeLib_onBackupRestore(JNIEnv *env, jobject thisz) {
     SwitchToState(SM_INVALID);
     RestoreBackup();
-//    if(hLcdDC && hLcdDC->selectedBitmap) {
-//        hLcdDC->selectedBitmap->bitmapInfoHeader->biHeight = -abs(hLcdDC->selectedBitmap->bitmapInfoHeader->biHeight);
-//    }
     if (pbyRom) SwitchToState(SM_RUN);
 }
 

@@ -46,6 +46,13 @@ LINKS
 
 CHANGES
 
+Version 1.9 (2021-10-19)
+
+- Display the graphic tab of the printer without antialiasing.
+- Fix a crash about the Most Recently Used state files.
+- Fix an issue with "Copy Screen".
+
+
 Version 1.8 (2021-10-17)
 
 - Add the KML scripts and the calculator images in the application.

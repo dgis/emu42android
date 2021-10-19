@@ -3,6 +3,7 @@
     package="org.emulator.forty.two">
 
 	<uses-permission android:name="android.permission.VIBRATE" />
+
     <application
 	    android:name="org.emulator.calculator.EmuApplication"
         android:allowBackup="true"

@@ -142,6 +142,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
             return size() > MAX_MRU;
         }
     };
+	private HashMap<Integer, String> mruByMenuId = new HashMap<>();
 
     private final PrinterSimulator printerSimulator = new PrinterSimulator();
     private final PrinterSimulatorFragment fragmentPrinterSimulator = new PrinterSimulatorFragment();
@@ -258,6 +259,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
             if (recentsSubMenu != null)
                 recentsSubMenu.clear();
         }
+	    mruByMenuId.clear();
         if (recentsSubMenu != null) {
             Set<String> mruLinkedHashMapKeySet = mruLinkedHashMap.keySet();
             String[] mrus = mruLinkedHashMapKeySet.toArray(new String[0]);
@@ -268,8 +270,11 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
                 	// We should remove this file because it seems impossible to get the display name of this Most Recently Used state file.
 	                // It might be deleted or the permissions does not allow to reach it anymore.
 	                mruLinkedHashMap.remove(mostRecentlyUsedFile);
-                } else
-	                recentsSubMenu.add(Menu.NONE, MRU_ID_START + i, Menu.NONE, displayName);
+                } else {
+                	int menuId = MRU_ID_START + i;
+	                mruByMenuId.put(menuId, mostRecentlyUsedFile);
+	                recentsSubMenu.add(Menu.NONE, menuId, Menu.NONE, displayName);
+                }
             }
         }
     }
@@ -394,20 +399,16 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         } else if (id == R.id.nav_about) {
             OnAbout();
         } else if(id >= MRU_ID_START && id < MRU_ID_START + MAX_MRU) {
+	        String url = mruByMenuId.get(id);
+			if(url != null) {
+				// Increase the file usage count
+				mruLinkedHashMap.get(url);
 
-            Set<String> mruLinkedHashMapKeySet = mruLinkedHashMap.keySet();
-            int mruLength = mruLinkedHashMapKeySet.size();
-            String[] mrus = mruLinkedHashMapKeySet.toArray(new String[mruLength]);
-
-            int mruClickedIndex = id - MRU_ID_START;
-            String url = mrus[mruClickedIndex];
-            mruLinkedHashMap.get(url);
-
-            ensureDocumentSaved(() -> {
-	            // FileOpen from MRU.
-				onFileOpen(url, null, null);
-            });
-
+				ensureDocumentSaved(() -> {
+					// FileOpen from MRU.
+					onFileOpen(url, null, null);
+				});
+			}
         }
 
         drawer.closeDrawer(GravityCompat.START);
@@ -886,14 +887,17 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
             FileOutputStream fileOutputStream = new FileOutputStream(imageFile);
             bitmapScreen.compress(Bitmap.CompressFormat.PNG, 90, fileOutputStream);
             fileOutputStream.close();
-            String mimeType = "application/png";
-            Intent intent = new Intent(android.content.Intent.ACTION_SEND);
-            intent.setType(mimeType);
-            intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-            intent.putExtra(Intent.EXTRA_SUBJECT, R.string.message_screenshot);
-            intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
-            intent.putExtra(Intent.EXTRA_STREAM, FileProvider.getUriForFile(this,this.getPackageName() + ".provider", imageFile));
-            startActivity(Intent.createChooser(intent, getString(R.string.message_share_screenshot)));
+
+	        String subject = getString(R.string.message_screenshot);
+	        Intent intent = new Intent(android.content.Intent.ACTION_SEND);
+	        intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+	        intent.putExtra(Intent.EXTRA_SUBJECT, subject);
+	        intent.putExtra(Intent.EXTRA_TITLE, subject);
+	        intent.setFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+	        intent.putExtra(Intent.EXTRA_STREAM, FileProvider.getUriForFile(this,this.getPackageName() + ".provider", imageFile));
+	        intent.setType("image/png");
+//	        intent.setDataAndType(FileProvider.getUriForFile(this,this.getPackageName() + ".provider", imageFile), "image/png");
+	        startActivity(Intent.createChooser(intent, getString(R.string.message_share_screenshot)));
         } catch (Exception e) {
             e.printStackTrace();
             showAlert(e.getMessage());
@@ -914,14 +918,17 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
             FileOutputStream fileOutputStream = new FileOutputStream(imageFile);
             bitmapScreen.compress(Bitmap.CompressFormat.PNG, 90, fileOutputStream);
             fileOutputStream.close();
-            String mimeType = "application/png";
-            Intent intent = new Intent(android.content.Intent.ACTION_SEND);
-            intent.setType(mimeType);
-            intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-            intent.putExtra(Intent.EXTRA_SUBJECT, R.string.message_screenshot);
-            intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
-            intent.putExtra(Intent.EXTRA_STREAM, FileProvider.getUriForFile(this,this.getPackageName() + ".provider", imageFile));
-            startActivity(Intent.createChooser(intent, getString(R.string.message_share_screenshot)));
+
+	        String subject = getString(R.string.message_screenshot);
+	        Intent intent = new Intent(android.content.Intent.ACTION_SEND);
+	        intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+	        intent.putExtra(Intent.EXTRA_SUBJECT, subject);
+	        intent.putExtra(Intent.EXTRA_TITLE, subject);
+	        intent.setFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+	        intent.putExtra(Intent.EXTRA_STREAM, FileProvider.getUriForFile(this,this.getPackageName() + ".provider", imageFile));
+	        intent.setType("image/png");
+//	        intent.setDataAndType(FileProvider.getUriForFile(this,this.getPackageName() + ".provider", imageFile), "image/png");
+	        startActivity(Intent.createChooser(intent, getString(R.string.message_share_screenshot)));
         } catch (Exception e) {
             e.printStackTrace();
             showAlert(e.getMessage());
@@ -1301,7 +1308,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
 			    } else if (kmlFolderDocumentFile.exists())
 				    changeKMLFolder(kmlScriptFolder);
 		    } else {
-			    // We are using the API < 21, so we
+		    	// We are using the API < 21, so we
 			    changeKMLFolder(null);
 			    kmlScriptFolder = null;
 		    }
