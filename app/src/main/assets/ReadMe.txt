@@ -46,6 +46,12 @@ LINKS
 
 CHANGES
 
+Version 2.0 (2022-02-02)
+
+- Update the 32SII image.
+- Add a first UI test.
+
+
 Version 1.9 (2021-10-19)
 
 - Display the graphic tab of the printer without antialiasing.

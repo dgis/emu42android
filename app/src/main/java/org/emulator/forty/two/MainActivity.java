@@ -32,13 +32,11 @@ import android.os.ParcelFileDescriptor;
 import android.os.Vibrator;
 import android.util.Log;
 import android.util.SparseArray;
-import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.SubMenu;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.Button;
 import android.widget.FrameLayout;
 import android.widget.ImageButton;
 import android.widget.ImageView;
@@ -53,7 +51,6 @@ import androidx.core.content.FileProvider;
 import androidx.core.view.GravityCompat;
 import androidx.documentfile.provider.DocumentFile;
 import androidx.drawerlayout.widget.DrawerLayout;
-import androidx.fragment.app.Fragment;
 
 import com.google.android.material.navigation.NavigationView;
 
@@ -70,12 +67,10 @@ import org.emulator.calculator.Utils;
 
 import java.io.BufferedReader;
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.io.OutputStream;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.text.SimpleDateFormat;
@@ -166,6 +161,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
 
         ViewGroup mainScreenContainer = findViewById(R.id.main_screen_container);
         mainScreenView = new MainScreenView(this);
+	    mainScreenView.setId(R.id.main_screen_view);
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP)
             mainScreenView.setStatusBarColor(getWindow().getStatusBarColor());
         mainScreenContainer.addView(mainScreenView, 0, new ViewGroup.LayoutParams(

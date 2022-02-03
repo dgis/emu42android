@@ -256,7 +256,7 @@ public class MainScreenView extends PanAndScaleView {
 	@Override
     public boolean onKeyDown(int keyCode, KeyEvent event) {
         if((event.getFlags() & KeyEvent.FLAG_VIRTUAL_HARD_KEY) == 0
-        && (event.getSource() & InputDevice.SOURCE_KEYBOARD) == InputDevice.SOURCE_KEYBOARD) {
+        && ((event.getSource() & InputDevice.SOURCE_KEYBOARD) == InputDevice.SOURCE_KEYBOARD) || event.getSource() == 0) {
         	if(!event.isNumLockOn() && numpadKey.indexOf(keyCode) != -1)
         		return false;
             char pressedKey = (char) event.getUnicodeChar();
@@ -277,7 +277,7 @@ public class MainScreenView extends PanAndScaleView {
     @Override
     public boolean onKeyUp(int keyCode, KeyEvent event) {
         if((event.getFlags() & KeyEvent.FLAG_VIRTUAL_HARD_KEY) == 0
-        && (event.getSource() & InputDevice.SOURCE_KEYBOARD) == InputDevice.SOURCE_KEYBOARD) {
+        && ((event.getSource() & InputDevice.SOURCE_KEYBOARD) == InputDevice.SOURCE_KEYBOARD) || event.getSource() == 0) {
 	        if(!event.isNumLockOn() && numpadKey.indexOf(keyCode) != -1)
 		        return false;
             char pressedKey = (char) event.getUnicodeChar();
