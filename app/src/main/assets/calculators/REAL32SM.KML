@@ -22,12 +22,12 @@ End
 
 Lcd
 	Offset 40 131		# position of display area
-	Color  0 100 118 100	# segment color table
-	Color  1  88 104  88
-	Color  2  76  89  76
-	Color  3  64  74  64
-	Color  4  52  59  52
-	Color  5  40  44  40
+	Color  0 108 130 106	# segment color table
+	Color  1  93 113  93
+	Color  2  80  96  80
+	Color  3  67  79  67
+	Color  4  54  63  54
+	Color  5  41  46  41
 	Color  6  28  30  28    # default
 	Color  7  16  16  16
 	Color  8   4   2   4
@@ -38,10 +38,10 @@ Lcd
 	Color 13   0   0   0
 	Color 14   0   0   0
 	Color 15   0   0   0
-	Color 27  92 109  90	# background
-	Color 28  86 100  82
-	Color 29  78  91  74
-	Color 30  70  82  66
+	Color 27 108 130 106	# background
+	Color 28  96 115  93
+	Color 29  85 101  81
+	Color 30  73  87  69
 	Color 31  62  73  58
 End
 

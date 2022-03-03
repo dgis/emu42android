@@ -46,6 +46,14 @@ LINKS
 
 CHANGES
 
+Version 2.1 (2022-03-03)
+
+- Allow to load RLE4, RLE8 and monochrome BMP images.
+- Add "Real HP32S" and update "Christoph's Real HP32S" skins.
+- Duplicate all the HP42S skins with 32KB of RAM (instead of the default 8KB).
+- Optimize the number of draw calls when displaying the LCD pixel borders.
+
+
 Version 2.0 (2022-02-02)
 
 - Update the 32SII image.

@@ -46,6 +46,14 @@ LINKS
 
 CHANGES
 
+Version 2.1 (2022-03-03)
+
+- Allow to load RLE4, RLE8 and monochrome BMP images.
+- Add "Real HP32S" and update "Christoph's Real HP32S" skins.
+- Duplicate all the HP42S skins with 32KB of RAM (instead of the default 8KB).
+- Optimize the number of draw calls when displaying the LCD pixel borders.
+
+
 Version 2.0 (2022-02-02)
 
 - Update the 32SII image.
@@ -170,7 +178,6 @@ TODO
 - The render pixels are very nice. A solution to obtain uniform pixel size could be a preset (a multiplier, auto) so the user could decide and upscale/downscale (Michael P).
 - In Autozoom mode, I could add a button which switches to the other half of the faceplate (Comments from @Nick and @Jean-Marc)
 - Sometimes, the calculator seems to lag and finally freeze.
-- In drawPixelBorder(), use canvas.drawLines() instead of multiple canvas.drawLine() to save CPU.
 
 
 BUILD

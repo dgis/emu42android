@@ -679,10 +679,6 @@ JNIEXPORT jint JNICALL Java_org_emulator_calculator_NativeLib_onFileNew(JNIEnv *
     chooseCurrentKmlMode = ChooseKmlMode_UNKNOWN;
 
     if(result) {
-//        if(hLcdDC && hLcdDC->selectedBitmap) {
-//            hLcdDC->selectedBitmap->bitmapInfoHeader->biHeight = -abs(hLcdDC->selectedBitmap->bitmapInfoHeader->biHeight);
-//        }
-
         mainViewResizeCallback(nBackgroundW, nBackgroundH);
         draw();
 
@@ -715,18 +711,13 @@ JNIEXPORT jint JNICALL Java_org_emulator_calculator_NativeLib_onFileOpen(JNIEnv 
 		// We are loading a KML script from the embedded asset folder inside the Android App.
 		// We directly set the variable "szEmuDirectory"/"szRomDirectory" and "szCurrentAssetDirectory" with the KML folder
 		// which contain the script and its dependencies like the includes, the images and the ROMs.
-		//_tcscpy(szEmuDirectory, "assets/calculators/");
+		_tcscpy(szEmuDirectory, "assets/calculators/");
 		//_tcscpy(szRomDirectory, "assets/calculators/");
 	}
 
 	kmlFileNotFound = FALSE;
     lastKMLFilename[0] = '\0';
     BOOL result = OpenDocument(szBufferFilename);
-//    if (result) {
-//        if(hLcdDC && hLcdDC->selectedBitmap) {
-//            hLcdDC->selectedBitmap->bitmapInfoHeader->biHeight = -abs(hLcdDC->selectedBitmap->bitmapInfoHeader->biHeight);
-//        }
-//    }
     chooseCurrentKmlMode = ChooseKmlMode_UNKNOWN;
     mainViewResizeCallback(nBackgroundW, nBackgroundH);
     if(result) {
