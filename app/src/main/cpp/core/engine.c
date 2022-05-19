@@ -311,13 +311,13 @@ static __inline VOID AdjustSpeed(VOID)		// adjust emulation speed
 	if (   bEnableSlow
 		&& (bCpuSlow || bKeySlow || bSoundSlow || nOpcSlow > 0))
 	{
-		DWORD dwCycles,dwTicks;
-
 		EnterCriticalSection(&csSlowLock);
 		{
 			// cycles elapsed for next check
-			if ((dwCycles = (DWORD) (Chipset.cycles & 0xFFFFFFFF)-dwOldCyc) >= (DWORD) T2CYCLES)
+			if (((DWORD) (Chipset.cycles & 0xFFFFFFFF)-dwOldCyc) >= (DWORD) T2CYCLES)
 			{
+				DWORD dwTicks;
+
 				LARGE_INTEGER lAct;
 				do
 				{
@@ -346,15 +346,10 @@ VOID InitAdjustSpeed(VOID)
 	if (!bEnableSlow || (!bCpuSlow && !bKeySlow && !bSoundSlow && nOpcSlow == 0))
 	{
 		LARGE_INTEGER lTime;				// sample timer ticks
-
-		EnterCriticalSection(&csSlowLock);
-		{
-			// save reference cycles
-			dwOldCyc = (DWORD) (Chipset.cycles & 0xFFFFFFFF);
-			QueryPerformanceCounter(&lTime);// get timer ticks
-			dwSpeedRef = lTime.LowPart;		// save reference time
-		}
-		LeaveCriticalSection(&csSlowLock);
+		// save reference cycles
+		dwOldCyc = (DWORD) (Chipset.cycles & 0xFFFFFFFF);
+		QueryPerformanceCounter(&lTime);	// get timer ticks
+		dwSpeedRef = lTime.LowPart;			// save reference time
 	}
 	return;
 }
@@ -368,21 +363,29 @@ VOID AdjKeySpeed(VOID)						// slow down key repeat
 	for (i = 0;i < ARRAYSIZEOF(Chipset.Keyboard_Row) && !bKey;++i)
 		bKey = (Chipset.Keyboard_Row[i] != 0);
 
-	if (bKey)								// key pressed
+	EnterCriticalSection(&csSlowLock);
 	{
-		InitAdjustSpeed();					// init variables if necessary
+		if (bKey)							// key pressed
+		{
+			InitAdjustSpeed();				// init variables if necessary
+		}
+		bKeySlow = bKey;					// save new state
 	}
-	bKeySlow = bKey;						// save new state
+	LeaveCriticalSection(&csSlowLock);
 	return;
 }
 
 VOID SetSpeed(BOOL bAdjust)					// set emulation speed
 {
-	if (bAdjust)							// switch to real speed
+	EnterCriticalSection(&csSlowLock);
 	{
-		InitAdjustSpeed();					// init variables if necessary
+		if (bAdjust)						// switch to real speed
+		{
+			InitAdjustSpeed();				// init variables if necessary
+		}
+		bCpuSlow = bAdjust;					// save emulation speed
 	}
-	bCpuSlow = bAdjust;						// save emulation speed
+	LeaveCriticalSection(&csSlowLock);
 	return;
 }
 

@@ -409,15 +409,15 @@ h3 { color:red; font-size:1.1em; }
       about it.</p></li>
     </ul>
   <h2><a name=ss9.3>9.3 Copy Screen</a></h2>
-    <p>Copy the screen content as bitmap to the clipboard. The Bert and
-    Sacajawea hardware based calculators HP10B, HP14B, HP20S, HP21S, HP22S,
-    HP32S and HP32SII send the screen content also in text format. Not all
-    text characters can be showed in the actual codepage, these character
-    positions leave empty in the clipboard.</p>
+    <p>Copy the screen content in text and bitmap format to the clipboard.
+    The text format on the graphic models work only with the regular font
+    on the regular character positions. Graphic and the soft menu buttons
+    cannot be shown in text mode. The actual used Latin-1 Supplement
+    codepage don't support all text characters, at the position of such a
+    character the MIDDLE DOT U+00B7 character is used in the clipboard
+    text output instead.</p>
   <h2><a name=ss9.4>9.4 Copy Stack</a></h2>
-    <p>This menu item is enabled for the HP10B, HP14B, HP17B, HP17BII,
-    HP19BII, HP20S, HP21S, HP22S, HP27S, HP28S, HP32S, HP32SII and the HP42S
-    emulation.
+    <p>This menu item is enabled for all supported calculator models.
     </p>
     <p>The decimal point (radix mark) of &quot;Real Numbers&quot; in the
     clipboard is equal to the calculator setting. This is important when
@@ -437,7 +437,8 @@ h3 { color:red; font-size:1.1em; }
       to the clipboard.</p></li>
     </ul>
   <h2><a name=ss9.5>9.5 Paste Stack</a></h2>
-    <p>This is only valid for the HP28S and the HP42S emulation.</p>
+    <p>This is only valid for the HP28S, the HP32S, the HP32SII and the
+    HP42S emulation.</p>
     <p>To import &quot;Real or Complex Numbers&quot; from the clipboard, the
     decimal point (radix mark) of the clipboard and calculator <u>must</u>
     match. A real or complex number is only detected in the case of valid
@@ -454,6 +455,10 @@ h3 { color:red; font-size:1.1em; }
       the content a complex number object, the number will be saved as
       &quot;Complex Number&quot; object, otherwise cases as
       &quot;String&quot; object.</p></li>
+      <li><b>HP32S and HP32SII</b>
+      <p>If the clipboard text field content is representing a real number,
+      paste the text field content of the clipboard to the X-register of
+      the emulated calculator.</p></li>
       <li><b>HP42S</b>
       <p>Paste the text field content of the clipboard to the X-register of
       the emulated calculator. If the clipboard content is representing a
@@ -551,7 +556,7 @@ h3 { color:red; font-size:1.1em; }
     </table>
   <h1><a name=s14>14. License</a></h1>
     <p>Emu42 - A HP10B/14B/17B/17BII/19BII/20S/21S/22S/27S/28S/32S/32SII/42S Emulator<br>
-    Copyright (C) 2021 Christoph Gie&szlig;elink</p>
+    Copyright (C) 2022 Christoph Gie&szlig;elink</p>
     <p>This program is free software; you can redistribute it and/or modify it
     under the terms of the GNU General Public License as published by the Free
     Software Foundation; either version 2 of the License, or (at your option)

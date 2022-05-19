@@ -540,7 +540,7 @@ enum STG_ERRCODE SteganoEncodeDib(LPBYTE byDib, DWORD dwDibSize, LPBYTE byData, 
 	StegDataWrite(&sBmpDim,pbyData,&lTargetPos,nBitPerByte,(LPBYTE) &wCrc,sizeof(wCrc),NULL);
 
 	// check written data length from calculated one
-	_ASSERT(lTargetPos == 
+	_ASSERT((DWORD) lTargetPos == 
 			(1
 			+ CodingLength(sizeof(dwMarker),nBitPerByte)
 			+ CodingLength(sizeof(wLength),nBitPerByte)    + CodingLength(wLength,nBitPerByte)

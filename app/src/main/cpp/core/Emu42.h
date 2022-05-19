@@ -24,7 +24,7 @@
 
 #define OBJECT_EN		_T("DLNO")			// valid calculator models for Load/Save Object enable
 #define STACK_C_EN		_T("ACDEFILMNOTUY")	// valid calculator models for Stack Copy enable
-#define STACK_P_EN		_T("DO")			// valid calculator models for Stack Paste enable
+#define STACK_P_EN		_T("DLNO")			// valid calculator models for Stack Paste enable
 
 #define BINARYHEADER28S "HPHP28-S"
 
@@ -149,7 +149,8 @@ extern VOID    MruAdd(LPCTSTR lpszEntry);
 extern VOID    MruRemove(UINT nIndex);
 extern VOID    MruMoveTop(UINT nIndex);
 extern UINT    MruEntries(VOID);
-extern LPCTSTR MruFilename(UINT nIndex);
+extern UINT    MruID(LPCTSTR lpszEntry);
+extern VOID    MruFilename(UINT nIndex, LPTSTR szFilename, UINT nBuffersize);
 extern VOID    MruUpdateMenu(HMENU hMenu);
 extern VOID    MruWriteList(VOID);
 extern VOID    MruReadList(VOID);
@@ -190,14 +191,16 @@ extern VOID   DestroyLcdBitmap(VOID);
 extern BOOL   CreateMainBitmap(LPCTSTR szFilename);
 extern VOID   DestroyMainBitmap(VOID);
 extern BOOL   CreateAnnunBitmap(LPCTSTR szFilename);
+extern BOOL   CreateAnnunBitmapFromMain(VOID);
 extern VOID   SetAnnunBitmap(HDC hDC, HBITMAP hBitmap);
 extern VOID   DestroyAnnunBitmap(VOID);
 extern VOID   StartDisplay(VOID);
 extern VOID   StopDisplay(VOID);
 extern VOID   UpdateAnnunciators(DWORD dwUpdateMask);
-extern VOID   GetLcdNumberBert(LPTSTR szContent);
-extern VOID   GetLcdNumberSaca(LPTSTR szContent);
 extern VOID   ResizeWindow(VOID);
+
+// Dispnum.c
+extern VOID GetLcdNumber(LPTSTR szContent);
 
 // Engine.c
 extern CHIPSET_M Chipset;

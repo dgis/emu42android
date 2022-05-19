@@ -1,15 +1,19 @@
 # switcher for nationalized keyboard setting
 
 Locale 7			# German(Neutral)
-	Include "kb28-gr.kmi"
+	Include "kb28-gr.kmi"	# German(German)
+End
+
+Locale 1040			# Italian(Italy)
+	Include "kb28-it.kmi"	# Italian(Italy)
 End
 
 Locale 2057			# English(UK)
-	Include "kb28-uk.kmi"
+	Include "kb28-uk.kmi"	# English(UK)
 End
 
 Locale 9			# English(Neutral)
-	Include "kb28-us.kmi"
+	Include "kb28-us.kmi"	# English(US)
 End
 
 Locale 0			# default, must be the last defined locale

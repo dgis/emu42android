@@ -671,9 +671,9 @@ static DWORD ReadT2Acc(enum CHIP eChip)
 	// maybe CPU speed measurement, slow down the next 10 CPU opcodes
 	if (dwCycDif < 150)
 	{
-		InitAdjustSpeed();					// init variables if necessary
 		EnterCriticalSection(&csSlowLock);
 		{
+			InitAdjustSpeed();				// init variables if necessary
 			nOpcSlow = 10;					// slow down next 10 opcodes
 		}
 		LeaveCriticalSection(&csSlowLock);

@@ -368,6 +368,8 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
             OnViewCopyFullscreen();
         } else if (id == R.id.nav_copy_screen) {
             OnViewCopy();
+        } else if (id == R.id.nav_copy_stack_visible) {
+	        OnStackCopyVisible();
         } else if (id == R.id.nav_copy_stack) {
             OnStackCopy();
         } else if (id == R.id.nav_paste_stack) {
@@ -434,14 +436,15 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         boolean uRun = NativeLib.isDocumentAvailable();
         boolean bObjectEnable = (cCurrentRomType == 'D' || cCurrentRomType == 'L' || cCurrentRomType == 'N' || cCurrentRomType == 'O');
         boolean bStackCEnable = (cCurrentRomType == 'A' || cCurrentRomType == 'C' || cCurrentRomType == 'D' || cCurrentRomType == 'E' || cCurrentRomType == 'F' || cCurrentRomType == 'I' || cCurrentRomType == 'L' || cCurrentRomType == 'M' || cCurrentRomType == 'N' || cCurrentRomType == 'O' || cCurrentRomType == 'T' || cCurrentRomType == 'U' || cCurrentRomType == 'Y');
-        boolean bStackPEnable = (cCurrentRomType == 'D' || cCurrentRomType == 'O');
+        boolean bStackPEnable = (cCurrentRomType == 'D' || cCurrentRomType == 'L' || cCurrentRomType == 'N' || cCurrentRomType == 'O');
 
         menu.findItem(R.id.nav_save).setEnabled(uRun);
         menu.findItem(R.id.nav_save_as).setEnabled(uRun);
         menu.findItem(R.id.nav_close).setEnabled(uRun);
         menu.findItem(R.id.nav_load_object).setEnabled(uRun && bObjectEnable);
         menu.findItem(R.id.nav_save_object).setEnabled(uRun && bObjectEnable);
-        menu.findItem(R.id.nav_copy_screen).setEnabled(uRun);
+	    menu.findItem(R.id.nav_copy_screen).setEnabled(uRun);
+	    menu.findItem(R.id.nav_copy_stack_visible).setEnabled(uRun && bStackCEnable);
         menu.findItem(R.id.nav_copy_stack).setEnabled(uRun && bStackCEnable);
         menu.findItem(R.id.nav_paste_stack).setEnabled(uRun && bStackPEnable);
         menu.findItem(R.id.nav_reset_calculator).setEnabled(uRun);
@@ -936,6 +939,9 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
             showAlert(e.getMessage());
         }
     }
+	private void OnStackCopyVisible() {
+		NativeLib.onStackCopyVisible();
+	}
     private void OnStackCopy() {
         NativeLib.onStackCopy();
     }
@@ -994,7 +1000,10 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         } else
             kmlScriptsForCurrentModel = kmlScripts;
 
-        boolean showDefaultKMLScriptFolderItem = !kmlFolderUseDefault && (getPackageName().contains("org.emulator.forty.eight") || getPackageName().contains("org.emulator.forty.two"));
+        boolean showDefaultKMLScriptFolderItem = !kmlFolderUseDefault && (
+            getPackageName().contains("org.emulator.forty.eight")
+	        || getPackageName().contains("org.emulator.forty.two")
+	        || getPackageName().contains("org.emulator.twenty.eight"));
         int lastIndex = kmlScriptsForCurrentModel.size();
         String[] kmlScriptTitles = new String[lastIndex + (showDefaultKMLScriptFolderItem ? 2 : 1)];
         for (int i = 0; i < kmlScriptsForCurrentModel.size(); i++)
@@ -2104,7 +2113,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
 					"settings_printer_model", "settings_macro",
                     "settings_kml", "settings_port1", "settings_port2",
                     "settings_flash_port2",
-                    "settings_serial_ports_wire", "settings_serial_ports_ir" };
+                    "settings_serial_ports_wire", "settings_serial_ports_ir", "settings_serial_slowdown" };
 			for (String settingKey : settingKeys)
                 updateFromPreferences(settingKey, false);
         } else {
@@ -2233,6 +2242,9 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
 	            case "settings_serial_ports_ir":
 		            //NativeLib.setConfiguration("settings_serial_ports_ir", isDynamicValue, 0, 0,
 				    //        DevicesFragment.SerialConnectParameters.fromSettingsString(settings.getString("settings_serial_ports_ir", "")).toWin32String());
+		            break;
+	            case "settings_serial_slowdown":
+		            //NativeLib.setConfiguration(key, isDynamicValue, settings.getBoolean(key, false) ? 1 : 0, 0, null);
 		            break;
             }
         }

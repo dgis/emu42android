@@ -46,6 +46,11 @@ LINKS
 
 CHANGES
 
+Version 2.2 (2022-05-xx)
+
+- Update from the original source code Emu42 version 1.28 from Christoph Gießelink (Copy/paste improvement).
+
+
 Version 2.1 (2022-03-03)
 
 - Allow to load RLE4, RLE8 and monochrome BMP images.
@@ -182,7 +187,7 @@ TODO
 
 BUILD
 
-Emu42 for Android is built with Android Studio (2021).
+Emu42 for Android is built with Android Studio 2021.1.1 (2022).
 And to generate an installable APK file with a real Android device, it MUST be signed.
 
 Either use Android Studio:

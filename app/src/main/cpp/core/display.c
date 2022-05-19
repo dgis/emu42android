@@ -123,85 +123,6 @@ static struct
 	{ {0xFF,0xFF,0xFF,0x00},{0x00,0x00,0x00,0x00} }
 };
 
-// translation table for Sacajawea segment type
-static CONST struct
-{
-	QWORD qwImage;							// segment image
-	TCHAR cChar;							// corresponding character
-} sSegtabSaca[] =
-{
-	CLL(0x0000000000), _T(' '),
-	CLL(0x000017C000), _T('!'),
-	CLL(0x0232623262), _T('%'),
-	CLL(0x000388A080), _T('('),
-	CLL(0x00038FB180), _T('('),				// wide bracket variant
-	CLL(0x0008288E00), _T(')'),
-	CLL(0x000C6F8E00), _T(')'),				// wide bracket variant
-	CLL(0x0222820A22), _T('*'),
-	CLL(0x00810F8408), _T('+'),
-	CLL(0x0081020408), _T('-'),
-	CLL(0x0000408102), _T('-'),				// negative exponent
-	CLL(0x00810A8408), _T('/'),				// divide
-	CLL(0x0404040404), _T('/'),
-	CLL(0x03EA3262BE), _T('0'),
-	CLL(0x00085FE000), _T('1'),
-	CLL(0x062A3264C6), _T('2'),
-	CLL(0x02293264B6), _T('3'),
-	CLL(0x018284BF90), _T('4'),
-	CLL(0x0278B162B9), _T('5'),
-	CLL(0x03C95264B0), _T('6'),
-	CLL(0x001E224283), _T('7'),
-	CLL(0x03693264B6), _T('8'),
-	CLL(0x006932549E), _T('9'),
-	CLL(0x000D9B0000), _T(':'),
-	CLL(0x008288A080), _T('<'),
-	CLL(0x006932549E), _T('<'),
-	CLL(0x0142850A14), _T('='),
-	CLL(0x0414450400), _T('>'),
-	CLL(0x0020344486), _T('?'),
-	CLL(0x07E12244FE), _T('A'),
-	CLL(0x07F93264B6), _T('B'),
-	CLL(0x03E83060A2), _T('C'),
-	CLL(0x07F830511C), _T('D'),
-	CLL(0x07F93264C1), _T('E'),
-	CLL(0x03E54A9100), _T('E'),				// exponent
-	CLL(0x07F1224481), _T('F'),
-	CLL(0x03E83068F2), _T('G'),
-	CLL(0x07F102047F), _T('H'),
-	CLL(0x00083FE080), _T('I'),
-	CLL(0x030810203F), _T('J'),
-	CLL(0x07F1051141), _T('K'),
-	CLL(0x07F8102040), _T('L'),
-	CLL(0x07F043017F), _T('M'),
-	CLL(0x07F082087F), _T('N'),
-	CLL(0x03E83060BE), _T('O'),
-	CLL(0x07F1224486), _T('P'),
-	CLL(0x03E83450DE), _T('Q'),
-	CLL(0x07F12654C6), _T('R'),
-	CLL(0x02693264B2), _T('S'),
-	CLL(0x00103FC081), _T('T'),
-	CLL(0x03F810203F), _T('U'),
-	CLL(0x0073180C07), _T('V'),
-	CLL(0x07F406107F), _T('W'),
-	CLL(0x0632820A63), _T('X'),
-	CLL(0x00309E0203), _T('Y'),
-	CLL(0x061A3262C3), _T('Z'),
-	CLL(0x0040404104), _T('^'),
-	CLL(0x0408102040), _T('_'),
-	CLL(0x07F9122430), _T('b'),
-	CLL(0x038A952A18), _T('e'),
-	CLL(0x00089F6000), _T('i'),
-	CLL(0x07C0860278), _T('m'),
-	CLL(0x07C0810278), _T('n'),
-	CLL(0x07C1010204), _T('r'),
-	CLL(0x048A952A24), _T('s'),
-	CLL(0x03880C2038), _T('w'),
-	CLL(0x04850C2848), _T('x'),
-	CLL(0x048A080808), _T('y'),
-	CLL(0x0000E14380), _T('°'),
-	CLL(0x0192A48000), _T('²')
-};
-
 VOID (*UpdateContrast)(VOID) = NULL;
 
 static VOID UpdateContrastBert(VOID);
@@ -681,6 +602,11 @@ VOID CreateLcdBitmap(VOID)
 		SelectPalette(hLcdDC,hPalette,FALSE); // set palette for LCD DC
 		RealizePalette(hLcdDC);				// realize palette
 
+		if (hAnnunDC == NULL)				// no external LCD bitmap
+		{
+			CreateAnnunBitmapFromMain();	// create annunciator bitmap from background bitmap
+		}
+
 		UpdateContrast();					// initialize background
 
 		EnterCriticalSection(&csGDILock);	// solving NT GDI problems
@@ -721,8 +647,8 @@ VOID CreateLcdBitmap(VOID)
 		_ASSERT(hBrush != HGDI_ERROR);
 
 		_ASSERT(hPalette != NULL);
-		SelectPalette(hLcdDC,hPalette,FALSE);	// set palette for LCD DC
-		RealizePalette(hLcdDC);					// realize palette
+		SelectPalette(hLcdDC,hPalette,FALSE); // set palette for LCD DC
+		RealizePalette(hLcdDC);				// realize palette
 
 		// set display update routine
 		UpdateDisplayMem = UpdateDisplayBert;
@@ -730,9 +656,14 @@ VOID CreateLcdBitmap(VOID)
 		// display contrast routine
 		UpdateContrast = UpdateContrastBert;
 
-		EnterCriticalSection(&csGDILock);		// solving NT GDI problems
+		if (hAnnunDC == NULL)				// no external LCD bitmap
 		{
-			_ASSERT(hMainDC);					// background bitmap must be loaded
+			CreateAnnunBitmapFromMain();	// create annunciator bitmap from background bitmap
+		}
+
+		EnterCriticalSection(&csGDILock);	// solving NT GDI problems
+		{
+			_ASSERT(hMainDC);				// background bitmap must be loaded
 
 			// get original background from bitmap
 			BitBlt(hLcdDC, 0, 0, nLcdXSize, nLcdYSize, hMainDC, nLcdX, nLcdY, SRCCOPY);
@@ -840,6 +771,159 @@ BOOL CreateAnnunBitmap(LPCTSTR szFilename)
 	}
 	hAnnunBitmap = (HBITMAP) SelectObject(hAnnunDC,hAnnunBitmap);
 	return TRUE;
+}
+
+//
+// create annunciator bitmap from background bitmap
+//
+BOOL CreateAnnunBitmapFromMain(VOID)
+{
+	BITMAPINFO bmi;
+	LPDWORD pdwData, pdwRGBPixel;
+	BYTE    byLuminanceMin, byLuminanceMax, byLuminanceMean;
+	UINT    i, nAnnIdx, nPixelSize;
+
+	// annunciator bitmap
+	ZeroMemory(&bmi,sizeof(bmi));
+	bmi.bmiHeader.biSize = sizeof(bmi.bmiHeader);
+	bmi.bmiHeader.biPlanes = 1;
+	bmi.bmiHeader.biBitCount = 32;			// use 32 bit bitmap for easier buffer calculation
+	bmi.bmiHeader.biCompression = BI_RGB;
+
+	// 1st pass, get size for annunciator bitmap
+	for (nAnnIdx = 0, i = 0; i < ARRAYSIZEOF(pAnnunciator); ++i)
+	{
+		// annunciator has a dimension
+		if (pAnnunciator[i].nCx * pAnnunciator[i].nCy > 0)
+		{
+			bmi.bmiHeader.biWidth += pAnnunciator[i].nCx;
+			if ((LONG) pAnnunciator[i].nCy > bmi.bmiHeader.biHeight)
+			{
+				bmi.bmiHeader.biHeight = pAnnunciator[i].nCy;
+				nAnnIdx = i;				// index of annunciator with maximum height
+			}
+		}
+	}
+
+	// no. of Pixel
+	nPixelSize = bmi.bmiHeader.biHeight * bmi.bmiHeader.biWidth;
+
+	if (nPixelSize == 0)					// annunciator size = 0
+		return TRUE;						// success
+
+	// create annunciator bitmap buffer
+	VERIFY(hAnnunBitmap = CreateDIBSection(hWindowDC,
+										   &bmi,
+										   DIB_RGB_COLORS,
+										   (VOID **)&pdwData,
+										   NULL,
+										   0));
+	if (hAnnunBitmap == NULL) return FALSE;
+
+	// check pixel buffer alignment for ARM CPU
+	_ASSERT((DWORD_PTR) pdwData % sizeof(DWORD) == 0);
+
+	VERIFY(hAnnunDC = CreateCompatibleDC(hWindowDC));
+	hAnnunBitmap = (HBITMAP) SelectObject(hAnnunDC,hAnnunBitmap);
+
+	EnterCriticalSection(&csGDILock);		// solving NT GDI problems
+	{
+		// copy one annunciator pixel to begin of bitmap buffer
+		BitBlt(hAnnunDC, 0, bmi.bmiHeader.biHeight - 1, 1, 1,
+			   hMainDC, pAnnunciator[nAnnIdx].nDx, pAnnunciator[nAnnIdx].nDy, SRCCOPY);
+		GdiFlush();
+	}
+	LeaveCriticalSection(&csGDILock);
+
+	// fill annunciator bitmap with a annunciator color
+	{
+		// get annunciator color (doesn't matter if fore- or background color)
+		CONST DWORD dwColor = *pdwData;		// bottom up bitmap
+
+		for (pdwRGBPixel = pdwData, i = nPixelSize; i > 1; --i)
+		{
+			*++pdwRGBPixel = dwColor;		// and fill
+		}
+	}
+
+	EnterCriticalSection(&csGDILock);		// solving NT GDI problems
+	{
+		UINT x = 0;							// bitmap target position
+
+		// 2nd pass, copy annunciators into annunciator bitmap
+		for (i = 0; i < ARRAYSIZEOF(pAnnunciator); ++i)
+		{
+			// annunciator has a dimension
+			if (pAnnunciator[i].nCx * pAnnunciator[i].nCy > 0)
+			{
+				_ASSERT((LONG) x < bmi.bmiHeader.biWidth);
+				_ASSERT((LONG) pAnnunciator[i].nCy <= bmi.bmiHeader.biHeight);
+
+				// copy annunciator to annunciator bitmap
+				BitBlt(hAnnunDC, x, 0, pAnnunciator[i].nCx, pAnnunciator[i].nCy,
+					   hMainDC, pAnnunciator[i].nDx, pAnnunciator[i].nDy, SRCCOPY);
+
+				pAnnunciator[i].nDx = x;	// new annunciator down position
+				pAnnunciator[i].nDy = 0;
+
+				x += pAnnunciator[i].nCx;	// next position
+			}
+		}
+		GdiFlush();
+	}
+	LeaveCriticalSection(&csGDILock);
+
+	// convert to grayscale and get min/max value
+	byLuminanceMin = 0xFF; byLuminanceMax = 0x00;
+	for (pdwRGBPixel = pdwData, i = nPixelSize; i > 0; --i)
+	{
+		CONST LPBYTE pbyRGBPixel = (LPBYTE) pdwRGBPixel;
+
+		// NTSC formula for grayscale: 0.299 * Red + 0.587 * Green + 0.114 * Blue
+		DWORD dwLuminance = pbyRGBPixel[0] * 114		// blue
+						  + pbyRGBPixel[1] * 587		// green
+						  + pbyRGBPixel[2] * 299;		// read
+		*pbyRGBPixel = (BYTE) (dwLuminance / 1000);		// set grayscale value to blue
+
+		if (*pbyRGBPixel < byLuminanceMin) byLuminanceMin = *pbyRGBPixel;
+		if (*pbyRGBPixel > byLuminanceMax) byLuminanceMax = *pbyRGBPixel;
+
+		++pdwRGBPixel;						// next pixel
+	}
+
+	// convert to black & white bitmap
+	byLuminanceMean = (BYTE) (((WORD) byLuminanceMin + (WORD) byLuminanceMax) / 2);
+	for (pdwRGBPixel = pdwData, i = nPixelSize; i > 0; --i)
+	{
+		// paint white or black dependent on luminance of blue
+		*pdwRGBPixel++ = (*(LPBYTE) pdwRGBPixel >= byLuminanceMean) ? W : B;
+	}
+
+	#if defined DEBUG_WRITEBMP
+	// write mask to file
+	{
+		HANDLE hFile;
+
+		hFile = CreateFile(_T("amask.bmp"), GENERIC_WRITE, 0, NULL, CREATE_ALWAYS, 0, NULL);
+		if (hFile != INVALID_HANDLE_VALUE)
+		{
+			BITMAPFILEHEADER bfh;
+			DWORD  dwWritten;
+
+			bfh.bfType = 0x4D42;
+			bfh.bfSize = sizeof(bfh) + sizeof(bmi) + nPixelSize * 4;
+			bfh.bfReserved1 = 0;
+			bfh.bfReserved2 = 0;
+			bfh.bfOffBits = sizeof(bfh) + sizeof(bmi);
+
+			WriteFile(hFile,&bfh,sizeof(bfh),&dwWritten,NULL);
+			WriteFile(hFile,&bmi,sizeof(bmi),&dwWritten,NULL);
+			WriteFile(hFile,pdwData,nPixelSize * 4,&dwWritten,NULL);
+			CloseHandle(hFile);
+		}
+	}
+	#endif
+	return TRUE;							// success
 }
 
 //
@@ -1242,7 +1326,7 @@ static VOID UpdateDisplayBert(VOID)
 				UINT i;
 
 				// x-offset for digit, dp or cm pattern
-				UINT nDigitOff = (UINT) (((d + 2) >> 2) - 1) * nLcdDistance; 
+				UINT nDigitOff = (UINT) (((d + 2) >> 2) - 1) * nLcdDistance;
 
 				BYTE byValue = Chipset.b.DspRam[d];
 				_ASSERT((byValue & 0xF0) == 0);
@@ -1426,122 +1510,6 @@ VOID UpdateAnnunciators(DWORD dwUpdateMask)
 		dwUpdateMask >>= 1;
 	}
 	_ASSERT(dwUpdateMask == 0);
-	return;
-}
-
-//
-// interprete characters of Bert display
-//
-VOID GetLcdNumberBert(LPTSTR szContent)
-{
-	INT   nAddr;
-	INT   i = 0;
-
-	// display on?
-	if ((Chipset.b.IORam[BCONTRAST] & DON) != 0)
-	{
-		// get sign
-		if ((Chipset.b.DspRam[0] & 0x4)) szContent[i++] = _T('-');
-
-		// scan complete display area
-		for (nAddr = 0x02; nAddr < 0x32; nAddr += 0x04)
-		{
-			WORD wSeg = (WORD) Npack(&Chipset.b.DspRam[nAddr],4);
-
-			switch (wSeg & 0x8387)			// 7 segment decoding
-			{
-			case 0x0000: szContent[i++] = _T(' '); break;
-			case 0x0001: szContent[i++] = _T('-'); break;
-			case 0x8386: szContent[i++] = _T('0'); break;
-			case 0x0300: szContent[i++] = _T('1'); break;
-			case 0x8107: szContent[i++] = _T('2'); break;
-			case 0x8305: szContent[i++] = _T('3'); break;
-			case 0x0381: szContent[i++] = _T('4'); break;
-			case 0x8285: szContent[i++] = _T('5'); break;
-			case 0x8287: szContent[i++] = _T('6'); break;
-			case 0x8300: szContent[i++] = _T('7'); break;
-			case 0x8387: szContent[i++] = _T('8'); break;
-			case 0x8385: szContent[i++] = _T('9'); break;
-			case 0x8383: szContent[i++] = _T('A'); break;
-			case 0x8086: szContent[i++] = _T('C'); break;
-			case 0x8087: szContent[i++] = _T('E'); break;
-			case 0x8083: szContent[i++] = _T('F'); break;
-			case 0x0383: szContent[i++] = _T('H'); break;
-			case 0x0086: szContent[i++] = _T('L'); break;
-			case 0x8183: szContent[i++] = _T('P'); break;
-			case 0x0385: szContent[i++] = _T('Y'); break;
-			case 0x0287: szContent[i++] = _T('b'); break;
-			case 0x0007: szContent[i++] = _T('c'); break;
-			case 0x0307: szContent[i++] = _T('d'); break;
-			case 0x0002: szContent[i++] = _T('i'); break;
-			case 0x0203: szContent[i++] = _T('n'); break;
-			case 0x0207: szContent[i++] = _T('o'); break;
-			case 0x0003: szContent[i++] = _T('r'); break;
-			case 0x0087: szContent[i++] = _T('t'); break;
-			case 0x0206: szContent[i++] = _T('u'); break;
-			case 0x0004: szContent[i++] = _T('_'); break;
-			}
-
-			switch (wSeg & 0x0C00)				// dp, cm decoding
-			{
-			case 0x0400: szContent[i++] = _T('.'); break;
-			case 0x0C00: szContent[i++] = _T(','); break;
-			}
-		}
-	}
-	szContent[i] = 0;						// set EOS
-	return;
-}
-
-//
-// interprete characters of Sacajawea display
-//
-VOID GetLcdNumberSaca(LPTSTR szContent)
-{
-	INT   nAddr;
-	INT   i = 0;
-
-	_ASSERT(nCurrentHardware == HDW_SACA);
-
-	// display on?
-	if ((Chipset.IORam[DSPCTL] & DON) != 0)
-	{
-		// get sign
-		if ((Chipset.IORam[1] & 0x8)) szContent[i++] = _T('-');
-
-		// scan complete display area
-		for (nAddr = PDISP_BEGIN; nAddr <= PDISP_END; nAddr += 10)
-		{
-			INT j;
-			QWORD qwSeg = 0;
-
-			// build character image
-			for (j = 0; j < 10; j += 2)
-			{
-				qwSeg <<= 3;
-				qwSeg |= Chipset.IORam[nAddr+j+1] & 0x7;
-				qwSeg <<= 4;
-				qwSeg |= Chipset.IORam[nAddr+j];
-			}
-
-			// search for character image in table
-			for (j = 0; j < ARRAYSIZEOF(sSegtabSaca); ++j)
-			{
-				if (sSegtabSaca[j].qwImage == qwSeg) // found known image
-				{
-					szContent[i++] = sSegtabSaca[j].cChar;
-					break;
-				}
-			}
-
-			// decode dp and cm
-			if (Chipset.IORam[nAddr+9] & 0x8)	// dp set
-			{
-				szContent[i++] = (Chipset.IORam[nAddr+7] & 0x8) ? _T(',') : _T('.');
-			}
-		}
-	}
-	szContent[i] = 0;						// set EOS
 	return;
 }
 

@@ -1724,7 +1724,7 @@ typedef struct _BmpFile
 	LPBYTE pbyFile;							// buffer
 } BMPFILE, FAR *LPBMPFILE, *PBMPFILE;
 
-static __inline WORD DibNumColors(BITMAPINFOHEADER CONST *lpbi)
+static __inline WORD DibNumColors(__unaligned BITMAPINFOHEADER CONST *lpbi)
 {
 	if (lpbi->biClrUsed != 0) return (WORD) lpbi->biClrUsed;
 
@@ -1732,7 +1732,7 @@ static __inline WORD DibNumColors(BITMAPINFOHEADER CONST *lpbi)
 	return (lpbi->biBitCount <= 8) ? (1 << lpbi->biBitCount) : 0;
 }
 
-static HPALETTE CreateBIPalette(BITMAPINFOHEADER CONST *lpbi)
+static HPALETTE CreateBIPalette(__unaligned BITMAPINFOHEADER CONST *lpbi)
 {
 	LOGPALETTE* pPal;
 	HPALETTE    hpal = NULL;
@@ -1741,12 +1741,9 @@ static HPALETTE CreateBIPalette(BITMAPINFOHEADER CONST *lpbi)
 	BYTE        green;
 	BYTE        blue;
 	UINT        i;
-	RGBQUAD*    pRgb;
+	__unaligned RGBQUAD* pRgb;
 
-	if (!lpbi)
-		return NULL;
-
-	if (lpbi->biSize != sizeof(BITMAPINFOHEADER))
+	if (!lpbi || lpbi->biSize != sizeof(BITMAPINFOHEADER))
 		return NULL;
 
 	// Get a pointer to the color table and the number of colors in it
@@ -1810,22 +1807,19 @@ static HPALETTE CreateBIPalette(BITMAPINFOHEADER CONST *lpbi)
 
 static HBITMAP DecodeBmp(LPBMPFILE pBmp,BOOL bPalette)
 {
-	LPBITMAPFILEHEADER pBmfh;
-	LPBITMAPINFO pBmi;
-	HBITMAP hBitmap;
-	DWORD   dwFileSize;
+	DWORD dwFileSize;
 
-	hBitmap = NULL;
+	HBITMAP hBitmap = NULL;
 
-	// size of bitmap header information
+	// map memory to BITMAPFILEHEADER and BITMAPINFO
+	const LPBITMAPFILEHEADER pBmfh = (LPBITMAPFILEHEADER) pBmp->pbyFile;
+	const __unaligned LPBITMAPINFO pBmi = (__unaligned LPBITMAPINFO) & pBmfh[1];
+
+	// size of bitmap header information & check for bitmap
 	dwFileSize = sizeof(BITMAPFILEHEADER) + sizeof(BITMAPINFOHEADER);
-	if (pBmp->dwFileSize < dwFileSize) return NULL;
-
-	// check for bitmap
-	pBmfh = (LPBITMAPFILEHEADER) pBmp->pbyFile;
-	if (pBmfh->bfType != 0x4D42) return NULL; // "BM"
-
-	pBmi = (LPBITMAPINFO) (pBmp->pbyFile + sizeof(BITMAPFILEHEADER));
+	if (   pBmp->dwFileSize < dwFileSize	// minimum size to read data from BITMAPFILEHEADER + BITMAPINFOHEADER
+		|| pBmfh->bfType != 0x4D42)			// "BM"
+		return NULL;
 
 	// size with color table
 	if (pBmi->bmiHeader.biCompression == BI_BITFIELDS)
@@ -2446,11 +2440,15 @@ static HBITMAP DecodePng(LPBMPFILE pBmp,BOOL bPalette)
 	if (hBitmap == NULL) goto quit;
 
 	pbySrc = pbyImage;						// init source loop pointer
+	pbyPixels += bmi.bmiHeader.biSizeImage;	// end of destination bitmap
 
 	// fill bottom up DIB pixel buffer with color information
-	for (nHeight = bmi.bmiHeader.biHeight - 1; nHeight >= 0; --nHeight)
+	for (nHeight = 0; nHeight < bmi.bmiHeader.biHeight; ++nHeight)
 	{
-		LPBYTE pbyLine = pbyPixels + nHeight * lBytesPerLine;
+		LPBYTE pbyLine;
+
+		pbyPixels -= lBytesPerLine;			// begin of previous row
+		pbyLine = pbyPixels;				// row working copy
 
 		for (nWidth = 0; nWidth < bmi.bmiHeader.biWidth; ++nWidth)
 		{
@@ -2459,8 +2457,6 @@ static HBITMAP DecodePng(LPBMPFILE pBmp,BOOL bPalette)
 			*pbyLine++ = pbySrc[0];			// red
 			pbySrc += 3;
 		}
-
-		_ASSERT((DWORD) (pbyLine - pbyPixels) <= bmi.bmiHeader.biSizeImage);
 	}
 
 	if (bPalette && hPalette == NULL)
@@ -2475,12 +2471,6 @@ quit:
 	if (pbyImage != NULL)					// buffer for PNG image allocated
 	{
 		free(pbyImage);						// free PNG image data
-	}
-
-	if (hBitmap != NULL && uError != 0)		// creation failed
-	{
-		DeleteObject(hBitmap);				// delete bitmap
-		hBitmap = NULL;
 	}
 	return hBitmap;
 }

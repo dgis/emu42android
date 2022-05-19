@@ -145,7 +145,8 @@
 // HP32S RAM entries
 #define L_nRadix		1			// nRadix,
 
-#define L_SysFlags		0x20064
+#define L_UserFlags		0x20060
+#define L_SysFlags		0x20062
 #define L_StackLastX	0x20094
 #define L_StackT		0x200A4
 #define L_StackZ		0x200B4
@@ -155,6 +156,7 @@
 // HP32SII rev. A RAM entries
 #define N_nRadix		4			// nRadix,
 
+#define N_UserFlags		0x2005A
 #define N_SysFlags		0x2005D
 #define N_StackLastX	0x20096
 #define N_StackT		0x200A6

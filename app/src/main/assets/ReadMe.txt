@@ -46,6 +46,11 @@ LINKS
 
 CHANGES
 
+Version 2.2 (2022-05-xx)
+
+- Update from the original source code Emu42 version 1.28 from Christoph Gießelink (Copy/paste improvement).
+
+
 Version 2.1 (2022-03-03)
 
 - Allow to load RLE4, RLE8 and monochrome BMP images.

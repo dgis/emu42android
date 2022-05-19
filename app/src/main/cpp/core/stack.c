@@ -393,7 +393,7 @@ static TCHAR GetRadix(VOID)
 		bPoint = (byFlag & I_nRadix) == 0;
 		break;
 	case 'L': // HP32S (Leonardo)
-		Npeek(&byFlag,L_SysFlags,sizeof(byFlag));
+		Npeek(&byFlag,L_SysFlags+2,sizeof(byFlag));
 		bPoint = (byFlag & L_nRadix) == 0;
 		break;
 	case 'M': // HP27S (Mentor)
@@ -731,24 +731,67 @@ LRESULT OnStackPaste(VOID)					// paste data to stack
 						{
 							_ASSERT(s <= ARRAYSIZEOF(byNumber));
 
-							// get TEMPOB memory for real object
-							dwAddress = RPL_CreateTemp(16+5);
-							if ((bSuccess = (dwAddress > 0)))
+							if (cCurrentRomType == 'L') // HP32S (Leonardo)
 							{
-								// check if both objects have same address
-								_ASSERT(D_DOREAL == O_DOREAL);
-								Write5(dwAddress,O_DOREAL);
-								Nwrite(byNumber,dwAddress+5,s);
+								BYTE byFlag;
 
-								if (cCurrentRomType == 'D') // HP42S (Davinci)
+								// get flag with stack lift bit
+								Npeek(&byFlag,L_SysFlags+1,sizeof(byFlag));
+								if ((byFlag & 0x1) != 0) // stack lift enabled
 								{
-									// push object to stack
-									RPL_PushX(dwAddress);
+									BYTE byStack[16*3];
+
+									// do stack lift, x,y,z -> y,z,t
+									Npeek(byStack,L_StackZ,sizeof(byStack));
+									Nwrite(byStack,L_StackT,sizeof(byStack));
 								}
-								else		// HP28S (Orlando)
+								// overwrite x-register with object
+								Nwrite(byNumber,L_StackX,s);
+								byFlag |= 0x1;			// enable stack lift
+								Nwrite(&byFlag,L_SysFlags+1,sizeof(byFlag));
+								bSuccess = TRUE;
+							}
+							else if (cCurrentRomType == 'N') // HP32SII (Nardo)
+							{
+								BYTE byFlag;
+
+								// get flag with stack lift bit
+								Npeek(&byFlag,N_SysFlags+3,sizeof(byFlag));
+								if ((byFlag & 0x1) != 0) // stack lift enabled
 								{
-									// push object to stack
-									RPL_Push(1,dwAddress);
+									BYTE byStack[16*3];
+
+									// do stack lift, x,y,z -> y,z,t
+									Npeek(byStack,N_StackZ,sizeof(byStack));
+									Nwrite(byStack,N_StackT,sizeof(byStack));
+								}
+								// overwrite x-register with object
+								Nwrite(byNumber,N_StackX,s);
+								byFlag |= 0x1;			// enable stack lift
+								Nwrite(&byFlag,N_SysFlags+3,sizeof(byFlag));
+								bSuccess = TRUE;
+							}
+							else
+							{
+								// get TEMPOB memory for real object
+								dwAddress = RPL_CreateTemp(16+5);
+								if ((bSuccess = (dwAddress > 0)))
+								{
+									// check if both objects have same address
+									_ASSERT(D_DOREAL == O_DOREAL);
+									Write5(dwAddress,O_DOREAL);
+									Nwrite(byNumber,dwAddress+5,s);
+
+									if (cCurrentRomType == 'D') // HP42S (Davinci)
+									{
+										// push object to stack
+										RPL_PushX(dwAddress);
+									}
+									else	// HP28S (Orlando)
+									{
+										// push object to stack
+										RPL_Push(1,dwAddress);
+									}
 								}
 							}
 							break;
@@ -890,9 +933,20 @@ LRESULT OnStackPaste(VOID)					// paste data to stack
 		goto cancel;
 	}
 
-	KeyboardEvent(TRUE,0,0x8000);
-	Sleep(dwWakeupDelay);
-	KeyboardEvent(FALSE,0,0x8000);
+	// on HP32S (Leonardo) or HP32SII (Nardo) press/release <ON><C> to refresh display
+	// on HP28S (Orlando) or HP42S (Davinci) press/release <ON> to refresh display
+	KeyboardEvent(TRUE,0,0x8000);			// press <ON> key
+	if (cCurrentRomType == 'L' || cCurrentRomType == 'N')
+	{
+		KeyboardEvent(TRUE,3,64);			// press <C> key
+		Sleep(dwWakeupDelay);
+		KeyboardEvent(FALSE,3,64);			// release <C> key
+	}
+	else
+	{
+		Sleep(dwWakeupDelay);
+	}
+	KeyboardEvent(FALSE,0,0x8000);			// release <ON> key
 
 	// wait for sleep mode
 	while(Chipset.Shutdn == FALSE) Sleep(0);

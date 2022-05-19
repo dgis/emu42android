@@ -42,6 +42,7 @@ BOOL settingsPort2en;
 BOOL settingsPort2wr;
 BOOL soundAvailable = FALSE;
 BOOL soundEnabled = FALSE;
+BOOL serialPortSlowDown = FALSE;
 
 
 
@@ -1034,30 +1035,20 @@ JNIEXPORT void JNICALL Java_org_emulator_calculator_NativeLib_onViewCopy(JNIEnv 
     nxO = nyO = 0;					// origin in HDC
     hSrcDC = hLcdDC;				// use display HDC as source
 
-	if (nCurrentHardware == HDW_SACA || nCurrentHardware == HDW_BERT)
-	{
-		TCHAR cBuffer[32];			// temp. buffer for text
-		MSG msg;
-
-		// get text display string
-		if (nCurrentHardware == HDW_SACA)
-			GetLcdNumberSaca(cBuffer);
-		else
-			GetLcdNumberBert(cBuffer);
-		dwLen = (lstrlen(cBuffer) + 1) * sizeof(cBuffer[0]);
-		// memory allocation for clipboard data
-		if ((hClipObj = GlobalAlloc(GMEM_MOVEABLE, dwLen)) != NULL)
-		{
-			LPTSTR szText = (LPTSTR) GlobalLock(hClipObj);
-			lstrcpy(szText, cBuffer);
-#if defined _UNICODE
-			SetClipboardData(CF_UNICODETEXT, hClipObj);
-#else
-			SetClipboardData(CF_TEXT, hClipObj);
-#endif
-			GlobalUnlock(hClipObj);
-		}
-    }
+//	if (nCurrentHardware == HDW_SACA || nCurrentHardware == HDW_BERT)
+//	{
+//		MSG msg;
+//
+//		// pump WM_PAINT message for closing menu before getting image
+//		while (PeekMessage (&msg, hWnd, WM_PAINT, WM_PAINT, PM_REMOVE))
+//			DispatchMessage (&msg);
+//
+//		// calculate bitmap origins from hWindowDC
+//		nxO = nLcdX; if (nxO > 1) { nxO -= 2; nxSize += 4; };
+//		nyO = nLcdY; if (nyO > 1) { nyO -= 2; nySize += 4; };
+//
+//		hSrcDC = hWindowDC;				// use output HDC as source
+//	}
 
     hBmp = CreateCompatibleBitmap(hSrcDC,nxSize,nySize);
     hBmpDC = CreateCompatibleDC(hSrcDC);
@@ -1074,26 +1065,26 @@ JNIEXPORT void JNICALL Java_org_emulator_calculator_NativeLib_onViewCopy(JNIEnv 
     // fill BITMAP structure for size information
     GetObject((HANDLE) hBmp, sizeof(bm), &bm);
 
-    wBits = bm.bmPlanes * bm.bmBitsPixel;
-    // make sure bits per pixel is valid
-    if (wBits <= 1)
-        wBits = 1;
-    else if (wBits <= 4)
-        wBits = 4;
-    else if (wBits <= 8)
-        wBits = 8;
-    else // if greater than 8-bit, force to 24-bit
-        wBits = 24;
-
-    dwSizeImage = WIDTHBYTES((DWORD)bm.bmWidth * wBits) * bm.bmHeight;
-
-    // calculate memory size to store CF_DIB data
-    dwLen = sizeof(BITMAPINFOHEADER) + dwSizeImage;
-    if (wBits != 24)				// a 24 bitcount DIB has no color table
-    {
-        // add size for color table
-        dwLen += (DWORD) (1 << wBits) * sizeof(RGBQUAD);
-    }
+//    wBits = bm.bmPlanes * bm.bmBitsPixel;
+//    // make sure bits per pixel is valid
+//    if (wBits <= 1)
+//        wBits = 1;
+//    else if (wBits <= 4)
+//        wBits = 4;
+//    else if (wBits <= 8)
+//        wBits = 8;
+//    else // if greater than 8-bit, force to 24-bit
+//        wBits = 24;
+//
+//    dwSizeImage = WIDTHBYTES((DWORD)bm.bmWidth * wBits) * bm.bmHeight;
+//
+//    // calculate memory size to store CF_DIB data
+//    dwLen = sizeof(BITMAPINFOHEADER) + dwSizeImage;
+//    if (wBits != 24)				// a 24 bitcount DIB has no color table
+//    {
+//        // add size for color table
+//        dwLen += (DWORD) (1 << wBits) * sizeof(RGBQUAD);
+//    }
 
 
 
@@ -1117,6 +1108,28 @@ JNIEXPORT void JNICALL Java_org_emulator_calculator_NativeLib_onViewCopy(JNIEnv 
 
 
     AndroidBitmap_unlockPixels(env, bitmapScreen);
+}
+
+JNIEXPORT void JNICALL Java_org_emulator_calculator_NativeLib_onStackCopyVisible(JNIEnv *env, jobject thisz) {
+	TCHAR cBuffer[256];				// temp. buffer for text
+	HANDLE hClipObj;
+	DWORD dwLen;
+
+	// get text display string
+	GetLcdNumber(cBuffer);
+	dwLen = (lstrlen(cBuffer) + 1) * sizeof(cBuffer[0]);
+	// memory allocation for clipboard data
+	if ((hClipObj = GlobalAlloc(GMEM_MOVEABLE, dwLen)) != NULL)
+	{
+		LPTSTR szText = (LPTSTR) GlobalLock(hClipObj);
+		lstrcpy(szText, cBuffer);
+#if defined _UNICODE
+		SetClipboardData(CF_UNICODETEXT, hClipObj);
+#else
+		SetClipboardData(CF_TEXT, hClipObj);
+#endif
+		GlobalUnlock(hClipObj);
+	}
 }
 
 JNIEXPORT void JNICALL Java_org_emulator_calculator_NativeLib_onStackCopy(JNIEnv *env, jobject thisz) {
