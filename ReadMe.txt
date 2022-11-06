@@ -46,9 +46,10 @@ LINKS
 
 CHANGES
 
-Version 2.2 (2022-05-xx)
+Version 2.2 (2022-11-05)
 
-- Update from the original source code Emu42 version 1.28 from Christoph Gießelink (Copy/paste improvement).
+- Update from the original source code Emu42 version 1.29 from Christoph Gießelink (Copy/paste improvement).
+- Attempt to fix haptic feedback with Android 13 (API deprecation).
 
 
 Version 2.1 (2022-03-03)

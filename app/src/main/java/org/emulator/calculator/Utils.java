@@ -24,6 +24,7 @@ import android.graphics.PorterDuff;
 import android.graphics.drawable.Drawable;
 import android.net.Uri;
 import android.os.Build;
+import android.os.VibrationAttributes;
 import android.os.VibrationEffect;
 import android.os.Vibrator;
 import android.provider.OpenableColumns;
@@ -205,7 +206,10 @@ public class Utils {
 
 	public static void vibrate(Vibrator vibrator, int durationInMilliSecond) {
 		if(vibrator != null && durationInMilliSecond > 0) {
-			if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O)
+			if (Build.VERSION.SDK_INT >= 33)
+				// https://developer.android.com/reference/android/os/Vibrator#vibrate(android.os.VibrationEffect,%20android.os.VibrationAttributes)
+				vibrator.vibrate(VibrationEffect.createOneShot(durationInMilliSecond, VibrationAttributes.USAGE_TOUCH));
+			else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O)
 				// https://developer.android.com/reference/android/os/Vibrator#vibrate(android.os.VibrationEffect,%20android.media.AudioAttributes)
 				vibrator.vibrate(VibrationEffect.createOneShot(durationInMilliSecond, VibrationEffect.DEFAULT_AMPLITUDE));
 			else

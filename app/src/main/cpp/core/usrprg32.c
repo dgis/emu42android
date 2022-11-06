@@ -346,10 +346,12 @@ static BOOL Catalog(BOOL *pbFirst, CatLabel32 *pLbl)
 	INT  nCmdType;							// type of current command
 	INT  nLoopStatus;						// state variable for loop
 
+	INT  nActLabelGto = -1;					// active label GTO
 	INT  nLblPos = 0;						// position in LBL string
 	BOOL bCondCode = FALSE;					// conditional jump code
 
 	const INT nLblA = (cCurrentRomType == 'N') ? N_LBL_A : L_LBL_A;
+	const INT nGto = (cCurrentRomType == 'N') ? N_GTO_A : L_GTO_A;
 	const INT nRtn = (cCurrentRomType == 'N') ? N_RTN : L_RTN;
 
 	// first call, get .END. address
@@ -383,11 +385,16 @@ static BOOL Catalog(BOOL *pbFirst, CatLabel32 *pLbl)
 		{
 			if (nLoopStatus == FIND)		// label
 			{
+				const INT nActLabel = (nCmdType - nLblA);
+
 				// first label in context
 				if (dwCurrAddr == pLbl->dwStartAddr + 3)
 					nLblPos = 0;			// overwrite "0"
 
-				pLbl->cLabel[nLblPos++] = _T('A') + (nCmdType - nLblA);
+				// code for GTO to active label
+				nActLabelGto = nGto + nActLabel;
+
+				pLbl->cLabel[nLblPos++] = _T('A') + nActLabel;
 				pLbl->cLabel[nLblPos] = 0;	// EOS
 			}
 
@@ -398,9 +405,10 @@ static BOOL Catalog(BOOL *pbFirst, CatLabel32 *pLbl)
 			}
 		}
 
-		if (!bCondCode && nCmdType == nRtn)	// found a non conditional RTN
+		// non conditional RTN or non conditional GTO to the active label
+		if (!bCondCode && ((nCmdType == nRtn) || (nCmdType == nActLabelGto)))
 		{
-			nLoopStatus = RETURN;			// RTN, leave on next label
+			nLoopStatus = RETURN;			// RTN or GTO to active label, leave on next label
 		}
 
 		// check for conditional jump code

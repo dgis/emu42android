@@ -675,6 +675,10 @@ LRESULT OnStackPaste(VOID)					// paste data to stack
 
 	HANDLE hClipObj;
 
+	DWORD dwStackLiftAddr = 0;
+	BYTE  byStackLiftEn = 0;
+	BOOL  bPostStackLiftEn = FALSE;
+
 	BOOL bSuccess = FALSE;
 
 	// check if clipboard format is available
@@ -747,17 +751,17 @@ LRESULT OnStackPaste(VOID)					// paste data to stack
 								}
 								// overwrite x-register with object
 								Nwrite(byNumber,L_StackX,s);
-								byFlag |= 0x1;			// enable stack lift
+								byFlag |= 0x1;			// set stack lift bit
 								Nwrite(&byFlag,L_SysFlags+1,sizeof(byFlag));
 								bSuccess = TRUE;
 							}
 							else if (cCurrentRomType == 'N') // HP32SII (Nardo)
 							{
-								BYTE byFlag;
+								dwStackLiftAddr = N_SysFlags+3;
 
 								// get flag with stack lift bit
-								Npeek(&byFlag,N_SysFlags+3,sizeof(byFlag));
-								if ((byFlag & 0x1) != 0) // stack lift enabled
+								Npeek(&byStackLiftEn,dwStackLiftAddr,sizeof(byStackLiftEn));
+								if ((byStackLiftEn & 0x1) != 0) // stack lift enabled
 								{
 									BYTE byStack[16*3];
 
@@ -767,8 +771,8 @@ LRESULT OnStackPaste(VOID)					// paste data to stack
 								}
 								// overwrite x-register with object
 								Nwrite(byNumber,N_StackX,s);
-								byFlag |= 0x1;			// enable stack lift
-								Nwrite(&byFlag,N_SysFlags+3,sizeof(byFlag));
+								byStackLiftEn |= 0x1;		// set stack lift bit
+								bPostStackLiftEn = TRUE;	// enable stack lift after <ON><C> display update
 								bSuccess = TRUE;
 							}
 							else
@@ -950,6 +954,12 @@ LRESULT OnStackPaste(VOID)					// paste data to stack
 
 	// wait for sleep mode
 	while(Chipset.Shutdn == FALSE) Sleep(0);
+
+	if (bPostStackLiftEn)					// set stack lift enable
+	{
+		// unprotected write aceess, CPU should be still in shutdown state
+		Nwrite(&byStackLiftEn,dwStackLiftAddr,sizeof(byStackLiftEn));
+	}
 
 cancel:
 	bDbgAutoStateCtrl = TRUE;				// enable automatic debugger state control

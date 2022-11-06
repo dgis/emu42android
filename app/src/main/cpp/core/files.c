@@ -41,7 +41,7 @@ BYTE   cCurrentRomType = 0;					// Model -> hardware
 UINT   nCurrentClass = 0;					// Class -> derivate
 
 // document signatures
-static BYTE pbySignature[] = "Emu42 Document\xFE";
+static CONST BYTE bySignature[] = "Emu42 Document\xFE";
 static HANDLE hCurrentFile = NULL;
 
 static CHIPSET_M BackupChipset;
@@ -300,13 +300,13 @@ static WORD Checksum(LPBYTE pbyROM, DWORD dwStart, DWORD dwOffset, INT nReads, I
 
 	for (;nSector > 0; --nSector)			// evaluate each sector
 	{
-		DWORD dwAddr1 = dwStart;
-		DWORD dwAddr2 = dwStart + dwOffset;
+		LPBYTE pbyAddr1 = pbyROM + dwStart;
+		LPBYTE pbyAddr2 = pbyAddr1 + dwOffset;
 
 		for (i = 0; i < nReads; ++i)		// no. of reads in sector
 		{
-			for (j = 0; j < 16; ++j) wCrc = UpCRC(wCrc,pbyROM[dwAddr1++]);
-			for (j = 0; j < 16; ++j) wCrc = UpCRC(wCrc,pbyROM[dwAddr2++]);
+			for (j = 0; j < 16; ++j) wCrc = UpCRC(wCrc,*pbyAddr1++);
+			for (j = 0; j < 16; ++j) wCrc = UpCRC(wCrc,*pbyAddr2++);
 		}
 
 		dwStart += 2 * dwOffset;			// next start page
@@ -498,7 +498,7 @@ BOOL CrcRom(WORD *pwChk)					// calculate fingerprint of ROM
 	// use checksum, because it's faster
 	while (dwSize-- > 0)
 	{
-		DWORD dwData = *pdwData++;
+		CONST DWORD dwData = *pdwData++;
 		if ((dwData & 0xF0F0F0F0) != 0)		// data packed?
 			return FALSE;
 		dwChk += dwData;
@@ -506,6 +506,19 @@ BOOL CrcRom(WORD *pwChk)					// calculate fingerprint of ROM
 
 	*pwChk = (WORD) ((dwChk >> 16) + (dwChk & 0xFFFF));
 	return TRUE;
+}
+
+static __inline VOID UnpackRom(DWORD dwSrcOff, DWORD dwDestOff)
+{
+	LPBYTE pbySrc = pbyRom + dwSrcOff;		// source start address
+	LPBYTE pbyDest = pbyRom + dwDestOff;	// destination start address
+	while (pbySrc != pbyDest)				// unpack source
+	{
+		CONST BYTE byValue = *(--pbySrc);
+		*(--pbyDest) = byValue >> 4;
+		*(--pbyDest) = byValue & 0xF;
+	}
+	return;
 }
 
 BOOL MapRom(LPCTSTR szFilename)
@@ -585,14 +598,7 @@ BOOL MapRom(LPCTSTR szFilename)
 
 	if (dwRomSize != dwFileSize)			// packed ROM image
 	{
-		dwSize = dwRomSize;					// destination start address
-		while (dwFileSize > 0)				// unpack source
-		{
-			BYTE byValue = pbyRom[--dwFileSize];
-			_ASSERT(dwSize >= 2);
-			pbyRom[--dwSize] = byValue >> 4;
-			pbyRom[--dwSize] = byValue & 0xF;
-		}
+		UnpackRom(dwFileSize,dwRomSize);	// unpack ROM data
 	}
 	return TRUE;
 }
@@ -600,40 +606,30 @@ BOOL MapRom(LPCTSTR szFilename)
 BOOL MapRomBmp(HBITMAP hBmp)
 {
 	// look for an integrated ROM image
-	BOOL bBitmapROM = SteganoDecodeHBm(&pbyRom,&dwRomSize,8,hBmp) == STG_NOERROR;
+	CONST BOOL bBitmapROM = SteganoDecodeHBm(&pbyRom,&dwRomSize,8,hBmp) == STG_NOERROR;
 
 	if (bBitmapROM)							// has data inside
 	{
-		DWORD dwSrc,dwDest;
-		unsigned uError;
+		DWORD  dwDataSize;
 
 		LPBYTE pbyOutData = NULL;
 		size_t nOutData = 0;
 
 		// try to decompress data
-		uError = lodepng_zlib_decompress(&pbyOutData,&nOutData,pbyRom,dwRomSize,
-										 &lodepng_default_decompress_settings);
-
-		if (uError == 0)					// data decompression successful
+		if (lodepng_zlib_decompress(&pbyOutData,&nOutData,pbyRom,dwRomSize,
+									&lodepng_default_decompress_settings) == 0)
 		{
+			// data decompression successful
 			free(pbyRom);					// free compressed data
 			pbyRom = pbyOutData;			// use decompressed instead
 			dwRomSize = (DWORD) nOutData;
 		}
 
-		dwSrc = dwRomSize;					// source start address
+		dwDataSize = dwRomSize;				// packed ROM image size
 
 		dwRomSize *= 2;						// unpacked ROM image has double size
 		pbyRom = (LPBYTE) realloc(pbyRom,dwRomSize);
-
-		dwDest = dwRomSize;					// destination start address
-		while (dwSrc > 0)					// unpack source
-		{
-			BYTE byValue = pbyRom[--dwSrc];
-			_ASSERT(dwDest >= 2);
-			pbyRom[--dwDest] = byValue >> 4;
-			pbyRom[--dwDest] = byValue & 0xF;
-		}
+		UnpackRom(dwDataSize,dwRomSize);	// unpack ROM data
 	}
 	return bBitmapROM;
 }
@@ -684,7 +680,7 @@ VOID ResetDocument(VOID)
 		hCurrentFile = NULL;
 	}
 	szCurrentKml[0] = 0;
-	szCurrentFilename[0]=0;
+	szCurrentFilename[0] = 0;
 
 	if (mNCE2) { free(mNCE2); mNCE2 = NULL; }
 	if (mNCE3) { free(mNCE3); mNCE3 = NULL; }
@@ -900,11 +896,10 @@ BOOL OpenDocument(LPCTSTR szFilename)
 {
 	#define CHECKAREA(s,e) (offsetof(CHIPSET_M,e)-offsetof(CHIPSET_M,s)+sizeof(((CHIPSET_M *)NULL)->e))
 
-	HANDLE  hFile = INVALID_HANDLE_VALUE;
-	DWORD   lBytesRead,lSizeofChipset;
-	BYTE    pbyFileSignature[sizeof(pbySignature)];
-	UINT    ctBytesCompared;
-	UINT    nLength;
+	HANDLE hFile = INVALID_HANDLE_VALUE;
+	DWORD  lBytesRead,lSizeofChipset;
+	BYTE   byFileSignature[sizeof(bySignature)];
+	UINT   nLength;
 
 	// Open file
 	if (lstrcmpi(szCurrentFilename,szFilename) == 0)
@@ -924,14 +919,11 @@ BOOL OpenDocument(LPCTSTR szFilename)
 	}
 
 	// Read and Compare Emu42 1.0 format signature
-	ReadFile(hFile, pbyFileSignature, sizeof(pbyFileSignature), &lBytesRead, NULL);
-	for (ctBytesCompared=0; ctBytesCompared<sizeof(pbyFileSignature); ctBytesCompared++)
+	ReadFile(hFile, byFileSignature, sizeof(byFileSignature), &lBytesRead, NULL);
+	if (memcmp(byFileSignature,bySignature,sizeof(byFileSignature)) != 0)
 	{
-		if (pbyFileSignature[ctBytesCompared]!=pbySignature[ctBytesCompared])
-		{
-			AbortMessage(_T("This file is not a valid Emu42 document."));
-			goto restore;
-		}
+		AbortMessage(_T("This file is not a valid Emu42 document."));
+		goto restore;
 	}
 
 	// read length of KML script name
@@ -999,9 +991,7 @@ BOOL OpenDocument(LPCTSTR szFilename)
 	{
 		if (szCurrentKml[0])				// KML file name
 		{
-			BOOL bOK;
-
-			bOK = InitKML(szCurrentKml,FALSE);
+			BOOL bOK = InitKML(szCurrentKml,FALSE);
 			bOK = bOK && (cCurrentRomType == Chipset.type);
 			if (bOK) break;
 
@@ -1151,7 +1141,7 @@ BOOL SaveDocument(VOID)
 
 	SetFilePointer(hCurrentFile,0,NULL,FILE_BEGIN);
 
-	if (!WriteFile(hCurrentFile, pbySignature, sizeof(pbySignature), &lBytesWritten, NULL))
+	if (!WriteFile(hCurrentFile, bySignature, sizeof(bySignature), &lBytesWritten, NULL))
 	{
 		AbortMessage(_T("Could not write into file !"));
 		return FALSE;
@@ -1406,6 +1396,29 @@ BOOL GetSaveAsFilename(VOID)
 {
 	TCHAR szBuffer[ARRAYSIZEOF(szBufferFilename)];
 	OPENFILENAME ofn;
+	UINT i;
+
+	static CONST struct
+	{
+		LPCTSTR lpstrDefExt;				// defaut extention
+		DWORD  dwFilterIndex;				// filter index
+		BYTE   byRomType;					// current model
+	} sFilter[] =
+	{
+		{ _T("e10"), 1, 'E' },				// Ernst, HP10B
+		{ _T("e14"), 2, 'I' },				// Midas, HP14B
+		{ _T("e17"), 3, 'T' },				// Trader, HP17B
+		{ _T("e17"), 3, 'U' },				// Trader II, HP17BII
+		{ _T("e19"), 4, 'Y' },				// Tycoon II, HP19BII
+		{ _T("e20"), 5, 'F' },				// Erni, HP20S
+		{ _T("e21"), 6, 'C' },				// Monte Carlo, HP20S
+		{ _T("e22"), 7, 'A' },				// Plato, HP22S
+		{ _T("e27"), 8, 'M' },				// Mentor, HP27S
+		{ _T("e28"), 9, 'O' },				// Orlando, HP28S
+		{ _T("e32"), 10, 'L' },				// Leonardo, HP32S
+		{ _T("e32"), 10, 'N' },				// Nardo, HP32SII
+		{ _T("e42"), 11, 'D' }				// Davinci, HP42S
+	};
 
 	InitializeOFN(&ofn);
 	ofn.lpstrFilter =
@@ -1422,62 +1435,14 @@ BOOL GetSaveAsFilename(VOID)
 		_T("HP-42S Files (*.e42)\0*.e42\0")
 		_T("All Files (*.*)\0*.*\0");
 	ofn.nFilterIndex = 12;					// default
-	if (cCurrentRomType == 'E')				// Ernst, HP10B
+	for (i = 0; i < ARRAYSIZEOF(sFilter); ++i)
 	{
-		ofn.lpstrDefExt = _T("e10");
-		ofn.nFilterIndex = 1;
-	}
-	if (cCurrentRomType == 'I')				// Midas, HP14B
-	{
-		ofn.lpstrDefExt = _T("e14");
-		ofn.nFilterIndex = 2;
-	}
-	if (   cCurrentRomType == 'T'			// Trader,    HP17B
-		|| cCurrentRomType == 'U')			// Trader II, HP17BII
-	{
-		ofn.lpstrDefExt = _T("e17");
-		ofn.nFilterIndex = 3;
-	}
-	if (cCurrentRomType == 'Y')				// Tycoon II, HP19BII
-	{
-		ofn.lpstrDefExt = _T("e19");
-		ofn.nFilterIndex = 4;
-	}
-	if (cCurrentRomType == 'F')				// Erni, HP20S
-	{
-		ofn.lpstrDefExt = _T("e20");
-		ofn.nFilterIndex = 5;
-	}
-	if (cCurrentRomType == 'C')				// Monte Carlo, HP20S
-	{
-		ofn.lpstrDefExt = _T("e21");
-		ofn.nFilterIndex = 6;
-	}
-	if (cCurrentRomType == 'A')				// Plato, HP22S
-	{
-		ofn.lpstrDefExt = _T("e22");
-		ofn.nFilterIndex = 7;
-	}
-	if (cCurrentRomType == 'M')				// Mentor, HP27S
-	{
-		ofn.lpstrDefExt = _T("e27");
-		ofn.nFilterIndex = 8;
-	}
-	if (cCurrentRomType == 'O')				// Orlando, HP28S
-	{
-		ofn.lpstrDefExt = _T("e28");
-		ofn.nFilterIndex = 9;
-	}
-	if (   cCurrentRomType == 'L'			// Leonardo, HP32S
-		|| cCurrentRomType == 'N')			// Nardo,    HP32SII
-	{
-		ofn.lpstrDefExt = _T("e32");
-		ofn.nFilterIndex = 10;
-	}
-	if (cCurrentRomType == 'D')				// Davinci, HP42S
-	{
-		ofn.lpstrDefExt = _T("e42");
-		ofn.nFilterIndex = 11;
+		if (cCurrentRomType == sFilter[i].byRomType)
+		{
+			ofn.lpstrDefExt = sFilter[i].lpstrDefExt;
+			ofn.nFilterIndex = sFilter[i].dwFilterIndex;
+			break;
+		}
 	}
 	ofn.lpstrFile = szBuffer;
 	ofn.lpstrFile[0] = 0;
