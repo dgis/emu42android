@@ -20,7 +20,7 @@ QUICK START
 
 1. Click on the 3 dots button at the top left (or from the left side, slide your finger to open the menu).
 2. Touch the "New..." menu item.
-3. Select a default calculator (or "[Select a Custom KML script folder...]" where you have copied the KML scripts and ROM files (Android 11 cannot use the folder Download)).
+3. Select a default calculator (or "[Select a Custom KML script folder...]" where you have copied the KML scripts and ROM files (Android 11 may not be able to use the Download folder)).
 4. And the calculator should now be opened.
 
 
@@ -46,9 +46,16 @@ LINKS
 
 CHANGES
 
+Version 2.3 (2024-06-16)
+
+- Update from the original source code Emu42 version 1.30 from Christoph Gießelink.
+- Fix a background issue for annunciators in the Win32 layer.
+
+
 Version 2.2 (2022-11-05)
 
 - Update from the original source code Emu42 version 1.29 from Christoph Gießelink (Copy/paste improvement).
+- Fix haptic feedback with Android 12 (API deprecation).
 
 
 Version 2.1 (2022-03-03)

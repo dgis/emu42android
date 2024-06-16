@@ -9,7 +9,9 @@
 #include "pch.h"
 #include "Emu42.h"
 
+#if !defined(__clang__)
 #pragma inline_depth(0)
+#endif
 
 #define TAB_SKIP	8
 

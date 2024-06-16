@@ -538,8 +538,10 @@ VOID StartTimerBert(VOID)
 			if (uTimerId != 0)				// timer running
 				return;						// -> quit
 
+			timeGetDevCaps(&tc,sizeof(tc));	// get timer resolution
+
 			// set timer resolution to 1 ms, if failed don't use "Accurate timer"
-			bAccurateTimer = (timeBeginPeriod(1) == TIMERR_NOERROR);
+			bAccurateTimer = (timeBeginPeriod(tc.wPeriodMin) == TIMERR_NOERROR);
 			// set timer1 with given period
 			uTimerId = timeSetEvent(T_FREQ,0,(LPTIMECALLBACK)&TimeProcBert,0,TIME_ONESHOT);
 			_ASSERT(uTimerId);				// test if timer started
@@ -558,7 +560,7 @@ VOID StopTimerBert(VOID)
 		// "Accurate timer" running and timer stopped
 		if (bAccurateTimer)
 		{
-			timeEndPeriod(1);	// finish service
+			timeEndPeriod(tc.wPeriodMin);	// finish service
 			bAccurateTimer = FALSE;
 		}
 	}

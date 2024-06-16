@@ -577,6 +577,7 @@ LRESULT OnStackCopy(VOID)					// copy data to clipboard
 		dwObject = D_DOREAL;				// interpret object as real
 		break;
 	default:
+		dwObject = 0;
 		_ASSERT(FALSE);
 	}
 

@@ -29,31 +29,36 @@ typedef struct
 
 static VOID PutSn(String *str, LPCTSTR szVal, DWORD dwLen)
 {
-	if (str != NULL)						// with output
+	if (str != NULL && dwLen > 0)			// with output and actual string length
 	{
-		if (str->dwSize == 0)				// no buffer allocated
+		// string buffer to small
+		if (str->dwPos + dwLen > str->dwSize)
 		{
-			str->dwSize = ALLOCSIZE;		// buffer size
-			VERIFY(str->szBuffer = (LPTSTR) malloc(str->dwSize * sizeof(TCHAR)));
-			str->dwPos = 0;
+			LPTSTR szNewBuffer;
+
+			DWORD dwMinSize;
+			dwMinSize = dwLen + str->dwSize - str->dwPos;
+			dwMinSize = (dwMinSize + ALLOCSIZE - 1) / ALLOCSIZE;
+			dwMinSize *= ALLOCSIZE;
+
+			str->dwSize += dwMinSize;		// new buffer size
+			VERIFY(szNewBuffer = (LPTSTR) realloc(str->szBuffer,str->dwSize * sizeof(TCHAR)));
+
+			if (szNewBuffer)				// new buffer allocated
+			{
+				str->szBuffer = szNewBuffer;
+			}
+			else							// allocation failed
+			{
+				str->dwSize = 0;			// size of buffer
+				free(str->szBuffer);		// buffer memory
+				str->szBuffer = NULL;
+				str->dwPos = 0;				// position inside buffer
+			}
 		}
 
-		_ASSERT(str->szBuffer != NULL);
-
-		if (dwLen > 0)						// actual string length
+		if (str->szBuffer)
 		{
-			// string buffer to small
-			if (str->dwPos + dwLen > str->dwSize)
-			{
-				DWORD dwMinSize;
-				dwMinSize = dwLen + str->dwSize - str->dwPos;
-				dwMinSize = (dwMinSize + ALLOCSIZE - 1) / ALLOCSIZE;
-				dwMinSize *= ALLOCSIZE;
-
-				str->dwSize += dwMinSize;	// new buffer size
-				VERIFY(str->szBuffer = (LPTSTR) realloc(str->szBuffer,str->dwSize * sizeof(TCHAR)));
-			}
-
 			CopyMemory(&str->szBuffer[str->dwPos],szVal,dwLen * sizeof(TCHAR));
 			str->dwPos += dwLen;
 		}
@@ -212,23 +217,24 @@ static BOOL BCDx(BYTE CONST *pbyNum,INT nMantLen,INT nExpLen,String *str)
 
 static BOOL BINx(DWORD *pdwAddr,INT nBinLen,String *str)
 {
-	LPBYTE pbyNumber;
-	INT    i;
-
-	VERIFY(pbyNumber = (LPBYTE) malloc(nBinLen));
-
-	for (i = 0; i < nBinLen; ++i)			// read data
-		pbyNumber[i] = RplReadNibble(pdwAddr);
-
-	// strip leading zeros
-	for (i = nBinLen - 1; pbyNumber[i] == 0 && i > 0; --i) { }
-
-	for (; i >= 0; --i)						// write rest of bin
+	LPBYTE pbyNumber = (LPBYTE) malloc(nBinLen);
+	if (pbyNumber != NULL)
 	{
-		PutC(str,cHex[pbyNumber[i]]);
-	}
+		INT i;
 
-	free(pbyNumber);
+		for (i = 0; i < nBinLen; ++i)		// read data
+			pbyNumber[i] = RplReadNibble(pdwAddr);
+
+		// strip leading zeros
+		for (i = nBinLen - 1; pbyNumber[i] == 0 && i > 0; --i) { }
+
+		for (; i >= 0; --i)					// write rest of bin
+		{
+			PutC(str,cHex[pbyNumber[i]]);
+		}
+
+		free(pbyNumber);
+	}
 	return FALSE;
 }
 
@@ -327,29 +333,31 @@ static BOOL DoIntStream(DWORD *pdwAddr,String *str,UINT *pnLevel)
 
 	dwLength -= 5;							// object length
 
-	VERIFY(pbyData = (LPBYTE) malloc(dwLength));
-
-	for (i = 0; i < dwLength; ++i)			// read data
-		pbyData[i] = RplReadNibble(pdwAddr);
-
-	if (dwLength <= 1)						// special implementation for zero
+	pbyData = (LPBYTE) malloc(dwLength);
+	if (pbyData != NULL)
 	{
-		_ASSERT(dwLength == 0 || (dwLength == 1 && pbyData[0] == 0));
-		PutC(str,_T('0'));
-	}
-	else
-	{
-		if (pbyData[--dwLength] == 9)		// negative number
-			PutC(str,_T('-'));
+		for (i = 0; i < dwLength; ++i)		// read data
+			pbyData[i] = RplReadNibble(pdwAddr);
 
-		while (dwLength > 0)				// write rest of zint
+		if (dwLength <= 1)					// special implementation for zero
 		{
-			// use only decimal part for translation
-			PutC(str,cHex[pbyData[--dwLength]]);
+			_ASSERT(dwLength == 0 || (dwLength == 1 && pbyData[0] == 0));
+			PutC(str,_T('0'));
 		}
-	}
+		else
+		{
+			if (pbyData[--dwLength] == 9)	// negative number
+				PutC(str,_T('-'));
 
-	free(pbyData);
+			while (dwLength > 0)			// write rest of zint
+			{
+				// use only decimal part for translation
+				PutC(str,cHex[pbyData[--dwLength]]);
+			}
+		}
+
+		free(pbyData);
+	}
 	return FALSE;
 	UNREFERENCED_PARAMETER(pnLevel);
 }
@@ -535,6 +543,7 @@ static BOOL DoArry(DWORD *pdwAddr,String *str,UINT *pnLevel)
 	// this assert also fail on illegal objects
 	_ASSERT(dwObjStart + dwLength == *pdwAddr);
 	return FALSE;
+	UNREFERENCED_PARAMETER(dwLength);
 }
 
 static BOOL DoLnkArry(DWORD *pdwAddr,String *str,UINT *pnLevel)
@@ -1187,44 +1196,44 @@ static struct ObjHandler
 	DWORD	dwType;							// calculator type (RPL_P1 = all)
 } ObjDecode[] =
 {
-	_T("DOBINT"),		DoBint,			RPL_P1,		// System Binary
-	_T("DOREAL"),		DoReal,			RPL_P1,		// Real
-	_T("DOEREL"),		DoERel,			RPL_P1,		// Long Real
-	_T("DOCMP"),		DoCmp,			RPL_P1,		// Complex
-	_T("DOECMP"),		DoECmp,			RPL_P1,		// Long Complex
-	_T("DOCHAR"),		DoChar,			RPL_P1,		// Character
-	_T("DOARRY"),		DoArry,			RPL_P1,		// Array
-	_T("DOLNKARRY"),	DoLnkArry,		RPL_P1,		// Linked Array
-	_T("DOCSTR"),		DoCStr,			RPL_P1,		// String
-	_T("DOHSTR"),		DoHxs,			RPL_P1,		// Binary Integer
-	_T("DOHXS"),		DoHxs,			RPL_P1,		// Binary Integer
-	_T("DOLIST"),		DoList,			RPL_P1,		// List
-	_T("DOSYMB"),		DoSymb,			RPL_P1,		// Algebraic
-	_T("DOCOL"),		DoCol,			RPL_P1,		// Program
-	_T("DOCODE"),		DoCode,			RPL_P1,		// Code
-	_T("DOIDNT"),		DoIdnt,			RPL_P1,		// Global Name
-	_T("DOLAM"),		DoLam,			RPL_P1,		// Local Name
-	_T("DOROMP"),		DoRomp,			RPL_P1,		// XLIB Name
-	_T("SEMI"),			Semi,			RPL_P1,		// SEMI
-	_T("DORRP"),		DoRrp,			RPL_P2,		// Directory
-	_T("DOEXT"),		DoExt,			RPL_P2,		// Reserved or Unit (HP48 and later)
-	_T("DOTAG"),		DoTag,			RPL_P3,		// Tagged
-	_T("DOGROB"),		DoGrob,			RPL_P3,		// Graphic
-	_T("DOLIB"),		DoLib,			RPL_P3,		// Library
-	_T("DOBAK"),		DoBak,			RPL_P3,		// Backup
-	_T("DOEXT0"),		DoExt0,			RPL_P3,		// Library Data
-	_T("DOEXT1"),		DoExt1,			RPL_P3,		// Ext1 or ACcess PoinTeR
-	_T("DOACPTR"),		DoExt1,			RPL_P3,		// Ext1 or ACcess PoinTeR
-	_T("DOEXT2"),		DoExt2,			RPL_P3,		// Reserved 1, Font (HP49G)
-	_T("DOEXT3"),		DoExt3,			RPL_P3,		// Reserved 2
-	_T("DOEXT4"),		DoExt4,			RPL_P3,		// Reserved 3
-	_T("DOINT"),		DoZint,			RPL_P5,		// Infinite Precision Integers
-	_T("DOLNGREAL"),	DoLngReal,		RPL_P5,		// Precision Real
-	_T("DOLNGCMP"),		DoLngCmp,		RPL_P5,		// Precision Complex
-	_T("DOFLASHP"),		DoFlashPtr,		RPL_P5,		// Flash Pointer
-	_T("DOAPLET"),		DoAplet,		RPL_P5,		// Aplet
-	_T("DOMINIFONT"),	DoMinifont,		RPL_P5,		// Mini Font
-	_T("DOMATRIX"),		DoMatrix,		RPL_P5,		// Symbolic matrix
+	{ _T("DOBINT"),		DoBint,			RPL_P1 },	// System Binary
+	{ _T("DOREAL"),		DoReal,			RPL_P1 },	// Real
+	{ _T("DOEREL"),		DoERel,			RPL_P1 },	// Long Real
+	{ _T("DOCMP"),		DoCmp,			RPL_P1 },	// Complex
+	{ _T("DOECMP"),		DoECmp,			RPL_P1 },	// Long Complex
+	{ _T("DOCHAR"),		DoChar,			RPL_P1 },	// Character
+	{ _T("DOARRY"),		DoArry,			RPL_P1 },	// Array
+	{ _T("DOLNKARRY"),	DoLnkArry,		RPL_P1 },	// Linked Array
+	{ _T("DOCSTR"),		DoCStr,			RPL_P1 },	// String
+	{ _T("DOHSTR"),		DoHxs,			RPL_P1 },	// Binary Integer
+	{ _T("DOHXS"),		DoHxs,			RPL_P1 },	// Binary Integer
+	{ _T("DOLIST"),		DoList,			RPL_P1 },	// List
+	{ _T("DOSYMB"),		DoSymb,			RPL_P1 },	// Algebraic
+	{ _T("DOCOL"),		DoCol,			RPL_P1 },	// Program
+	{ _T("DOCODE"),		DoCode,			RPL_P1 },	// Code
+	{ _T("DOIDNT"),		DoIdnt,			RPL_P1 },	// Global Name
+	{ _T("DOLAM"),		DoLam,			RPL_P1 },	// Local Name
+	{ _T("DOROMP"),		DoRomp,			RPL_P1 },	// XLIB Name
+	{ _T("SEMI"),		Semi,			RPL_P1 },	// SEMI
+	{ _T("DORRP"),		DoRrp,			RPL_P2 },	// Directory
+	{ _T("DOEXT"),		DoExt,			RPL_P2 },	// Reserved or Unit (HP48 and later)
+	{ _T("DOTAG"),		DoTag,			RPL_P3 },	// Tagged
+	{ _T("DOGROB"),		DoGrob,			RPL_P3 },	// Graphic
+	{ _T("DOLIB"),		DoLib,			RPL_P3 },	// Library
+	{ _T("DOBAK"),		DoBak,			RPL_P3 },	// Backup
+	{ _T("DOEXT0"),		DoExt0,			RPL_P3 },	// Library Data
+	{ _T("DOEXT1"),		DoExt1,			RPL_P3 },	// Ext1 or ACcess PoinTeR
+	{ _T("DOACPTR"),	DoExt1,			RPL_P3 },	// Ext1 or ACcess PoinTeR
+	{ _T("DOEXT2"),		DoExt2,			RPL_P3 },	// Reserved 1, Font (HP49G)
+	{ _T("DOEXT3"),		DoExt3,			RPL_P3 },	// Reserved 2
+	{ _T("DOEXT4"),		DoExt4,			RPL_P3 },	// Reserved 3
+	{ _T("DOINT"),		DoZint,			RPL_P5 },	// Infinite Precision Integers
+	{ _T("DOLNGREAL"),	DoLngReal,		RPL_P5 },	// Precision Real
+	{ _T("DOLNGCMP"),	DoLngCmp,		RPL_P5 },	// Precision Complex
+	{ _T("DOFLASHP"),	DoFlashPtr,		RPL_P5 },	// Flash Pointer
+	{ _T("DOAPLET"),	DoAplet,		RPL_P5 },	// Aplet
+	{ _T("DOMINIFONT"),	DoMinifont,		RPL_P5 },	// Mini Font
+	{ _T("DOMATRIX"),	DoMatrix,		RPL_P5 },	// Symbolic matrix
 };
 
 static BOOL (*Getfp(LPCTSTR lpszObject))(DWORD *,String *,UINT *)
@@ -1291,9 +1300,9 @@ DWORD RplSkipObject(DWORD dwAddr)
 
 LPTSTR RplDecodeObject(DWORD dwAddr, DWORD *pdwNxtAddr)
 {
-	String	str = { 0 };
-	DWORD   dwNxtAddr;
-	UINT    nLevel = 0;						// don't nest DOCOL objects
+	String str = { 0, NULL, 0 };
+	DWORD  dwNxtAddr;
+	UINT   nLevel = 0;						// don't nest DOCOL objects
 
 	dwNxtAddr = dwAddr;						// init next address
 
@@ -1302,7 +1311,7 @@ LPTSTR RplDecodeObject(DWORD dwAddr, DWORD *pdwNxtAddr)
 
 	PutC(&str,0);							// set EOS
 
-	// release unnecessary allocated buffer memory
+	// release unnecessary allocated buffer memory (shrinking)
 	VERIFY(str.szBuffer = (LPTSTR) realloc(str.szBuffer,str.dwPos * sizeof(str.szBuffer[0])));
 
 	// return address of next object
@@ -1472,7 +1481,7 @@ static DWORD AssemblyOutput(DWORD dwAddr, DWORD dwEndAddr, DWORD dwLevel, String
 
 LPTSTR RplCreateObjView(DWORD dwStartAddr, DWORD dwEndAddr, BOOL bSingleObj)
 {
-	String	str = { 0 };
+	String  str = { 0, NULL, 0 };
 	LPCTSTR lpszName;
 	LPTSTR  lpszObject;
 	DWORD   dwLevel,dwAddr,dwNxtAddr;
@@ -1486,6 +1495,10 @@ LPTSTR RplCreateObjView(DWORD dwStartAddr, DWORD dwEndAddr, BOOL bSingleObj)
 	for (dwAddr = dwStartAddr;dwAddr < dwEndAddr; dwAddr = dwNxtAddr)
 	{
 		lpszObject = RplDecodeObject(dwAddr,&dwNxtAddr);
+		if (lpszObject == NULL)				// no memory
+		{
+			break;							// break decoding
+		}
 
 		if (dwLevel > 0 && lstrcmp(lpszObject,_T(";")) == 0)
 			--dwLevel;
@@ -1586,7 +1599,7 @@ LPTSTR RplCreateObjView(DWORD dwStartAddr, DWORD dwEndAddr, BOOL bSingleObj)
 
 	PutC(&str,0);							// set EOS
 
-	// release unnecessary allocated buffer memory
+	// release unnecessary allocated buffer memory (shrinking)
 	VERIFY(str.szBuffer = (LPTSTR) realloc(str.szBuffer,str.dwPos * sizeof(str.szBuffer[0])));
 	return str.szBuffer;
 }

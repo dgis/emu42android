@@ -84,11 +84,11 @@ VOID SetWindowLocation(HWND hWnd,INT nPosX,INT nPosY)
 
 DWORD GetCutPathName(LPCTSTR szFileName, LPTSTR szBuffer, DWORD dwBufferLength, INT nCutLength)
 {
-	TCHAR  cPath[_MAX_PATH];				// full file name
-	TCHAR  cDrive[_MAX_DRIVE];
-	TCHAR  cDir[_MAX_DIR];
-	TCHAR  cFname[_MAX_FNAME];
-	TCHAR  cExt[_MAX_EXT];
+	TCHAR cPath[_MAX_PATH];					// full file name
+	TCHAR cDrive[_MAX_DRIVE];
+	TCHAR cDir[_MAX_DIR];
+	TCHAR cFname[_MAX_FNAME];
+	TCHAR cExt[_MAX_EXT];
 
 	_ASSERT(nCutLength >= 0);				// 0 = only drive and name
 
@@ -188,7 +188,7 @@ BOOL CheckForBeepPatch(VOID)
 	{
 		const DWORD dwAddress;				// patch address
 		const BYTE  byPattern[4];			// patch pattern
-	} BEEPPATCH, *PBEEPPATCH;
+	} BEEPPATCH;
 
 	// known beep patches
 	const BEEPPATCH s17[]   = { { 0x02194, { 0x8, 0x1, 0xB, 0x0 } } };
@@ -605,9 +605,12 @@ BOOL MapRom(LPCTSTR szFilename)
 
 BOOL MapRomBmp(HBITMAP hBmp)
 {
-	// look for an integrated ROM image
-	CONST BOOL bBitmapROM = SteganoDecodeHBm(&pbyRom,&dwRomSize,8,hBmp) == STG_NOERROR;
+	BOOL bBitmapROM;
 
+	_ASSERT(pbyRom == NULL);				// no ROM must be loaded
+
+	// look for an integrated ROM image
+	bBitmapROM = SteganoDecodeHBm(&pbyRom,&dwRomSize,8,hBmp) == STG_NOERROR;
 	if (bBitmapROM)							// has data inside
 	{
 		DWORD  dwDataSize;
@@ -619,24 +622,32 @@ BOOL MapRomBmp(HBITMAP hBmp)
 		if (lodepng_zlib_decompress(&pbyOutData,&nOutData,pbyRom,dwRomSize,
 									&lodepng_default_decompress_settings) == 0)
 		{
-			// data decompression successful
+			// data decompress successful
 			free(pbyRom);					// free compressed data
 			pbyRom = pbyOutData;			// use decompressed instead
 			dwRomSize = (DWORD) nOutData;
 		}
 
 		dwDataSize = dwRomSize;				// packed ROM image size
-
 		dwRomSize *= 2;						// unpacked ROM image has double size
-		pbyRom = (LPBYTE) realloc(pbyRom,dwRomSize);
-		UnpackRom(dwDataSize,dwRomSize);	// unpack ROM data
+		pbyOutData = (LPBYTE)realloc(pbyRom,dwRomSize);
+		if (pbyOutData != NULL)
+		{
+			pbyRom = pbyOutData;
+			UnpackRom(dwDataSize,dwRomSize); // unpack ROM data
+		}
+		else
+		{
+			free(pbyRom);
+			pbyRom = NULL;
+			bBitmapROM = FALSE;
+		}
 	}
 	return bBitmapROM;
 }
 
 VOID UnmapRom(VOID)
 {
-	if (pbyRom == NULL) return;
 	free(pbyRom);
 	pbyRom = NULL;
 	dwRomSize = 0;
@@ -866,22 +877,22 @@ BOOL NewDocument(VOID)
 	if (Chipset.NCE2Ram)
 	{
 		mNCE2 = (LPBYTE) calloc(Chipset.NCE2Size,sizeof(*mNCE2));
-		_ASSERT(mNCE2 != NULL);
+		if (mNCE2 == NULL) goto restore;
 	}
 	if (Chipset.NCE3Ram)
 	{
 		mNCE3 = (LPBYTE) calloc(Chipset.NCE3Size,sizeof(*mNCE3));
-		_ASSERT(mNCE3 != NULL);
+		if (mNCE3 == NULL) goto restore;
 	}
 	if (ChipsetS.NCE2Ram)
 	{
 		sNCE2 = (LPBYTE) calloc(ChipsetS.NCE2Size,sizeof(*sNCE2));
-		_ASSERT(sNCE2 != NULL);
+		if (sNCE2 == NULL) goto restore;
 	}
 	if (ChipsetS.NCE3Ram)
 	{
 		sNCE3 = (LPBYTE) calloc(ChipsetS.NCE3Size,sizeof(*sNCE3));
-		_ASSERT(sNCE3 != NULL);
+		if (sNCE3 == NULL) goto restore;
 	}
 	LoadBreakpointList(NULL);				// clear debugger breakpoint list
 	bDocumentAvail = TRUE;					// document available
@@ -1223,6 +1234,8 @@ BOOL SaveBackup(VOID)
 {
 	WINDOWPLACEMENT wndpl;
 
+	BOOL bSucc = TRUE;
+
 	if (!bDocumentAvail) return FALSE;
 
 	_ASSERT(nState != SM_RUN);				// emulation engine is running
@@ -1248,31 +1261,49 @@ BOOL SaveBackup(VOID)
 	if (Chipset.NCE2Ram)					// RAM at NCE2 master
 	{
 		Backup_mNCE2 = (LPBYTE) malloc(Chipset.NCE2Size);
-		CopyMemory(Backup_mNCE2, mNCE2, Chipset.NCE2Size);
+		if (Backup_mNCE2)
+		{
+			CopyMemory(Backup_mNCE2, mNCE2, Chipset.NCE2Size);
+		}
+		bSucc = bSucc && (Backup_mNCE2 != NULL);
 	}
 	if (Chipset.NCE3Ram)					// RAM at NCE3 master
 	{
 		Backup_mNCE3 = (LPBYTE) malloc(Chipset.NCE3Size);
-		CopyMemory(Backup_mNCE3, mNCE3, Chipset.NCE3Size);
+		if (Backup_mNCE3)
+		{
+			CopyMemory(Backup_mNCE3, mNCE3, Chipset.NCE3Size);
+		}
+		bSucc = bSucc && (Backup_mNCE3 != NULL);
 	}
 	if (ChipsetS.NCE2Ram)					// RAM at NCE2 slave
 	{
 		Backup_sNCE2 = (LPBYTE) malloc(ChipsetS.NCE2Size);
-		CopyMemory(Backup_sNCE2, sNCE2, ChipsetS.NCE2Size);
+		if (Backup_sNCE2)
+		{
+			CopyMemory(Backup_sNCE2, sNCE2, ChipsetS.NCE2Size);
+		}
+		bSucc = bSucc && (Backup_sNCE2 != NULL);
 	}
 	if (ChipsetS.NCE3Ram)					// RAM at NCE3 slave
 	{
 		Backup_sNCE3 = (LPBYTE) malloc(ChipsetS.NCE3Size);
-		CopyMemory(Backup_sNCE3, sNCE3, ChipsetS.NCE3Size);
+		if (Backup_sNCE3)
+		{
+			CopyMemory(Backup_sNCE3, sNCE3, ChipsetS.NCE3Size);
+		}
+		bSucc = bSucc && (Backup_sNCE3 != NULL);
 	}
 	CreateBackupBreakpointList();
-	bBackup = TRUE;
-	return TRUE;
+	bBackup = bSucc;
+	return bSucc;
 }
 
 BOOL RestoreBackup(VOID)
 {
 	BOOL bDbgOpen;
+
+	BOOL bSucc = TRUE;
 
 	if (!bBackup) return FALSE;
 
@@ -1302,30 +1333,50 @@ BOOL RestoreBackup(VOID)
 	if (Chipset.NCE2Ram)					// RAM at NCE2 master
 	{
 		mNCE2 = (LPBYTE) malloc(Chipset.NCE2Size);
-		CopyMemory(mNCE2, Backup_mNCE2, Chipset.NCE2Size);
+		if (mNCE2)
+		{
+			CopyMemory(mNCE2, Backup_mNCE2, Chipset.NCE2Size);
+		}
+		bSucc = bSucc && (mNCE2 != NULL);
 	}
 	if (Chipset.NCE3Ram)					// RAM at NCE3 master
 	{
 		mNCE3 = (LPBYTE) malloc(Chipset.NCE3Size);
-		CopyMemory(mNCE3, Backup_mNCE3, Chipset.NCE3Size);
+		if (mNCE3)
+		{
+			CopyMemory(mNCE3, Backup_mNCE3, Chipset.NCE3Size);
+		}
+		bSucc = bSucc && (mNCE3 != NULL);
 	}
 	if (ChipsetS.NCE2Ram)					// RAM at NCE2 slave
 	{
 		sNCE2 = (LPBYTE) malloc(ChipsetS.NCE2Size);
-		CopyMemory(sNCE2, Backup_sNCE2, ChipsetS.NCE2Size);
+		if (sNCE2)
+		{
+			CopyMemory(sNCE2, Backup_sNCE2, ChipsetS.NCE2Size);
+		}
+		bSucc = bSucc && (sNCE2 != NULL);
 	}
 	if (ChipsetS.NCE3Ram)					// RAM at NCE3 slave
 	{
 		sNCE3 = (LPBYTE) malloc(ChipsetS.NCE3Size);
-		CopyMemory(sNCE3, Backup_sNCE3, ChipsetS.NCE3Size);
+		if (sNCE3)
+		{
+			CopyMemory(sNCE3, Backup_sNCE3, ChipsetS.NCE3Size);
+		}
+		bSucc = bSucc && (sNCE3 != NULL);
 	}
 	UpdateContrast();						// update contrast
 	SetWindowPathTitle(szCurrentFilename);	// update window title line
 	SetWindowLocation(hWnd,Chipset.nPosX,Chipset.nPosY);
 	RestoreBackupBreakpointList();			// restore the debugger breakpoint list
 	if (bDbgOpen) OnToolDebug();			// reopen the debugger
-	bDocumentAvail = TRUE;					// document available
-	return TRUE;
+	if (!bSucc)								// restore not successful (memory allocation errors)
+	{
+		ResetDocument();					// cleanup remainders
+	}
+	bDocumentAvail = bSucc;					// document available
+	return bSucc;
 }
 
 BOOL ResetBackup(VOID)
@@ -1903,8 +1954,7 @@ static HBITMAP DecodeGif(LPBMPFILE pBmp,DWORD *pdwTransparentColor,BOOL bPalette
 		|| ReadGifWord(pBmp,&nHeight)
 		|| ReadGifByte(pBmp,&nInfo)
 		|| ReadGifByte(pBmp,&nBackground)
-		|| ReadGifByte(pBmp,&nZero)
-		|| nZero != 0)
+		|| ReadGifByte(pBmp,&nZero))
 		goto quit;
 
 	ZeroMemory(&bmi,sizeof(bmi));			// init bitmap info
@@ -2433,10 +2483,7 @@ static HBITMAP DecodePng(LPBMPFILE pBmp,BOOL bPalette)
 	}
 
 quit:
-	if (pbyImage != NULL)					// buffer for PNG image allocated
-	{
-		free(pbyImage);						// free PNG image data
-	}
+	free(pbyImage);							// free allocated PNG image data
 	return hBitmap;
 }
 
@@ -2569,7 +2616,6 @@ HRGN CreateRgnFromBitmap(HBITMAP hBmp,COLORREF color,DWORD dwTol)
 	BOOL (*fnColorCmp)(DWORD dwColor1,DWORD dwColor2,DWORD dwTol);
 
 	DWORD dwRed,dwGreen,dwBlue;
-	HRGN hRgn;
 	LPRGNDATA pRgnData;
 	LPBITMAPINFO bi;
 	LPBYTE pbyBits;
@@ -2580,6 +2626,8 @@ HRGN CreateRgnFromBitmap(HBITMAP hBmp,COLORREF color,DWORD dwTol)
 	LONG x,y,xleft;
 	BOOL bFoundLeft;
 	BOOL bIsMask;
+
+	HRGN hRgn = NULL;						// no region defined
 
 	if (dwTol >= 1000)						// use CIE L*a*b compare
 	{
@@ -2592,7 +2640,10 @@ HRGN CreateRgnFromBitmap(HBITMAP hBmp,COLORREF color,DWORD dwTol)
 	}
 
 	// allocate memory for extended image information incl. RGBQUAD color table
-	bi = (LPBITMAPINFO) calloc(1,sizeof(BITMAPINFOHEADER) + 256 * sizeof(RGBQUAD));
+	if ((bi = (LPBITMAPINFO) calloc(1,sizeof(BITMAPINFOHEADER) + 256 * sizeof(RGBQUAD))) == NULL)
+	{
+		return hRgn;						// no region
+	}
 	bi->bmiHeader.biSize = sizeof(bi->bmiHeader);
 	_ASSERT(bi->bmiHeader.biBitCount == 0); // for query without color table
 
@@ -2611,7 +2662,11 @@ HRGN CreateRgnFromBitmap(HBITMAP hBmp,COLORREF color,DWORD dwTol)
 	}
 
 	// allocate memory for image data (colors)
-	pbyBits = (LPBYTE) malloc(bi->bmiHeader.biSizeImage);
+	if ((pbyBits = (LPBYTE) malloc(bi->bmiHeader.biSizeImage)) == NULL)
+	{
+		free(bi);							// free bitmap info
+		return hRgn;						// no region
+	}
 
 	// fill bits buffer
 	GetDIBits(hWindowDC,hBmp,0,bi->bmiHeader.biHeight,pbyBits,bi,DIB_RGB_COLORS);
@@ -2656,18 +2711,20 @@ HRGN CreateRgnFromBitmap(HBITMAP hBmp,COLORREF color,DWORD dwTol)
 
 	// allocate memory for region data
 	pRgnData = (PRGNDATA) malloc(sizeof(RGNDATAHEADER) + dwRectsCount * sizeof(RECT));
+	if (pRgnData)
+	{
+		// fill it by default
+		ZeroMemory(&pRgnData->rdh,sizeof(pRgnData->rdh));
+		pRgnData->rdh.dwSize = sizeof(pRgnData->rdh);
+		pRgnData->rdh.iType = RDH_RECTANGLES;
+		SetRect(&pRgnData->rdh.rcBound,MAXLONG,MAXLONG,0,0);
+	}
 
-	// fill it by default
-	ZeroMemory(&pRgnData->rdh,sizeof(pRgnData->rdh));
-	pRgnData->rdh.dwSize = sizeof(pRgnData->rdh);
-	pRgnData->rdh.iType	 = RDH_RECTANGLES;
-	SetRect(&pRgnData->rdh.rcBound,MAXLONG,MAXLONG,0,0);
-
-	for (y = 0; y < bi->bmiHeader.biHeight; ++y)
+	for (y = 0; pRgnData && y < bi->bmiHeader.biHeight; ++y)
 	{
 		LPBYTE pbyLineStart = pbyColor;
 
-		for (x = 0; x < bi->bmiHeader.biWidth; ++x)
+		for (x = 0; pRgnData && x < bi->bmiHeader.biWidth; ++x)
 		{
 			// get color
 			switch (bi->bmiHeader.biBitCount)
@@ -2724,9 +2781,19 @@ HRGN CreateRgnFromBitmap(HBITMAP hBmp,COLORREF color,DWORD dwTol)
 					// if buffer full reallocate it with more room
 					if (pRgnData->rdh.nCount >= dwRectsCount)
 					{
-						dwRectsCount += ADD_RECTS_COUNT;
+						LPRGNDATA pNewRgnData;
 
-						pRgnData = (LPRGNDATA) realloc(pRgnData,sizeof(RGNDATAHEADER) + dwRectsCount * sizeof(RECT));
+						dwRectsCount += ADD_RECTS_COUNT;
+						pNewRgnData = (LPRGNDATA) realloc(pRgnData,sizeof(RGNDATAHEADER) + dwRectsCount * sizeof(RECT));
+						if (pNewRgnData)
+						{
+							pRgnData = pNewRgnData;
+						}
+						else
+						{
+							free(pRgnData);
+							pRgnData = NULL;
+						}
 					}
 
 					bFoundLeft = FALSE;
@@ -2741,10 +2808,11 @@ HRGN CreateRgnFromBitmap(HBITMAP hBmp,COLORREF color,DWORD dwTol)
 	free(pbyBits);
 	free(bi);
 
-	// create region
-	hRgn = ExtCreateRegion(NULL,sizeof(RGNDATAHEADER) + pRgnData->rdh.nCount * sizeof(RECT),pRgnData);
-
-	free(pRgnData);
+	if (pRgnData)							// has region data, create region
+	{
+		hRgn = ExtCreateRegion(NULL,sizeof(RGNDATAHEADER) + pRgnData->rdh.nCount * sizeof(RECT),pRgnData);
+		free(pRgnData);
+	}
 	return hRgn;
 	#undef ADD_RECTS_COUNT
 }

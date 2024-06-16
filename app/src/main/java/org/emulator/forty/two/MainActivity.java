@@ -30,6 +30,7 @@ import android.os.Build;
 import android.os.Bundle;
 import android.os.ParcelFileDescriptor;
 import android.os.Vibrator;
+import android.os.VibratorManager;
 import android.util.Log;
 import android.util.SparseArray;
 import android.view.LayoutInflater;
@@ -163,7 +164,12 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
 	    settings = EmuApplication.getSettings();
 	    settings.setIsDefaultSettings(true);
 
-	    vibrator = (Vibrator) getSystemService(Context.VIBRATOR_SERVICE);
+	    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+		    vibrator = ((VibratorManager)getSystemService(Context.VIBRATOR_MANAGER_SERVICE)).getDefaultVibrator();
+	    } else {
+		    // Deprecated in API 31
+	    	vibrator = (Vibrator) getSystemService(Context.VIBRATOR_SERVICE);
+	    }
 
         ViewGroup mainScreenContainer = findViewById(R.id.main_screen_container);
         mainScreenView = new MainScreenView(this);
@@ -1440,12 +1446,13 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
 			String romFilename = null;
 			for (DocumentFile file : kmlFolderDocumentFile.listFiles()) {
 				String name = file.getName();
-				if (name != null && name.compareTo(kmlFilename) == 0) {
+				if (name != null && kmlFilename.contains(name)) {
 					try {
 						DocumentFile documentFile = DocumentFile.fromSingleUri(this, file.getUri());
 						if (documentFile != null) {
 							Uri fileUri = documentFile.getUri();
 							romFilename = extractROMFilename(getContentResolver().openInputStream(fileUri));
+							break;
 						}
 					} catch (IOException e) {
 						//log the exception

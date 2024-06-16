@@ -220,7 +220,7 @@ static BOOL GetAddr(HWND hDlg,INT nID,DWORD *pdwAddr,DWORD dwMaxAddr,BOOL bSymbE
 //
 static VOID SetMappingMenu(HWND hDlg,UINT uID)
 {
-	enum MEM_MAPPING eMode;
+	enum MEM_MAPPING eMode = MEM_MMU;
 	LPTSTR szCaption;
 
 	UINT uEnable = MF_GRAYED;				// disable Memory Data menu items
@@ -1114,7 +1114,7 @@ static BOOL OnStackPush(HWND hDlg)
 
 	if (IDOK != OnNewValue(szBuffer))		// canceled function
 		return TRUE;
-	_stscanf(szBuffer,_T("%5X"),&dwAddr);
+	_stscanf(szBuffer,_T("%5X"),(UINT *) &dwAddr);
 
 	// push stack element
 	for (j = ARRAYSIZEOF(Chipset.rstk); j > i + 1; --j)
@@ -1173,7 +1173,7 @@ static BOOL OnStackModify(HWND hDlg)
 
 	SendMessage(hWnd,LB_GETTEXT,i,(LPARAM) szBuffer);
 	OnNewValue(&szBuffer[3]);
-	_stscanf(&szBuffer[3],_T("%5X"),&Chipset.rstk[(Chipset.rstkp-i-1)&7]);
+	_stscanf(&szBuffer[3],_T("%5X"),(UINT *) &Chipset.rstk[(Chipset.rstkp-i-1)&7]);
 
 	UpdateStackWnd(hDlg);					// update stack window
 	SendMessage(hWnd,LB_SETCURSEL,i,0);		// restore cursor postion
@@ -1240,11 +1240,11 @@ static BOOL OnLButtonUp(HWND hDlg, LPARAM lParam)
 		break;
 	case IDC_REG_D0: // D0
 		OnNewValue(&szBuffer[3]);
-		_stscanf(&szBuffer[3],_T("%5X"),&Chipset.d0);
+		_stscanf(&szBuffer[3],_T("%5X"),(UINT *) &Chipset.d0);
 		break;
 	case IDC_REG_D1: // D1
 		OnNewValue(&szBuffer[3]);
-		_stscanf(&szBuffer[3],_T("%5X"),&Chipset.d1);
+		_stscanf(&szBuffer[3],_T("%5X"),(UINT *) &Chipset.d1);
 		break;
 	case IDC_REG_P: // P
 		OnNewValue(&szBuffer[2]);
@@ -1254,7 +1254,7 @@ static BOOL OnLButtonUp(HWND hDlg, LPARAM lParam)
 		break;
 	case IDC_REG_PC: // PC
 		OnNewValue(&szBuffer[3]);
-		_stscanf(&szBuffer[3],_T("%5X"),&Chipset.pc);
+		_stscanf(&szBuffer[3],_T("%5X"),(UINT *) &Chipset.pc);
 		break;
 	case IDC_REG_OUT: // OUT
 		OnNewValue(&szBuffer[4]);

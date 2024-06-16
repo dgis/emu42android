@@ -424,7 +424,7 @@ VOID SoundClose(VOID)
 //
 static BYTE WaveLevel(WORD wOut)
 {
-	BYTE byWaveLevel;
+	BYTE byWaveLevel = 1;
 
 	wOut &= (3 << 10);						// mask out beeper bits OR[11:10]
 

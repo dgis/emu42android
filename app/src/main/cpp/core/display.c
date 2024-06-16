@@ -495,6 +495,11 @@ VOID CreateLcdBitmap(VOID)
 		SelectPalette(hLcdDC,hPalette,FALSE); // set palette for LCD DC
 		RealizePalette(hLcdDC);				// realize palette
 
+		if (hAnnunDC == NULL)				// no external LCD bitmap
+		{
+			CreateAnnunBitmapFromMain();	// create annunciator bitmap from background bitmap
+		}
+
 		UpdateContrast();					// initialize background
 		EnterCriticalSection(&csGDILock);	// solving NT GDI problems
 		{
@@ -796,6 +801,10 @@ BOOL CreateAnnunBitmapFromMain(VOID)
 		// annunciator has a dimension
 		if (pAnnunciator[i].nCx * pAnnunciator[i].nCy > 0)
 		{
+			// quit for opaque annunciators
+			if (pAnnunciator[i].bOpaque == TRUE)
+				return TRUE;				// quit with success
+
 			bmi.bmiHeader.biWidth += pAnnunciator[i].nCx;
 			if ((LONG) pAnnunciator[i].nCy > bmi.bmiHeader.biHeight)
 			{
@@ -882,7 +891,7 @@ BOOL CreateAnnunBitmapFromMain(VOID)
 		// NTSC formula for grayscale: 0.299 * Red + 0.587 * Green + 0.114 * Blue
 		DWORD dwLuminance = pbyRGBPixel[0] * 114		// blue
 						  + pbyRGBPixel[1] * 587		// green
-						  + pbyRGBPixel[2] * 299;		// read
+						  + pbyRGBPixel[2] * 299;		// red
 		*pbyRGBPixel = (BYTE) (dwLuminance / 1000);		// set grayscale value to blue
 
 		if (*pbyRGBPixel < byLuminanceMin) byLuminanceMin = *pbyRGBPixel;
@@ -896,7 +905,8 @@ BOOL CreateAnnunBitmapFromMain(VOID)
 	for (pdwRGBPixel = pdwData, i = nPixelSize; i > 0; --i)
 	{
 		// paint white or black dependent on luminance of blue
-		*pdwRGBPixel++ = (*(LPBYTE) pdwRGBPixel >= byLuminanceMean) ? W : B;
+		*pdwRGBPixel = (*(LPBYTE) pdwRGBPixel >= byLuminanceMean) ? W : B;
+		++pdwRGBPixel;						// next pixel
 	}
 
 	#if defined DEBUG_WRITEBMP

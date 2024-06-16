@@ -1,5 +1,5 @@
 //
-//	PCH.H
+//..PCH.H
 //
 
 #define _WIN32_IE 0x0200
@@ -51,7 +51,7 @@
 #endif
 
 #if !defined IDC_HAND // Win2k specific definition
-#define IDC_HAND			MAKEINTRESOURCE(32649)
+#define IDC_HAND            MAKEINTRESOURCE(32649)
 #endif // IDC_HAND
 
 #if _MSC_VER <= 1200 // MSVC6.0 don't know the LL constant extention, use i64 instead
@@ -69,6 +69,34 @@
 typedef SIZE_T DWORD_PTR, *PDWORD_PTR;
 typedef ULONG  ULONG_PTR, *PULONG_PTR;
 typedef LONG   LONG_PTR,  *PLONG_PTR;
+#endif
+
+#if !defined PROCESS_POWER_THROTTLING_CURRENT_VERSION
+#define PROCESS_POWER_THROTTLING_CURRENT_VERSION 1
+#endif
+
+#if !defined PROCESS_POWER_THROTTLING_IGNORE_TIMER_RESOLUTION
+#define PROCESS_POWER_THROTTLING_IGNORE_TIMER_RESOLUTION 0x04
+#endif
+
+#if _MSC_VER <= 1900  // add until VS2015 from processthreadsapi.h
+enum { ProcessPowerThrottling = 4 };
+
+typedef struct _PROCESS_POWER_THROTTLING_STATE {
+    ULONG Version;
+    ULONG ControlMask;
+    ULONG StateMask;
+} PROCESS_POWER_THROTTLING_STATE, * PPROCESS_POWER_THROTTLING_STATE;
+#endif
+
+#if defined(__clang__)
+#define __builtin_unreachable() __builtin_unreachable()
+#elif defined(_MSC_VER)
+#define __builtin_unreachable() _ASSERT(0)
+#endif
+
+#if defined(__clang__)
+#pragma clang diagnostic ignored "-Wnonportable-include-path"
 #endif
 
 #if _MSC_VER >= 1400 // valid for VS2005 and later

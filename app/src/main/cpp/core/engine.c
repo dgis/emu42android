@@ -505,7 +505,7 @@ UINT SwitchToState(UINT nNewState)
 	return nOldState;
 }
 
-UINT WorkerThread(LPVOID pParam)
+UINT WINAPI WorkerThread(LPVOID pParam)
 {
 	LARGE_INTEGER lDummyInt;				// sample timer ticks
 	QueryPerformanceFrequency(&lDummyInt);	// init timer ticks

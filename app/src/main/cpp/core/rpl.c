@@ -11,6 +11,10 @@
 #include "ops.h"
 #include "rpl.h"
 
+#if defined(__clang__)
+#pragma clang diagnostic ignored "-Wunneeded-internal-declaration"
+#endif
+
 static DWORD RPL28_GarbageCol(VOID)			// RPL variables must be in system RAM
 {
 	CHIPSET_M OrgChipset;

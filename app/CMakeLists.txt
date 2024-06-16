@@ -22,6 +22,7 @@ cmake_minimum_required(VERSION 3.4.1)
 #add_compile_options(-DWIN32_TIMER_THREAD) # old timer algorithm which stop when no more thread!
 
 add_compile_options(-DEMUXX=42)
+add_compile_options(-DLODEPNG_NO_COMPILE_CRC)
 
 
 if(CMAKE_BUILD_TYPE STREQUAL Release)
@@ -65,6 +66,7 @@ add_library( # Sets the name of the library.
         src/main/cpp/core/mops.c
         src/main/cpp/core/mru.c
         src/main/cpp/core/opcodes.c
+		src/main/cpp/core/pngcrc.c
         src/main/cpp/core/pch.c
         src/main/cpp/core/redeye.c
         src/main/cpp/core/rpl.c
