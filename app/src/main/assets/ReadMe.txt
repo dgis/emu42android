@@ -50,12 +50,12 @@ Version 2.3 (2024-06-16)
 
 - Update from the original source code Emu42 version 1.30 from Christoph Gießelink.
 - Fix a background issue for annunciators in the Win32 layer.
+- Fix haptic feedback with Android 12 (API deprecation).
 
 
 Version 2.2 (2022-11-05)
 
 - Update from the original source code Emu42 version 1.29 from Christoph Gießelink (Copy/paste improvement).
-- Fix haptic feedback with Android 12 (API deprecation).
 
 
 Version 2.1 (2022-03-03)
