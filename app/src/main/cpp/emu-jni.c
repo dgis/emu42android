@@ -88,16 +88,14 @@ enum CALLBACK_TYPE {
 };
 
 // https://stackoverflow.com/questions/9630134/jni-how-to-callback-from-c-or-c-to-java
-int mainViewCallback(int type, int param1, int param2, const TCHAR * param3, const TCHAR * param4) {
+int mainViewCallback(int type, int param1, int param2) {
     if (mainActivity) {
         JNIEnv *jniEnv = getJNIEnvironment();
         if(jniEnv) {
             jclass mainActivityClass = (*jniEnv)->GetObjectClass(jniEnv, mainActivity);
             if(mainActivityClass) {
-                jmethodID midStr = (*jniEnv)->GetMethodID(jniEnv, mainActivityClass, "updateCallback", "(IIILjava/lang/String;Ljava/lang/String;)I");
-                jstring utfParam3 = (*jniEnv)->NewStringUTF(jniEnv, param3);
-                jstring utfParam4 = (*jniEnv)->NewStringUTF(jniEnv, param4);
-                int result = (*jniEnv)->CallIntMethod(jniEnv, mainActivity, midStr, type, param1, param2, utfParam3, utfParam4);
+	            jmethodID midStr = (*jniEnv)->GetMethodID(jniEnv, mainActivityClass, "updateCallback", "(III)I");
+	            int result = (*jniEnv)->CallIntMethod(jniEnv, mainActivity, midStr, type, param1, param2);
                 (*jniEnv)->DeleteLocalRef(jniEnv, mainActivityClass);
                 //if(needDetach) ret = (*java_machine)->DetachCurrentThread(java_machine);
                 return result;
@@ -113,18 +111,16 @@ void mainViewUpdateCallback() {
 //		int param2 = ((mainViewRectangleToUpdate.right & 0xFFFF) << 16) | (mainViewRectangleToUpdate.bottom & 0xFFFF);
 //		mainViewCallback(CALLBACK_TYPE_INVALIDATE,
 //		                 param1,
-//		                 param2,
-//		                 NULL, NULL);
+//		                 param2);
 //		SetRectEmpty(&mainViewRectangleToUpdate);
 //	} else
 		mainViewCallback(CALLBACK_TYPE_INVALIDATE,
 		                 0,
-		                 0,
-		                 NULL, NULL);
+		                 0);
 }
 
 void mainViewResizeCallback(int x, int y) {
-    mainViewCallback(CALLBACK_TYPE_WINDOW_RESIZE, x, y, NULL, NULL);
+    mainViewCallback(CALLBACK_TYPE_WINDOW_RESIZE, x, y);
 
     JNIEnv * jniEnv;
     int ret = (*java_machine)->GetEnv(java_machine, (void **) &jniEnv, JNI_VERSION_1_6);
@@ -505,6 +501,27 @@ JNIEXPORT void JNICALL Java_org_emulator_calculator_NativeLib_start(JNIEnv *env,
         return;
     }
 
+	idDdeInst = 0;							// initialize DDE server
+	if (DdeInitialize(&idDdeInst,(PFNCALLBACK) &DdeCallback,
+	                  APPCLASS_STANDARD |
+	                  CBF_FAIL_EXECUTES | CBF_FAIL_ADVISES |
+	                  CBF_SKIP_REGISTRATIONS | CBF_SKIP_UNREGISTRATIONS,0))
+	{
+		// TerminateThread(hThread, 0);		// kill emulation thread
+		CloseHandle(hEventShutdn);			// close event handle
+		AbortMessage(_T("Could not initialize server!"));
+		//DestroyWindow(hWnd);
+		return; // FALSE;
+	}
+
+	// init clipboard format and name service
+	HSZ hszService, hszTopic;				// variables for DDE server
+	uCF_HpObj = RegisterClipboardFormat(_T(CF_HPOBJ));
+	hszService = DdeCreateStringHandle(idDdeInst,szAppName,0);
+	hszTopic   = DdeCreateStringHandle(idDdeInst,szTopic,0);
+	DdeNameService(idDdeInst,hszService,NULL,DNS_REGISTER);
+
+
     soundEnabled = soundAvailable = SoundOpen(uWaveDevId);					// open waveform-audio output device
 
     ResumeThread(hThread);					// start thread
@@ -854,6 +871,7 @@ JNIEXPORT jint JNICALL Java_org_emulator_calculator_NativeLib_onObjectLoad(JNIEn
 //            SwitchToState(SM_RUN);
 //            goto cancel;
 //        }
+
         if (!LoadObject(filenameUTF8))
         {
             SwitchToState(SM_RUN);

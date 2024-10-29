@@ -1,5 +1,5 @@
 //{{NO_DEPENDENCIES}}
-// Microsoft Developer Studio generated include file.
+// Microsoft Visual C++ generated include file.
 // Used by Emu42.rc
 //
 #define IDM_DEBUG_SETTINGS              0x0010
@@ -104,48 +104,53 @@
 #define IDC_DEBUG_DATA_BUT              1069
 #define IDC_DEBUG_DATA_STARTADDR        1070
 #define IDC_DEBUG_DATA_ENDADDR          1071
-#define IDC_DEBUG_SET_SYMB              1072
-#define IDC_DEBUG_SET_MODEL             1073
-#define IDC_DEBUG_SET_FILE              1074
-#define IDC_DEBUG_SET_BROWSE            1075
-#define IDC_DEBUG_STACK                 1076
-#define IDC_STATIC_BREAKPOINT           1077
-#define IDC_BREAKEDIT_ADD               1078
-#define IDC_BREAKEDIT_DELETE            1079
-#define IDC_BREAKEDIT_WND               1080
-#define IDC_STATIC_MISC                 1081
-#define IDC_INSTR_TEXT                  1082
-#define IDC_INSTR_CODE                  1083
-#define IDC_INSTR_COPY                  1084
-#define IDC_INSTR_CLEAR                 1085
-#define IDC_PROFILE_LASTCYCLES          1086
-#define IDC_PROFILE_LASTTIME            1087
-#define IDC_BPCODE                      1088
-#define IDC_BPRPL                       1089
-#define IDC_BPACCESS                    1090
-#define IDC_BPREAD                      1091
-#define IDC_BPWRITE                     1092
-#define IDC_FIND_DATA                   1093
-#define IDC_FIND_PREV                   1094
-#define IDC_FIND_NEXT                   1095
-#define IDC_FIND_ASCII                  1096
-#define IDC_RPLVIEW_DATA                1097
-#define IDC_USERCODE_SELECT             1098
-#define IDC_MACRO_SLOW                  1099
-#define IDC_MACRO_FAST                  1100
-#define IDC_MACRO_SLIDER                1101
-#define IDC_MACRO_REAL                  1102
-#define IDC_MACRO_MANUAL                1103
-#define IDC_SOUND_SLIDER                1104
-#define IDC_SOUND_DEVICE                1105
-#define IDC_IR_ADDR                     1106
-#define IDC_IR_PORT                     1107
-#define IDC_TRACE_FILE                  1108
-#define IDC_TRACE_BROWSE                1109
-#define IDC_TRACE_NEW                   1110
-#define IDC_TRACE_APPEND                1111
-#define IDC_TRACE_REGISTER              1112
-#define IDC_TRACE_OPCODE                1113
+#define IDC_DEBUG_DATA_SAVE_8BIT        1072
+#define IDC_DEBUG_DATA_SAVE_4BIT        1073
+#define IDC_DEBUG_DATA_LOAD_8BIT        1074
+#define IDC_DEBUG_DATA_LOAD_4BIT        1075
+#define IDC_DEBUG_DATA_LOAD_ABIT        1076
+#define IDC_DEBUG_SET_SYMB              1077
+#define IDC_DEBUG_SET_MODEL             1078
+#define IDC_DEBUG_SET_FILE              1079
+#define IDC_DEBUG_SET_BROWSE            1080
+#define IDC_DEBUG_STACK                 1081
+#define IDC_STATIC_BREAKPOINT           1082
+#define IDC_BREAKEDIT_ADD               1083
+#define IDC_BREAKEDIT_DELETE            1084
+#define IDC_BREAKEDIT_WND               1085
+#define IDC_STATIC_MISC                 1086
+#define IDC_INSTR_TEXT                  1087
+#define IDC_INSTR_CODE                  1088
+#define IDC_INSTR_COPY                  1089
+#define IDC_INSTR_CLEAR                 1090
+#define IDC_PROFILE_LASTCYCLES          1091
+#define IDC_PROFILE_LASTTIME            1092
+#define IDC_BPCODE                      1093
+#define IDC_BPRPL                       1094
+#define IDC_BPACCESS                    1095
+#define IDC_BPREAD                      1096
+#define IDC_BPWRITE                     1097
+#define IDC_FIND_DATA                   1098
+#define IDC_FIND_PREV                   1099
+#define IDC_FIND_NEXT                   1100
+#define IDC_FIND_ASCII                  1101
+#define IDC_RPLVIEW_DATA                1102
+#define IDC_USERCODE_SELECT             1103
+#define IDC_MACRO_SLOW                  1104
+#define IDC_MACRO_FAST                  1105
+#define IDC_MACRO_SLIDER                1106
+#define IDC_MACRO_REAL                  1107
+#define IDC_MACRO_MANUAL                1108
+#define IDC_SOUND_SLIDER                1109
+#define IDC_SOUND_DEVICE                1110
+#define IDC_IR_ADDR                     1111
+#define IDC_IR_PORT                     1112
+#define IDC_TRACE_FILE                  1113
+#define IDC_TRACE_BROWSE                1114
+#define IDC_TRACE_NEW                   1115
+#define IDC_TRACE_APPEND                1116
+#define IDC_TRACE_REGISTER              1117
+#define IDC_TRACE_OPCODE                1118
 #define ID_FILE_NEW                     40001
 #define ID_FILE_OPEN                    40002
 #define ID_FILE_SAVE                    40003
@@ -226,7 +231,7 @@
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        129
 #define _APS_NEXT_COMMAND_VALUE         40074
-#define _APS_NEXT_CONTROL_VALUE         1114
+#define _APS_NEXT_CONTROL_VALUE         1119
 #define _APS_NEXT_SYMED_VALUE           108
 #endif
 #endif

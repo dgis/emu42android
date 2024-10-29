@@ -138,13 +138,13 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
     // Most Recently Used state files
     private final int MRU_ID_START = 10000;
     private final int MAX_MRU = 5;
-    private LinkedHashMap<String, String> mruLinkedHashMap = new LinkedHashMap<String, String>(5, 1.0f, true) {
+    private final LinkedHashMap<String, String> mruLinkedHashMap = new LinkedHashMap<String, String>(5, 1.0f, true) {
         @Override
         protected boolean removeEldestEntry(Map.Entry eldest) {
             return size() > MAX_MRU;
         }
     };
-	private HashMap<Integer, String> mruByMenuId = new HashMap<>();
+	private final HashMap<Integer, String> mruByMenuId = new HashMap<>();
 
     private final PrinterSimulator printerSimulator = new PrinterSimulator();
     private final PrinterSimulatorFragment fragmentPrinterSimulator = new PrinterSimulatorFragment();
@@ -244,7 +244,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
             }
         }
 
-        if(documentToOpenUrl != null && documentToOpenUrl.length() > 0)
+        if(documentToOpenUrl != null && !documentToOpenUrl.isEmpty())
             try {
             	// FileOpen auto-open.
                 onFileOpen(documentToOpenUrl, intent, null);
@@ -274,7 +274,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
             for (int i = mrus.length - 1; i >= 0; i--) {
             	String mostRecentlyUsedFile = mrus[i];
                 String displayName = getFilenameFromURL(mostRecentlyUsedFile);
-                if(displayName == null || displayName.equals("") || displayName.equals(mostRecentlyUsedFile)) {
+                if(displayName == null || displayName.isEmpty() || displayName.equals(mostRecentlyUsedFile)) {
                 	// We should remove this file because it seems impossible to get the display name of this Most Recently Used state file.
 	                // It might be deleted or the permissions does not allow to reach it anymore.
 	                mruLinkedHashMap.remove(mostRecentlyUsedFile);
@@ -299,7 +299,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
 
 		    if (NativeLib.isDocumentAvailable() && settings.getBoolean("settings_autosave", true)) {
 			    String currentFilename = NativeLib.getCurrentFilename();
-			    if (currentFilename != null && currentFilename.length() > 0)
+			    if (currentFilename != null && !currentFilename.isEmpty())
 				    onFileSave();
 		    }
 
@@ -1147,7 +1147,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
 				saveWhenLaunchingActivity = false;
 				startActivityForResult(intent, INTENT_LOAD_FLASH_ROM);
 			};
-			if(currentFlashPort2Url != null && currentFlashPort2Url.length() > 0)
+			if(currentFlashPort2Url != null && !currentFlashPort2Url.isEmpty())
 				new AlertDialog.Builder(this)
 						.setTitle(getString(R.string.alert_losing_flash_rom_title))
 						.setMessage(getString(R.string.alert_losing_flash_rom_message))
@@ -1172,8 +1172,8 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
 		// Reset to default Flash ROM from the KML file
 		settings.putString("settings_flash_port2", null);
 		String kmlFilename = NativeLib.getCurrentKml();
-		if(kmlFilename.length() > 0) {
-			String kmlFolder = kmlFolderURL == null || kmlFolderURL.length() == 0 ? null : kmlFolderURL;
+		if(!kmlFilename.isEmpty()) {
+			String kmlFolder = kmlFolderURL == null || kmlFolderURL.isEmpty() ? null : kmlFolderURL;
 			// Reset the flashROM
 			NativeLib.onLoadFlashROM("");
 			// Load the KML file again. TODO If it goes wrong, we are lost.
@@ -1244,7 +1244,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
 	                        updateFromPreferences("settings_flash_port2", true);
                             displayFilename(url);
 	                        String settingsFlashPort2Url = settings.getString("settings_flash_port2", null);
-                            if(settingsFlashPort2Url != null && settingsFlashPort2Url.length() > 0)
+                            if(settingsFlashPort2Url != null && !settingsFlashPort2Url.isEmpty())
 	                            showAlert(String.format(Locale.US, getString(R.string.message_state_and_flash_saved), getFilenameFromURL(url), getFilenameFromURL(settingsFlashPort2Url)));
                             else
 		                        showAlert(String.format(Locale.US, getString(R.string.message_state_saved), getFilenameFromURL(url)));
@@ -1351,8 +1351,8 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
 		                // Not possible to save the current FlashROM :-( [NativeLib.onSaveFlashROM(url);]
 		                // So, we are going to create a new one from the ROM loaded by the current KML script!
 		                String kmlFilename = NativeLib.getCurrentKml();
-		                if(kmlFilename != null && kmlFilename.length() > 0) {
-		                	if(kmlFolderURL != null && kmlFolderURL.length() > 0)
+		                if(kmlFilename != null && !kmlFilename.isEmpty()) {
+		                	if(kmlFolderURL != null && !kmlFolderURL.isEmpty())
 				                copyROMFromFolder(kmlFilename, uri);
 			                else
 				                copyROMFromAsset(kmlFilename, uri);
@@ -1460,7 +1460,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
 					}
 				}
 			}
-			if(romFilename != null && romFilename.length() > 0) {
+			if(romFilename != null && !romFilename.isEmpty()) {
 				ParcelFileDescriptor pfdROM = openFileInFolderFromContentResolverPFD(romFilename, kmlFolderURL, GENERIC_READ);
 				if(pfdROM != null) {
 					try {
@@ -1486,7 +1486,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
 		try {
 			kmlInputStream = assetManager.open("calculators/" + kmlFilename);
 			String romFilename = extractROMFilename(kmlInputStream);
-			if(romFilename != null && romFilename.length() > 0) {
+			if(romFilename != null && !romFilename.isEmpty()) {
 				InputStream romInputStream = assetManager.open("calculators/" + romFilename);
 				copyROMtoFlashROM(romInputStream, uri);
 			}
@@ -1590,7 +1590,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
 	    if(getPackageName().contains("org.emulator.forty.eight") && settings.getBoolean("settings_port2en", false)) {
 		    // Check if the access to the port2 shared file is still possible.
 		    String port2Url = settings.getString("settings_port2load", "");
-		    if(port2Url != null && port2Url.length() > 0) {
+		    if(port2Url != null && !port2Url.isEmpty()) {
 			    Uri port2Uri = Uri.parse(port2Url);
 			    DocumentFile port2DocumentFile = DocumentFile.fromSingleUri(this, port2Uri);
 			    if (port2DocumentFile == null || !port2DocumentFile.exists()) {
@@ -1713,7 +1713,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
 			updateFromPreferences("settings_flash_port2", true);
 
 			String settingsFlashPort2Url = settings.getString("settings_flash_port2", null);
-			if(settingsFlashPort2Url != null && settingsFlashPort2Url.length() > 0)
+			if(settingsFlashPort2Url != null && !settingsFlashPort2Url.isEmpty())
 				showAlert(String.format(Locale.US, getString(R.string.message_state_and_flash_saved), getFilenameFromURL(currentFilenameUrl), getFilenameFromURL(settingsFlashPort2Url)));
 			else
 				showAlert(String.format(Locale.US, getString(R.string.message_state_saved), getFilenameFromURL(currentFilenameUrl)));
@@ -1723,7 +1723,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
     private void displayFilename(String stateFileURL) {
         String displayName = getFilenameFromURL(stateFileURL == null ? "" : stateFileURL);
 	    String port2FileURL = settings.getString("settings_flash_port2", null);
-        if(port2FileURL != null && port2FileURL.length() > 0)
+        if(port2FileURL != null && !port2FileURL.isEmpty())
 	        displayName += " " + getFilenameFromURL(port2FileURL);
         View headerView = displayKMLTitle();
         if(headerView != null) {
@@ -1790,12 +1790,11 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
     // Method used from JNI!
 
 	@SuppressWarnings("UnusedDeclaration")
-    public int updateCallback(int type, int param1, int param2, String param3, String param4) {
+	public int updateCallback(int type, int param1, int param2) {
 
-        mainScreenView.updateCallback(type, param1, param2, param3, param4);
+		mainScreenView.updateCallback(type, param1, param2);
         return -1;
     }
-
 
     final int GENERIC_READ   = 1;
     final int GENERIC_WRITE  = 2;
@@ -1992,6 +1991,19 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
                 break;
             case 26: // TOOL_MACRO_SETTINGS
                 break;
+	        case 201: // Custom: CUSTOM_PIXEL_BORDER_ON
+		        settings.putBoolean("settings_lcd_pixel_borders", true);
+		        updateFromPreferences("settings_lcd_pixel_borders", true);
+		        break;
+	        case 202: // Custom: CUSTOM_PIXEL_BORDER_OFF
+		        settings.putBoolean("settings_lcd_pixel_borders", false);
+		        updateFromPreferences("settings_lcd_pixel_borders", true);
+		        break;
+	        case 203: // Custom: CUSTOM_PIXEL_BORDER_TOGGLE
+		        boolean usePixelBorders = settings.getBoolean("settings_lcd_pixel_borders", false);
+				settings.putBoolean("settings_lcd_pixel_borders", !usePixelBorders);
+		        updateFromPreferences("settings_lcd_pixel_borders", true);
+		        break;
             default:
                 break;
         }
@@ -2103,7 +2115,8 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
     }
 
     private void setPort1Settings(boolean port1Plugged, boolean port1Writable) {
-    	if(this.getClass().getPackage().getName().equals("org.emulator.forty.eight")) {
+	    Package pack = this.getClass().getPackage();
+    	if(pack != null && pack.getName().equals("org.emulator.forty.eight")) {
 		    settings.putBoolean("settings_port1en", port1Plugged);
 		    settings.putBoolean("settings_port1wr", port1Writable);
 		    updateFromPreferences("settings_port1", true);
@@ -2127,6 +2140,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
             switch (key) {
                 case "settings_realspeed":
 	            case "settings_grayscale":
+	            case "settings_serial_slowdown":
 					NativeLib.setConfiguration(key, isDynamicValue, settings.getBoolean(key, false) ? 1 : 0, 0, null);
                     break;
 
@@ -2249,9 +2263,6 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
 	            case "settings_serial_ports_ir":
 		            //NativeLib.setConfiguration("settings_serial_ports_ir", isDynamicValue, 0, 0,
 				    //        DevicesFragment.SerialConnectParameters.fromSettingsString(settings.getString("settings_serial_ports_ir", "")).toWin32String());
-		            break;
-	            case "settings_serial_slowdown":
-		            //NativeLib.setConfiguration(key, isDynamicValue, settings.getBoolean(key, false) ? 1 : 0, 0, null);
 		            break;
             }
         }

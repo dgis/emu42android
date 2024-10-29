@@ -1,7 +1,7 @@
 /*
-LodePNG version 20230410
+LodePNG version 20241015
 
-Copyright (c) 2005-2023 Lode Vandevenne
+Copyright (c) 2005-2024 Lode Vandevenne
 
 This software is provided 'as-is', without any express or implied
 warranty. In no event will the authors be held liable for any damages
@@ -818,7 +818,10 @@ unsigned lodepng_compute_color_stats(LodePNGColorStats* stats,
 typedef struct LodePNGEncoderSettings {
   LodePNGCompressSettings zlibsettings; /*settings for the zlib encoder, such as window size, ...*/
 
-  unsigned auto_convert; /*automatically choose output PNG color type. Default: true*/
+  /*automatically choose output PNG color type. If false, must explicitely choose the output color
+  type in state.info_png.color.colortype, info_png.color.bitdepth and optionally its palette.
+  Default: true*/
+  unsigned auto_convert;
 
   /*If true, follows the official PNG heuristic: if the PNG uses a palette or lower than
   8 bit depth, set all filters to zero. Otherwise use the filter_strategy. Note that to
@@ -1001,7 +1004,7 @@ and data separately. The type is a 4-letter string.
 The out variable and outsize are updated to reflect the new reallocated buffer.
 Returne error code (0 if it went ok)
 */
-unsigned lodepng_chunk_create(unsigned char** out, size_t* outsize, unsigned length,
+unsigned lodepng_chunk_create(unsigned char** out, size_t* outsize, size_t length,
                               const char* type, const unsigned char* data);
 
 

@@ -24,7 +24,7 @@
 
 #define OBJECT_EN		_T("DLNO")			// valid calculator models for Load/Save Object enable
 #define STACK_C_EN		_T("ACDEFILMNOTUY")	// valid calculator models for Stack Copy enable
-#define STACK_P_EN		_T("DLNO")			// valid calculator models for Stack Paste enable
+#define STACK_P_EN		_T("ACDEFLNO")		// valid calculator models for Stack Paste enable
 
 #define BINARYHEADER28S "HPHP28-S"
 
@@ -361,6 +361,7 @@ extern BOOL  SendByteUdp(BYTE byData);
 
 // Stack.c
 extern BOOL    bDetectClpObject;
+extern BOOL    bLocaleDecimalPoint;
 extern LRESULT OnStackCopy(VOID);
 extern LRESULT OnStackPaste(VOID);
 

@@ -13,7 +13,7 @@
 #include "kml.h"
 #include "debugger.h"
 
-#define VERSION   "1.30"
+#define VERSION   "1.31"
 
 #ifdef _DEBUG
 LPCTSTR szNoTitle = _T("Emu42 ")_T(VERSION)_T(" Debug");
@@ -1273,7 +1273,7 @@ static INT_PTR CALLBACK Disasm(HWND hDlg, UINT message, WPARAM wParam, LPARAM lP
 			// test if valid hex address
 			for (i = 0; i < (LONG) lstrlen(szAddress); ++i)
 			{
-				if (_istxdigit(szAddress[i]) == FALSE)
+				if (_istxdigit((_TUCHAR) szAddress[i]) == FALSE)
 					return FALSE;
 			}
 			dwAddress = _tcstoul(szAddress,NULL,16);
@@ -1648,6 +1648,7 @@ int WINAPI WinMain(HINSTANCE hInst, HINSTANCE hPrevInst, LPSTR lpCmdLine, int nC
 	MSG msg;
 	WNDCLASS wc;
 	ATOM classAtom;
+	WSADATA wsd;
 	RECT rectWindow;
 	HACCEL hAccel;
 	DWORD dwThreadId;
@@ -1662,16 +1663,8 @@ int WINAPI WinMain(HINSTANCE hInst, HINSTANCE hPrevInst, LPSTR lpCmdLine, int nC
 	_CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
 
 	hApp = hInst;
-	#if defined _UNICODE
-	{
-		ppArgv = (LPCTSTR*) CommandLineToArgvW(GetCommandLine(),&nArgc);
-	}
-	#else
-	{
-		nArgc = __argc;						// no. of command line arguments
-		ppArgv = (LPCTSTR*) __argv;			// command line arguments
-	}
-	#endif
+	nArgc = __argc;							// no. of command line arguments
+	ppArgv = (LPCTSTR *) __targv;			// command line arguments
 
 	if (!QueryPerformanceFrequency(&lFreq))	// init high resolution counter
 	{
@@ -1906,6 +1899,8 @@ int WINAPI WinMain(HINSTANCE hInst, HINSTANCE hPrevInst, LPSTR lpCmdLine, int nC
 	if (NewDocument()) SetWindowTitle(_T("Untitled"));
 
 start:
+	VERIFY(WSAStartup(MAKEWORD(1,1),&wsd) == 0);
+
 	if (bStartupBackup) SaveBackup();		// make a RAM backup at startup
 	if (pbyRom) SwitchToState(SM_RUN);
 
@@ -1921,6 +1916,8 @@ start:
 			DispatchMessage(&msg);
 		}
 	}
+
+	WSACleanup();							// cleanup network stack
 
 	// clean up DDE server
 	DdeNameService(idDdeInst, hszService, NULL, DNS_UNREGISTER);

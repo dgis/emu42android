@@ -122,6 +122,7 @@
 #define E_sRadix		0			// nRadix,
 
 #define E_SysFlags		0x0800E
+#define E_Operator		0x08014		// operator: 6=no, 7=pending
 #define E_X				0x08016
 
 // HP14B RAM entry
@@ -134,13 +135,16 @@
 #define F_sRadix		0			// nRadix,
 
 #define F_SysFlags		0x0800E
+#define F_Operator		0x08185		// operator: 7=no, 8=pending
 #define F_X				0x08187
 
 // HP22S RAM entry
 #define A_nRadix		8			// nRadix,
 
+#define A_OnAbort		0x20030		// 1=normal, F=input aborted with <ON> key
+#define A_Operator		0x20031		// operator: 0=no, 1='+', 2='-', 3='*', 4='/', 5='^', F=input
+#define A_X_Offset		0x20074		// 3 nibble offset to end of register
 #define A_SysFlags		0x20080
-#define A_X				0x200E6
 
 // HP32S RAM entries
 #define L_nRadix		1			// nRadix,

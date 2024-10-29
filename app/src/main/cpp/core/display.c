@@ -102,7 +102,7 @@ static CONST BYTE byLcdTypeBert[] =
 	0x02, 0x03, 0x08, 0x09, 0x00, 0x00, 0x00, 0x01,	// A02C, LSB first
 	0x07, 0x05, 0x04, 0x17, 0x00, 0x00, 0x00, 0x06,	// A02E, LSB first
 	0x02, 0x03, 0x08, 0x09, 0x00, 0x00, 0x00, 0x01,	// A030, LSB first
-	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,	// A032, LSB first
+	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00	// A032, LSB first
 };
 
 static DWORD dwKMLColor[64] =				// color table loaded by KML script
@@ -130,7 +130,6 @@ static VOID UpdateContrastSaca(VOID);
 static VOID UpdateContrastLewis(VOID);
 
 static VOID (*WritePixel)(BYTE *p, BYTE a) = NULL;
-static VOID (*UpdateDisplayMem)(VOID) = NULL;
 
 static VOID WritePixelZoom4(BYTE *p, BYTE a);
 static VOID WritePixelZoom3(BYTE *p, BYTE a);
@@ -139,6 +138,8 @@ static VOID WritePixelZoom1(BYTE *p, BYTE a);
 static VOID WritePixelBYTE(BYTE *p, BYTE a);
 static VOID WritePixelWORD(BYTE *p, BYTE a);
 static VOID WritePixelDWORD(BYTE *p, BYTE a);
+
+static VOID(*UpdateDisplayMem)(VOID) = NULL;
 
 static VOID UpdateDisplayClamshell(VOID);
 static VOID UpdateDisplayPioneer(VOID);
@@ -224,13 +225,13 @@ static VOID SetBkBitmap(VOID)
 			// scan complete display area
 			for (d = PDISP_BEGIN; d <= PDISP_END; d += 2)
 			{
-				INT nByteNo = d >> 1;
+				const INT nByteNo = d >> 1;
 
 				// column pixel
 				BitBlt(hBmpBkDC,
-					   (((nByteNo) / COL_PER_CHAR) * nLcdDistance + ((nByteNo) % COL_PER_CHAR) * nLcdXPixel + nLcdXOff),
+					   ((nByteNo / COL_PER_CHAR) * nLcdDistance + (nByteNo % COL_PER_CHAR) * nLcdXPixel + nLcdXOff),
 					   nLcdYOff,
-					   nLcdXSize, PIX_PER_COL * nLcdYPixel,
+					   nLcdXPixel, PIX_PER_COL * nLcdYPixel,
 					   hMaskDC,
 					   0x7F * nLcdXPixel, 0,
 					   ROP_PSDPxax);
@@ -1283,13 +1284,24 @@ static VOID UpdateDisplaySacajawea(VOID)
 			// scan complete display area
 			for (d = PDISP_BEGIN; d <= PDISP_END; d += 2)
 			{
-				INT nByteNo = d >> 1;
+				DWORD i;
+				INT   nValue;
 
-				INT nValue = (Chipset.IORam[d+1] << 4) | Chipset.IORam[d];
+				const UINT nByteNo = d >> 1;
+
+				// get column content
+				const WORD w = *(WORD *) &Chipset.IORam[d];
+
+				// translate pixel column over row driver table
+				for (nValue = 0, i = PROW_END - 1; i >= PROW_START; i -= 2)
+				{
+					const WORD c = (w & *(WORD *) &Chipset.IORam[i]);
+					nValue = (nValue << 1) | (!!c);
+				}
 
 				// column pixel
 				BitBlt(hLcdDC,
-					   (((nByteNo) / COL_PER_CHAR) * nLcdDistance + ((nByteNo) % COL_PER_CHAR) * nLcdXPixel + nLcdXOff),
+					   ((nByteNo / COL_PER_CHAR) * nLcdDistance + (nByteNo % COL_PER_CHAR) * nLcdXPixel + nLcdXOff),
 					   nLcdYOff,
 					   nLcdXPixel, PIX_PER_COL * nLcdYPixel,
 					   hMaskDC,
@@ -1333,17 +1345,17 @@ static VOID UpdateDisplayBert(VOID)
 			// scan complete display area
 			for (d = BDISP_BEGIN; d <= BDISP_END; ++d)
 			{
-				UINT i;
-
 				// x-offset for digit, dp or cm pattern
 				UINT nDigitOff = (UINT) (((d + 2) >> 2) - 1) * nLcdDistance;
+
+				CONST BYTE *pbyLcdType = &byLcdTypeBert[d*4];
 
 				BYTE byValue = Chipset.b.DspRam[d];
 				_ASSERT((byValue & 0xF0) == 0);
 
-				for (i = 0; byValue; ++i, byValue >>= 1)
+				for (; byValue; byValue >>= 1)
 				{
-					BYTE bySegType = byLcdTypeBert[d*4+i];
+					BYTE bySegType = *pbyLcdType++;
 
 					// segment connected and on
 					if (bySegType && (byValue & 1) != 0)

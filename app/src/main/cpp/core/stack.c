@@ -12,12 +12,107 @@
 #include "rpl.h"
 
 BOOL bDetectClpObject = TRUE;				// try to detect clipboard object
+BOOL bLocaleDecimalPoint = FALSE;			// use decimal point character from calculator
 
 //################
 //#
 //#    Low level subroutines
 //#
 //################
+
+//
+// check if cGroup character is thousands separator
+//
+static BOOL CheckThousandGroup(LPCTSTR cp,TCHAR cGroup)
+{
+	UINT uLastPos;
+	UINT i;
+
+	// get decimal point
+	CONST TCHAR cDecimalPoint = cGroup ^ (_T('.') ^ _T(','));
+
+	BOOL bFound = FALSE;					// 1st separator not found
+	BOOL bPosOK = TRUE;
+
+	for (i = 0; bPosOK && cp[i] != cDecimalPoint && cp[i] != 0; ++i)
+	{
+		if (cp[i] == cGroup)				// found separator
+		{
+			if (bFound)
+			{
+				// verify separator position
+				bPosOK = (uLastPos + 4 == i);
+			}
+
+			uLastPos = i;					// last position of separator
+			bFound = TRUE;					// separator found
+		}
+	}
+
+	// check last grouping
+	return bPosOK && bFound && (uLastPos + 4 == i);
+}
+
+//
+// get decimal point from clipboard
+//
+static TCHAR GetClpbrdDecimalPoint(LPCTSTR cp)
+{
+	TCHAR cDec = 0;							// default for invalid decimal point detection
+
+	TCHAR cLast = 0;						// last decimal point
+	UINT uPoint = 0;						// no. of points
+	UINT uComma = 0;						// no. of commas
+
+	LPCTSTR p;
+	for (p = cp; *p; ++p)					// count '.' and ',' characters
+	{
+		if (*p == _T('.'))
+		{
+			cLast = *p;						// last occurance
+			++uPoint;
+		}
+		if (*p == _T(','))
+		{
+			cLast = *p;						// last occurance
+			++uComma;
+		}
+	}
+
+	if (uComma == 0 && uPoint == 0)			// none of both
+	{
+		cDec = _T('.');
+	}
+	else if (uComma == 1 && uPoint == 0)	// one single ','
+	{
+		cDec = _T(',');
+	}
+	else if (uComma == 0 && uPoint == 1)	// one single '.'
+	{
+		cDec = _T('.');
+	}
+	else if (uComma == 1 && uPoint == 1)	// one single ',' and '.'
+	{
+		// change from ',' to '.' or vice versa
+		const TCHAR cFirst = cLast ^ (_T('.') ^ _T(','));
+
+		if (CheckThousandGroup(cp,cFirst))	// check if 1st character is grouped
+		{
+			cDec = cLast;
+		}
+	}
+	// multiple grouped ',' and single '.'
+	else if (uComma > 1 && uPoint == 1 && CheckThousandGroup(cp,_T(',')))
+	{
+		cDec = _T('.');
+	}
+	// multiple grouped '.' and single ','
+	else if (uComma == 1 && uPoint > 1 && CheckThousandGroup(cp,_T('.')))
+	{
+		cDec = _T(',');
+	}
+	return cDec;
+}
 
 static LPTSTR Trim(LPCTSTR cp)
 {
@@ -31,7 +126,7 @@ static LPTSTR Trim(LPCTSTR cp)
 	// trim leading and tailing whitespace characters
 	dwFirst = (DWORD) _tcsspn(cp,pcWs);		// position of 1st non whitespace character
 
-	// search for position behind last non whitespace character 
+	// search for position behind last non whitespace character
 	while (dwLast > dwFirst && _tcschr(pcWs,cp[dwLast-1]) != NULL)
 		--dwLast;
 
@@ -135,13 +230,14 @@ static INT RPL_GetBcd(BYTE CONST *pbyNum,INT nMantLen,INT nExpLen,CONST TCHAR cD
 
 static __inline INT SetBcd(LPCTSTR cp,INT nMantLen,INT nExpLen,CONST TCHAR cDec,LPBYTE pbyNum,INT nSize)
 {
-	TCHAR cVc[] = _T(".0123456789eE+-");
+	TCHAR cVc[] = _T(",.0123456789eE+-");
 
 	BYTE byNum[80];
 	INT  i,nIp,nDp,nMaxExp;
 	LONG lExp;
 
-	cVc[0] = cDec;							// replace decimal char
+	// get thousand separator
+	const TCHAR cThousand = cDec ^ (_T('.') ^ _T(','));
 
 	if (   nMantLen + nExpLen >= nSize		// destination buffer too small
 		|| !*cp								// empty string
@@ -161,8 +257,13 @@ static __inline INT SetBcd(LPCTSTR cp,INT nMantLen,INT nExpLen,CONST TCHAR cDec,
 	if (*cp != cDec)						// no decimal point
 	{
 		// count integer part
-		while (*cp >= _T('0') && *cp <= _T('9'))
-			byNum[++nIp] = *cp++ - _T('0');
+		for (; (*cp >= _T('0') && *cp <= _T('9')) || *cp == cThousand; ++cp)
+		{
+			if (*cp != cThousand)			// not thousand separator
+			{
+				byNum[++nIp] = *cp - _T('0');
+			}
+		}
 		if (!nIp) return 0;
 	}
 
@@ -273,8 +374,8 @@ static INT RPL_GetComplex(BYTE CONST *pbyNum,INT nMantLen,INT nExpLen,CONST TCHA
 	TCHAR cSep;
 
 	cSep = (cDec == _T('.'))				// current separator
-		 ? _T(',')							// radix mark '.' -> ',' separator
-		 : _T(';');							// radix mark ',' -> ';' separator
+		 ? _T(',')							// decimal point '.' -> ',' separator
+		 : _T(';');							// decimal comma ',' -> ';' separator
 
 	nPos = 0;								// write buffer position
 
@@ -317,8 +418,8 @@ static INT RPL_SetComplex(LPCTSTR cp,INT nMantLen,INT nExpLen,CONST TCHAR cDec,L
 	nLen = 0;								// read data length
 
 	cSep = (cDec == _T('.'))				// current separator
-		 ? _T(',')							// radix mark '.' -> ',' separator
-		 : _T(';');							// radix mark ',' -> ';' separator
+		 ? _T(',')							// decimal point '.' -> ',' separator
+		 : _T(';');							// decimal comma ',' -> ';' separator
 
 	if ((pszData = Trim(cp)) != NULL)		// create a trimmed working copy of the string
 	{
@@ -368,8 +469,14 @@ static TCHAR GetRadix(VOID)
 	BYTE byFlag;
 	BOOL bPoint;
 
-	// get locale decimal point
-	// GetLocaleInfo(LOCALE_USER_DEFAULT,LOCALE_SDECIMAL,&cDecimal,1);
+	if (bLocaleDecimalPoint)				// use Windows Locale decimal point character
+	{
+		TCHAR cDecimal[2];
+
+		// get locale decimal point with zero terminator
+		GetLocaleInfo(LOCALE_USER_DEFAULT,LOCALE_SDECIMAL,cDecimal,2);
+		return cDecimal[0];
+	}
 
 	// get calculator decimal point
 	switch (cCurrentRomType)
@@ -526,7 +633,8 @@ LRESULT OnStackCopy(VOID)					// copy data to clipboard
 	switch (cCurrentRomType)
 	{
 	case 'A': // HP22S (Plato)
-		dwAddress = A_X;					// x register object
+		// x register object
+		dwAddress = (A_X_Offset & 0xFF000) - (16 + 1) + (Read5(A_X_Offset) & 0xFFF);
 		dwObject = D_DOREAL;				// interpret object as real
 		break;
 	case 'C': // HP21S (Monte Carlo)
@@ -675,6 +783,7 @@ LRESULT OnStackPaste(VOID)					// paste data to stack
 	#endif
 
 	HANDLE hClipObj;
+	BYTE  byDisplayOn;
 
 	DWORD dwStackLiftAddr = 0;
 	BYTE  byStackLiftEn = 0;
@@ -692,7 +801,12 @@ LRESULT OnStackPaste(VOID)					// paste data to stack
 	SuspendDebugger();						// suspend debugger
 	bDbgAutoStateCtrl = FALSE;				// disable automatic debugger state control
 
-	if (!(Chipset.IORam[DSPCTL]&DON))		// calculator off, turn on
+	// display control
+	byDisplayOn = isModelBert(cCurrentRomType)
+		? Chipset.b.IORam[BCONTRAST]		// Bert
+		: Chipset.IORam[DSPCTL];			// Sacajawea or Lewis
+
+	if ((byDisplayOn & DON) == 0)			// calculator off, turn on
 	{
 		KeyboardEvent(TRUE,0,0x8000);
 		Sleep(dwWakeupDelay);
@@ -720,23 +834,77 @@ LRESULT OnStackPaste(VOID)					// paste data to stack
 
 			if ((lpstrClipdata = (LPCTSTR) GlobalLock(hClipObj)))
 			{
+				TCHAR cDec;
 				BYTE  byNumber[32];
 				DWORD dwAddress;
-				INT   s;
+
+				INT s = 0;					// no valid object
 
 				do
 				{
 					if (bDetectClpObject)	// autodetect clipboard object enabled
 					{
-						// try to convert string to real format
-						_ASSERT(16 <= ARRAYSIZEOF(byNumber));
-						s = RPL_SetBcd(lpstrClipdata,12,3,GetRadix(),byNumber,sizeof(byNumber));
+						CONST TCHAR cDecimalPoint = GetClpbrdDecimalPoint(lpstrClipdata);
+
+						if (cDecimalPoint)	// valid decimal point
+						{
+							// try to convert string to real format
+							_ASSERT(16 <= ARRAYSIZEOF(byNumber));
+							s = RPL_SetBcd(lpstrClipdata,12,3,cDecimalPoint,byNumber,sizeof(byNumber));
+						}
 
 						if (s > 0)			// is a real number
 						{
 							_ASSERT(s <= ARRAYSIZEOF(byNumber));
 
-							if (cCurrentRomType == 'L') // HP32S (Leonardo)
+							if (cCurrentRomType == 'A') // HP22S (Plato)
+							{
+								// [0]=OnAbort, [1]=Operator
+								BYTE byStatus[2];
+
+								// read abort and operator mode in display
+								Npeek(byStatus,A_OnAbort,2);
+
+								// Abort with <ON> key or no operator
+								if (byStatus[0] == 0xF || (byStatus[0] == 1 && byStatus[1] == 0))
+								{
+									// x register object
+									dwAddress = (A_X_Offset & 0xFF000) - (16 + 1) + (Read5(A_X_Offset) & 0xFFF);
+									Nwrite(byNumber,dwAddress,s);
+									bSuccess = TRUE;
+								}
+							}
+							else if (cCurrentRomType == 'C' || cCurrentRomType == 'F' ) // HP21S (Monte Carlo) or HP20S (Erni)
+							{
+								BYTE byOperator;
+
+								// read abort and operator mode in display
+								Npeek(&byOperator,F_Operator,1);
+
+								// no operator
+								if (byOperator == 7)
+								{
+									// x register object
+									Nwrite(byNumber,F_X,s);
+									bSuccess = TRUE;
+								}
+							}
+							else if (cCurrentRomType == 'E' ) // HP10B (Ernst)
+							{
+								BYTE byOperator;
+
+								// read abort and operator mode in display
+								Npeek(&byOperator,E_Operator,1);
+
+								// no operator
+								if (byOperator == 6)
+								{
+									// x register object
+									Nwrite(byNumber,E_X,s);
+									bSuccess = TRUE;
+								}
+							}
+							else if (cCurrentRomType == 'L') // HP32S (Leonardo)
 							{
 								BYTE byFlag;
 
@@ -802,9 +970,14 @@ LRESULT OnStackPaste(VOID)					// paste data to stack
 							break;
 						}
 
+						// search for ';' as separator
+						cDec = (_tcschr(lpstrClipdata,_T(';')) != NULL)
+							 ? _T(',')							// decimal comma
+							 : _T('.');							// decimal point
+
 						// try to convert string to complex format
 						_ASSERT(32 <= ARRAYSIZEOF(byNumber));
-						s = RPL_SetComplex(lpstrClipdata,12,3,GetRadix(),byNumber,sizeof(byNumber));
+						s = RPL_SetComplex(lpstrClipdata,12,3,cDec,byNumber,sizeof(byNumber));
 
 						if (s > 0)			// is a real complex
 						{
@@ -938,20 +1111,33 @@ LRESULT OnStackPaste(VOID)					// paste data to stack
 		goto cancel;
 	}
 
+	// on HP10B (Ernst), HP20S (Erni), HP21S (Monte Carlo) or HP22S (Plato) press/release <=> to refresh display
 	// on HP32S (Leonardo) or HP32SII (Nardo) press/release <ON><C> to refresh display
 	// on HP28S (Orlando) or HP42S (Davinci) press/release <ON> to refresh display
-	KeyboardEvent(TRUE,0,0x8000);			// press <ON> key
-	if (cCurrentRomType == 'L' || cCurrentRomType == 'N')
+	if (   cCurrentRomType == 'A'			// HP22S (Plato)
+		|| cCurrentRomType == 'C'			// HP21S (Monte Carlo) 
+		|| cCurrentRomType == 'E'			// HP10B (Ernst)
+		|| cCurrentRomType == 'F')			// HP20S (Erni)
 	{
-		KeyboardEvent(TRUE,3,64);			// press <C> key
+		KeyboardEvent(TRUE,1,1);			// press <=> key
 		Sleep(dwWakeupDelay);
-		KeyboardEvent(FALSE,3,64);			// release <C> key
+		KeyboardEvent(FALSE,1,1);			// release <=> key
 	}
 	else
 	{
-		Sleep(dwWakeupDelay);
+		KeyboardEvent(TRUE,0,0x8000);			// press <ON> key
+		if (cCurrentRomType == 'L' || cCurrentRomType == 'N')
+		{
+			KeyboardEvent(TRUE,3,64);		// press <C> key
+			Sleep(dwWakeupDelay);
+			KeyboardEvent(FALSE,3,64);		// release <C> key
+		}
+		else
+		{
+			Sleep(dwWakeupDelay);
+		}
+		KeyboardEvent(FALSE,0,0x8000);		// release <ON> key
 	}
-	KeyboardEvent(FALSE,0,0x8000);			// release <ON> key
 
 	// wait for sleep mode
 	while(Chipset.Shutdn == FALSE) Sleep(0);
