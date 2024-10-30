@@ -91,7 +91,7 @@ public class HP10Test {
 		ViewInteraction navigationMenuItemView = onView(
 				allOf(withId(R.id.nav_new),
 						childAtPosition(
-								allOf(withId(R.id.design_navigation_view),
+								allOf(withId(com.google.android.material.R.id.design_navigation_view),
 										childAtPosition(
 												withId(R.id.nav_view),
 												0)),
@@ -100,15 +100,15 @@ public class HP10Test {
 		navigationMenuItemView.perform(click());
 
 		DataInteraction materialTextView = onData(anything())
-				.inAdapterView(allOf(withId(R.id.select_dialog_listview),
+				.inAdapterView(allOf(withId(com.google.android.material.R.id.select_dialog_listview),
 						childAtPosition(
-								withId(R.id.contentPanel),
+								withId(com.google.android.material.R.id.contentPanel),
 								0)))
 				.atPosition(0);
 		materialTextView.perform(click());
 
 		ViewInteraction materialButton = onView(allOf(withId(android.R.id.button2), withText("Cancel"),
-				childAtPosition(childAtPosition(withId(R.id.buttonPanel),0),2)));
+				childAtPosition(childAtPosition(withId(com.google.android.material.R.id.buttonPanel),0),2)));
 		materialButton.perform(scrollTo(), click());
 
 
