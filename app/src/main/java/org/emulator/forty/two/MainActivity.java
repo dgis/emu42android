@@ -168,7 +168,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
 		    vibrator = ((VibratorManager)getSystemService(Context.VIBRATOR_MANAGER_SERVICE)).getDefaultVibrator();
 	    } else {
 		    // Deprecated in API 31
-	    	vibrator = (Vibrator) getSystemService(Context.VIBRATOR_SERVICE);
+		    vibrator = (Vibrator) getSystemService(Context.VIBRATOR_SERVICE);
 	    }
 
         ViewGroup mainScreenContainer = findViewById(R.id.main_screen_container);
@@ -1406,7 +1406,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
 
 	private String extractROMFilename(InputStream inputStream) {
 	    String romFilename = null;
-    	if(inputStream != null) {
+	    if(inputStream != null) {
 		    try (BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream, StandardCharsets.UTF_8))) {
 			    // do reading, usually loop until end of file reading
 			    Pattern patternGlobalROM = Pattern.compile("\\s*Rom\\s+\"(.*)\"");
@@ -1634,7 +1634,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
 	        setPort1Settings(NativeLib.getPort1Plugged(), NativeLib.getPort1Writable());
 			// State file successfully opened.
 			String currentKml = NativeLib.getCurrentKml();
-		    if(kmlScriptFolder == null || currentKml.startsWith("document:")) {
+			if(kmlScriptFolder == null || currentKml.startsWith("document:")) {
 			    // Needed for compatibility:
 			    // The KML folder is not in the JSON settings embedded in the state file,
 			    // so, we need to extract it and change the variable szCurrentKml.
@@ -1793,8 +1793,8 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
 	public int updateCallback(int type, int param1, int param2) {
 
 		mainScreenView.updateCallback(type, param1, param2);
-        return -1;
-    }
+		return -1;
+	}
 
     final int GENERIC_READ   = 1;
     final int GENERIC_WRITE  = 2;
@@ -2040,7 +2040,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
                 return 1;
             }
         }
-	    showAlert(getString(R.string.message_open_kml_not_found_alert), true);
+        showAlert(getString(R.string.message_open_kml_not_found_alert), true);
         return 0;
     }
 
@@ -2141,7 +2141,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
                 case "settings_realspeed":
 	            case "settings_grayscale":
 	            case "settings_serial_slowdown":
-					NativeLib.setConfiguration(key, isDynamicValue, settings.getBoolean(key, false) ? 1 : 0, 0, null);
+		            NativeLib.setConfiguration(key, isDynamicValue, settings.getBoolean(key, false) ? 1 : 0, 0, null);
                     break;
 
                 case "settings_rotation":

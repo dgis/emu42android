@@ -29,7 +29,7 @@ h3 { color:red; font-size:1.1em; }
 <body>
 <div id="headline">
   <p>Emu42 - A freeware HP10B/14B/17B/17BII/19BII/20S/21S/22S/27S/28S/32S/32SII/42S Emulator<br>
-    for Windows 9x, ME, NT, 2000, XP, Vista, 7, 8, and 10</p>
+    for Windows 9x, ME, NT, 2000, XP, Vista, 7, 8, 10 and 11</p>
 </div>
 <div id="navi">
   <p><a class="nav1" href="#s1">1. General</a></p>
@@ -86,7 +86,7 @@ h3 { color:red; font-size:1.1em; }
   <h1><a name=s1>1. General</a></h1>
     <p><a href="http://hp.giesselink.com/emu42.htm">Emu42</a> is based on
     the sources of <a href="http://hp.giesselink.com/emu48.htm">Emu48</a>
-    and is an emulator for the Hewlett Packard Pioneer serie calculators
+    and is an emulator for the Hewlett Packard Pioneer series calculators
     HP10B, HP14B, HP17B, HP17BII, HP20S, HP21S, HP22S, HP32S, HP32SII,
     HP27S and HP42S and for the Clamshell calculators HP19BII and HP28S
     hardware. These calculators are based on the 1LR2 Lewis, the 1LR3
@@ -419,10 +419,10 @@ h3 { color:red; font-size:1.1em; }
   <h2><a name=ss9.4>9.4 Copy Stack</a></h2>
     <p>This menu item is enabled for all supported calculator models.
     </p>
-    <p>The decimal point (radix mark) of &quot;Real Numbers&quot; in the
-    clipboard is equal to the calculator setting. This is important when
-    you try to paste the numbers into a program using the locale settings
-    of the host operating system.</p>
+    <p>The decimal point of &quot;Real Numbers&quot; in the clipboard is
+    equal to the calculator setting. This is important when you try to
+    paste the numbers into a program using the locale settings of the host
+    operating system.</p>
     <p>Unsupported objects will be ignored. This prevents sending binary
     objects to the clipboard.</p>
     <ul>
@@ -437,17 +437,26 @@ h3 { color:red; font-size:1.1em; }
       to the clipboard.</p></li>
     </ul>
   <h2><a name=ss9.5>9.5 Paste Stack</a></h2>
-    <p>This is only valid for the HP28S, the HP32S, the HP32SII and the
-    HP42S emulation.</p>
-    <p>To import &quot;Real or Complex Numbers&quot; from the clipboard, the
-    decimal point (radix mark) of the clipboard and calculator <u>must</u>
-    match. A real or complex number is only detected in the case of valid
-    real number characters in the clipboard. Especially heading and tailing
-    white spaces aren't valid number characters also.</p>
-    <p>Complex numbers must be in the form <i>(a,b)</i> when using the point
-    radix mark or in the form <i>(a;b)</i> when using the comma radix mark.
-    The Cartesian or algebraic form <i>a+bi</i> is not supported.</p>
+    <p>This is only valid for the HP10B, HP20S, HP21S, HP22S, HP28S, HP32S,
+      HP32SII and HP42S emulation.</p>
+    <p>To import &quot;Real Numbers&quot; from the clipboard, the decimal
+    point character of the clipboard and calculator <u>must not match</u> any
+    more. There's an auto detection for decoding the thousands separator and
+    decimal point character. The thousands separator is removed at decoding.
+    A real number is detected in the case of valid real number characters in
+    the clipboard.</p>
+    <p>&quot;Complex Numbers&quot; must be in the form <i>(a,b)</i> when
+    using the decimal point or in the form <i>(a;b)</i> when using the decimal
+    comma. Using a thousands separator is not allowed in complex number
+    strings because in decimal point mode, the comma is used as separator
+    between real and imaginary part of the number. The Cartesian or algebraic
+    form <i>a+bi</i> is not supported.</p>
     <ul>
+      <li><b>HP10B, HP20S, HP21S and HP22S</b>
+      <p>If the clipboard text field content is representing a real number,
+      paste the text field content of the clipboard to the display-register of
+      the emulated calculator. Therefore no operator must be pending,
+      otherwise the paste request is refused.</p></li>
       <li><b>HP28S</b>
       <p>Paste the text field content of the clipboard to stack level 1 of the
       emulated calculator. If the clipboard content is representing a real
@@ -556,7 +565,7 @@ h3 { color:red; font-size:1.1em; }
     </table>
   <h1><a name=s14>14. License</a></h1>
     <p>Emu42 - A HP10B/14B/17B/17BII/19BII/20S/21S/22S/27S/28S/32S/32SII/42S Emulator<br>
-    Copyright (C) 2022 Christoph Gie&szlig;elink</p>
+    Copyright (C) 2025 Christoph Gie&szlig;elink</p>
     <p>This program is free software; you can redistribute it and/or modify it
     under the terms of the GNU General Public License as published by the Free
     Software Foundation; either version 2 of the License, or (at your option)

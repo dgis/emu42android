@@ -46,6 +46,13 @@ LINKS
 
 CHANGES
 
+Version 2.5 (2025-11-15)
+
+- Updated source code with Emu42 version 1.32.
+- Fix new UI constraints with Android 15.
+- Increase Haptic feedback max duration.
+
+
 Version 2.4 (2024-10-29)
 
 - Update from the original source code Emu42 version 1.31 from Christoph Gießelink.

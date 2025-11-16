@@ -379,7 +379,7 @@ static BOOL IsPrevGlobalEnd(DWORD dwCurrAddr, DWORD *pdwStartAddr)
 	BOOL bGlobalEnd;
 	BYTE p[6];
 
-	// check if previous object is a GLOBAL_END 
+	// check if previous object is a GLOBAL_END
 	*pdwStartAddr = PrevGlobal(dwCurrAddr);	// get address of previous global
 	Npeek(p,*pdwStartAddr,6);				// read 6 nibbles (3 bytes)
 	bGlobalEnd = (   *pdwStartAddr == 0		// end of chain
@@ -529,9 +529,24 @@ BOOL GetUserCode42(LPCTSTR szUCFile)
 	BOOL   bNumberType, bPrevNumberType;	// state for adding zero byte behind numbers
 	BOOL   bGlobEndFound;					// found one global end in stream
 	INT    nByteType;						// type of current byte
+	BYTE   byLabel;							// label no.
+	DWORD  dwOffset;						// jump offset
 	INT    i;
 
 	BOOL   bOK = FALSE;						// error detected
+
+	// states to identify the raw file type
+	typedef struct
+	{
+		BOOL bHP42Raw;						// this is a HP42 raw file
+		BOOL bAllAddrNull;					// all address offsets are NULL
+		BOOL bNullAfterNumber;				// NULL byte after every number, suspicion for HP42S file
+		BOOL bPackedCode;					// HP42 packed code
+	} RAWFILE;
+
+	// actual raw file state
+	RAWFILE sRawType = { TRUE, TRUE, TRUE, TRUE };
+	RAWFILE sRawTypeEnd;					// raw file state at GLOBAL_END
 
 	hFile = CreateFile(szUCFile,
 					   GENERIC_READ,
@@ -554,6 +569,8 @@ BOOL GetUserCode42(LPCTSTR szUCFile)
 
 	// get exact program size
 	// there can be junk after the END instruction and zero byte seperators can be missing after numbers
+	byLabel = 0;
+	dwOffset = 0;
 	bGlobEndFound = FALSE;
 	bNumberType = FALSE;
 	nByteType = FIRST;
@@ -564,22 +581,128 @@ BOOL GetUserCode42(LPCTSTR szUCFile)
 			bGlobEndFound = TRUE;
 			dwEndAddr = dwProgSize;			// save file position of GLOBAL_END
 			dwAddr = dwProgSizeNib;			// save corresponding bytes to allocate
+			sRawTypeEnd = sRawType;			// save raw file parser state at GLOBAL_END
 		}
 
 		nByteType = DecodeUCByte(nByteType,pbyBuffer[dwProgSize]);
+		switch (nByteType)
+		{
+		case GLOBAL1:						// global label (11bb bbbr)
+			dwOffset = pbyBuffer[dwProgSize] & 0x3F;
+			break;
+		case GLOBAL2:
+			dwOffset = (((dwOffset & 0x1) << 8) + pbyBuffer[dwProgSize]) * 7 + (dwOffset >> 1);
+			break;
+		case GLOBAL_END:
+			if (dwOffset != 0)				// is a calculated offset
+			{
+				int nAddr = dwProgSize - dwOffset;
+				sRawType.bAllAddrNull = FALSE;
+				sRawType.bHP42Raw = sRawType.bHP42Raw && nAddr >= 0;
+				if (sRawType.bHP42Raw)
+				{
+					const int nType = DecodeUCByte(SINGLE, pbyBuffer[nAddr]);
+					sRawType.bHP42Raw = sRawType.bHP42Raw && nType == GLOBAL1;
+				}
+			}
+			break;
 
-		if (nByteType == GLOBAL_LBL)		// global label found
+		case GLOBAL_LBL:					// global label found
 			bOK = TRUE;
+			break;
+
+		case LOCAL1:						// short GTO
+			// get target label
+			byLabel = pbyBuffer[dwProgSize] & 0x0F;
+			break;
+		case LOCAL2:						// the shot label offset dbbb bbbb
+											// d=direction 1 pos/0 neg, b=byte offset
+			{
+				INT nAddr;
+
+				dwOffset = pbyBuffer[dwProgSize];
+				nAddr = dwOffset & 0x7F;
+				if (nAddr != 0)				// is a calculated offset
+				{
+					sRawType.bAllAddrNull = FALSE;
+					if ((dwOffset & 0x80) == 0)
+					{
+						nAddr = -nAddr;		// negative offset
+					}
+					nAddr = dwProgSize + nAddr + 1;
+					// inside program range?
+					sRawType.bHP42Raw = sRawType.bHP42Raw && (nAddr >= 0) && (nAddr < (int)dwFileSize);
+					if (sRawType.bHP42Raw)
+					{
+						const byte byData = pbyBuffer[nAddr];
+						sRawType.bHP42Raw = sRawType.bHP42Raw && (byLabel == byData);
+					}
+				}
+			}
+			break;
+
+		case TRIPLE1:						// 3 byte GTO/XEQ 11tt bbbb bbbb bbbb dlll llll
+			dwOffset = pbyBuffer[dwProgSize] & 0x0F;
+			break;
+		case TRIPLE2:
+			dwOffset = (dwOffset << 8) + pbyBuffer[dwProgSize];
+			break;
+		case TRIPLE3:
+			{
+				INT nAddr;
+
+				byLabel = pbyBuffer[dwProgSize];
+				nAddr = dwOffset;
+				if (nAddr != 0)				// is a calculated offset
+				{
+					sRawType.bAllAddrNull = FALSE;
+					if ((byLabel & 0x80) == 0)
+					{
+						nAddr = ~nAddr;		// negative offset, ones' complement
+					}
+					nAddr = dwProgSize + nAddr;
+					sRawType.bHP42Raw = sRawType.bHP42Raw && (nAddr >= 0) && (nAddr < (INT)dwFileSize);
+					if (sRawType.bHP42Raw)
+					{
+						byte byData = pbyBuffer[nAddr];
+						byLabel &= 0x7F;	// remove offset direction bit
+						if (byData == 0xCF) // 2 byte LBL
+						{
+							if (nAddr + 1 < (INT)dwFileSize)
+							{
+								byData = pbyBuffer[nAddr + 1];
+							}
+						}
+						else				// 1 byte LBL
+						{
+							++byLabel;		// LBL 00 begin with code 01
+						}
+						sRawType.bHP42Raw = sRawType.bHP42Raw && (byLabel == byData);
+					}
+				}
+			}
+			break;
+		}
 
 		// is current byte a number (0-9 [10-19], '.' [1A], 'E' [1B], '+/-' [1C])?
 		bPrevNumberType = bNumberType;
 		bNumberType = (nByteType == SINGLE && pbyBuffer[dwProgSize] >= 0x10 && pbyBuffer[dwProgSize] <= 0x1C);
 		if (bPrevNumberType && !bNumberType) // not a number any more
+		{
+			// number followed by NULL byte?
+			sRawType.bNullAfterNumber = sRawType.bNullAfterNumber && (pbyBuffer[dwProgSize] == 0x00);
+
 			++dwProgSizeNib;				// numbers must follow a zero byte
+		}
 
 		// single zero byte (NULL command)
 		if (nByteType == SINGLE && pbyBuffer[dwProgSize] == 0x00)
+		{
+			// still HP42 packed code when before the NULL byte is a number
+			sRawType.bPackedCode = sRawType.bPackedCode && bPrevNumberType;
+
 			--dwProgSizeNib;				// -> PACK later
+		}
 	}
 
 	if (nByteType != GLOBAL_END)			// finished without GLOBAL_END
@@ -588,6 +711,7 @@ BOOL GetUserCode42(LPCTSTR szUCFile)
 		{
 			dwProgSize = dwEndAddr;			// get saved file position of GLOBAL_END
 			dwProgSizeNib = dwAddr;			// get saved corresponding bytes to allocate information
+			sRawType = sRawTypeEnd;			// restore raw file parser state at GLOBAL_END
 		}
 	}
 
@@ -595,6 +719,18 @@ BOOL GetUserCode42(LPCTSTR szUCFile)
 	{
 		if (IDYES == YesNoMessage(_T("Unkown User Code format, stop loading?")))
 			goto cancel;
+	}
+
+	// not a native HP42 User Code file
+	{
+		const BOOL bHP42NonUserCode = (   !sRawType.bHP42Raw
+									   || (sRawType.bAllAddrNull && !sRawType.bNullAfterNumber)
+									   || !sRawType.bPackedCode);
+		if (bHP42NonUserCode)
+		{
+			if (IDYES != YesNoMessage(_T("Non-native HP42S User Code file detected!\nDo you want to continue?")))
+				goto cancel;
+		}
 	}
 
 	bOK = FALSE;							// preset error detected
@@ -732,9 +868,10 @@ static BOOL PutUserCode(LPCTSTR szUCFile,HWND hWnd)
 		if (SendMessage(hWnd,LB_GETSEL,i,0) > 0)
 		{
 			CatLabel42 *pLbl = (CatLabel42*) SendMessage(hWnd,LB_GETITEMDATA,i,0);
+			pLbl->dwEndAddr+=3*2;			// skip GLOBAL_END code for writing END
 
 			// allocate user code buffer
-			if ((pbyBuffer = (LPBYTE) malloc((pLbl->dwEndAddr-pLbl->dwStartAddr)/2+3)) == NULL)
+			if ((pbyBuffer = (LPBYTE) malloc((pLbl->dwEndAddr-pLbl->dwStartAddr)/2)) == NULL)
 			{
 				bOK = FALSE;
 				goto error;
@@ -758,11 +895,6 @@ static BOOL PutUserCode(LPCTSTR szUCFile,HWND hWnd)
 
 				dwAddr += 2;				// next byte
 			}
-
-			// write an HP41 compatible GLOBAL END
-			pbyBuffer[dwProgSize++] = 0xC0;
-			pbyBuffer[dwProgSize++] = 0x00;
-			pbyBuffer[dwProgSize++] = 0x0D;
 
 			WriteFile(hUCFile,pbyBuffer,dwProgSize,&dwBytesWritten,NULL);
 			free(pbyBuffer);

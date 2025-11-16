@@ -2144,15 +2144,22 @@ static __inline BOOL OnFindOK(HWND hDlg,BOOL bASCII,DWORD *pdwAddrLast,INT nSear
 	i = GetWindowTextLength(hWnd) + 1;		// text length incl. EOS
 	j = bASCII ? 2 : sizeof(*(LPTSTR)0);	// buffer width
 
-	// allocate search buffer
-	if ((lpbySearch = (LPBYTE) malloc(i * j)) != NULL)
+	// allocate search buffer (min 5 bytes for symbolic entry address)
+	if ((lpbySearch = (LPBYTE) malloc(__max(5, i) * j)) != NULL)
 	{
+		BOOL bSymbolic;
+
 		// get search text and real length
 		i = GetWindowText(hWnd,(LPTSTR) lpbySearch,i);
 
 		// add string to combo box
 		if (SendMessage(hWnd,CB_FINDSTRINGEXACT,0,(LPARAM) lpbySearch) == CB_ERR)
 			SendMessage(hWnd,CB_ADDSTRING,0,(LPARAM) lpbySearch);
+
+		// is symbolic entry address
+		bSymbolic = !bASCII && disassembler_symb
+			&& i > 0 && *(LPCTSTR)lpbySearch == _T('=')
+			&& !RplGetAddr(((LPCTSTR)lpbySearch)+1,&dwAddr);
 
 		#if defined _UNICODE
 		{
@@ -2180,25 +2187,33 @@ static __inline BOOL OnFindOK(HWND hDlg,BOOL bASCII,DWORD *pdwAddrLast,INT nSear
 			}
 			i *= 2;							// no. of nibbles
 		}
-		else								// hex number input
+		else								// symbolic entry or hex number input
 		{
-			// convert HEX to number
-			for (i = 0, j = 0; lpbySearch[j] != 0; ++j)
+			if (bSymbolic)
 			{
-				if (lpbySearch[j] == ' ')	// skip space
-					continue;
+				i = 5;						// 5 nibbles to compare
+				Nunpack(lpbySearch,dwAddr,i);
+			}
+			else
+			{
+				// convert HEX to number
+				for (i = 0, j = 0; lpbySearch[j] != 0; ++j)
+				{
+					if (lpbySearch[j] == ' ') // skip space
+						continue;
 
-				if (isxdigit(lpbySearch[j]))
-				{
-					lpbySearch[i] = toupper(lpbySearch[j]) - '0';
-					if (lpbySearch[i] > 9) lpbySearch[i] -= 'A' - '9' - 1;
+					if (isxdigit(lpbySearch[j]))
+					{
+						lpbySearch[i] = toupper(lpbySearch[j]) - '0';
+						if (lpbySearch[i] > 9) lpbySearch[i] -= 'A' - '9' - 1;
+					}
+					else
+					{
+						i = 0;				// wrong format, no match
+						break;
+					}
+					++i;					// inc, no. of nibbles
 				}
-				else
-				{
-					i = 0;					// wrong format, no match
-					break;
-				}
-				++i;						// inc, no. of nibbles
 			}
 		}
 

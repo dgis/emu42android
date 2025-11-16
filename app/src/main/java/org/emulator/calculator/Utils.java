@@ -103,7 +103,7 @@ public class Utils {
         int takeFlags = data.getFlags() & (Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_GRANT_WRITE_URI_PERMISSION);
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT)
 			try {
-            	context.getContentResolver().takePersistableUriPermission(uri, takeFlags);
+				context.getContentResolver().takePersistableUriPermission(uri, takeFlags);
 			} catch (SecurityException e) {
 				Utils.showAlert(context,
 						context.getString(Utils.resId(context, "string", "message_persisting_security_error"))
@@ -115,7 +115,7 @@ public class Utils {
         int takeFlags = data.getFlags() & (Intent.FLAG_GRANT_READ_URI_PERMISSION);
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT)
 			try {
-            	context.getContentResolver().takePersistableUriPermission(uri, takeFlags);
+				context.getContentResolver().takePersistableUriPermission(uri, takeFlags);
 			} catch (SecurityException e) {
 				Utils.showAlert(context,
 						context.getString(Utils.resId(context, "string", "message_persisting_security_error"))
