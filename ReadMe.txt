@@ -46,6 +46,11 @@ LINKS
 
 CHANGES
 
+Version 2.6 (2025-11-21)
+
+- Fix the settings "Hide the status/navigations bar".
+
+
 Version 2.5 (2025-11-15)
 
 - Updated source code with Emu42 version 1.32.

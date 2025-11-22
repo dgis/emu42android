@@ -34,8 +34,8 @@ android {
         applicationId "org.emulator.forty.two"
         minSdk 21
         targetSdk 36
-        versionCode 23
-        versionName "2.5"
+        versionCode 24
+        versionName "2.6"
         setProperty("archivesBaseName", "Emu42-v$versionName")
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         externalNativeBuild {
