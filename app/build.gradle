@@ -36,8 +36,8 @@ android {
         applicationId "org.emulator.forty.two"
         minSdk 21
         targetSdk 37
-        versionCode 25
-        versionName "2.7"
+        versionCode 26
+        versionName "2.7.1"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         externalNativeBuild {
             cmake {

@@ -46,7 +46,7 @@ LINKS
 
 CHANGES
 
-Version 2.7 (2026-07-02)
+Version 2.7.1 (2026-07-02)
 
 - Improve sound engine that fix CPU slowdown issue.
 

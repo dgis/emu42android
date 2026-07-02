@@ -20,7 +20,7 @@ project("org.emulator.calculator.EmuApplication")
 #add_compile_options(-DDEBUG_ANDROID_THREAD)
 #add_compile_options(-DDEBUG_ANDROID_FILE)
 
-#add_compile_options(-DNEW_WIN32_SOUND_ENGINE)
+add_compile_options(-DNEW_WIN32_SOUND_ENGINE)
 
 # For the library LodePNG
 add_compile_options(-DLODEPNG_NO_COMPILE_CRC)
