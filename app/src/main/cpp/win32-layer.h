@@ -554,6 +554,7 @@ enum HANDLE_TYPE {
 	HANDLE_TYPE_ICON,
 	HANDLE_TYPE_COM,
 };
+#define MAX_THREAD_MESSAGES 100
 struct _HANDLE {
     enum HANDLE_TYPE handleType;
 	union {
@@ -577,7 +578,10 @@ struct _HANDLE {
     DWORD (*threadStartAddress)(LPVOID);
     LPVOID threadParameter;
     struct _HANDLE * threadEventMessage;
-    struct tagMSG threadMessage;
+    struct tagMSG threadMessages[MAX_THREAD_MESSAGES];
+	int threadMessageReadIndex;
+	int threadMessageWriteIndex;
+	pthread_mutex_t threadMessageLock;
 	int threadIndex;
 		};
 
@@ -933,6 +937,7 @@ struct _HWAVEOUT{
     pthread_mutex_t  audioEngineLock;
 
     sem_t waveOutLock;
+    DWORD_PTR dwCallback;
 #if defined(NEW_WIN32_SOUND_ENGINE)
     // Linked list of buffers to read (take advantage of the field lpNext!)
 	LPWAVEHDR pWaveHeaderNextToRead;

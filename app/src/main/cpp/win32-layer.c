@@ -677,6 +677,7 @@ HANDLE CreateThread(LPSECURITY_ATTRIBUTES lpThreadAttributes, SIZE_T dwStackSize
 	handle->threadStartAddress = lpStartAddress;
 	handle->threadParameter = lpParameter;
 	handle->threadEventMessage = CreateEvent(NULL, FALSE, FALSE, NULL);
+	pthread_mutex_init(&handle->threadMessageLock, NULL);
 	for (int i = 0; i < MAX_CREATED_THREAD; i++) {
 		if (threads[i] == NULL) {
 			handle->threadIndex = i;
@@ -732,6 +733,7 @@ BOOL SetThreadPriority(HANDLE hThread, int nPriority) {
 
 //https://docs.microsoft.com/en-us/windows/desktop/api/synchapi/nf-synchapi-waitforsingleobject
 DWORD WaitForSingleObject(HANDLE hHandle, DWORD dwMilliseconds) {
+	THREAD_LOGD("WaitForSingleObject()");
 	if (hHandle->handleType == HANDLE_TYPE_THREAD) {
 		_ASSERT(dwMilliseconds == INFINITE)
 		if (dwMilliseconds == INFINITE) {
@@ -827,6 +829,7 @@ BOOL WINAPI CloseHandle(HANDLE hObject) {
 		}
 		case HANDLE_TYPE_THREAD:
 			THREAD_LOGD("CloseHandle() THREAD 0x%lx", hObject->threadId);
+			pthread_mutex_destroy(&hObject->threadMessageLock);
 			if (hObject->threadEventMessage &&
 			    hObject->threadEventMessage->handleType == HANDLE_TYPE_EVENT) {
 				CloseHandle(hObject->threadEventMessage);
@@ -884,7 +887,7 @@ void Sleep(int ms) {
 
 BOOL QueryPerformanceFrequency(PLARGE_INTEGER l) {
 	//https://msdn.microsoft.com/en-us/library/windows/desktop/ms644904(v=vs.85).aspx
-	l->QuadPart = 10000000;
+	l->QuadPart = 10000000; // Counts per second (here: 10MHz)
 	return TRUE;
 }
 
@@ -894,7 +897,7 @@ BOOL QueryPerformanceCounter(PLARGE_INTEGER l) {
         long     tv_nsec;
     } */ time;
 	clock_gettime(CLOCK_MONOTONIC, &time);
-	l->QuadPart = (uint64_t) ((1e9 * time.tv_sec + time.tv_nsec) / 100);
+	l->QuadPart = (uint64_t) (time.tv_sec * 10000000ULL) + (uint64_t) (time.tv_nsec / 100ULL); // Number of counts
 	return TRUE;
 }
 
@@ -1264,7 +1267,7 @@ BOOL GetSystemPowerStatus(LPSYSTEM_POWER_STATUS status) {
 #if defined NEW_WIN32_SOUND_ENGINE
 // this callback handler is called every time a buffer finishes playing
 void bqPlayerCallback(SLAndroidSimpleBufferQueueItf bq, void *context) {
-	WAVE_OUT_LOGD("waveOut bqPlayerCallback()");
+	WAVE_OUT_LOGD("waveOut bqPlayerCallback() bEnableSlow:%d, bKeySlow: %d, bSoundSlow: %d", bEnableSlow, bKeySlow, bSoundSlow);
 
 	HWAVEOUT hwo = context;
 	LPWAVEHDR pWaveHeaderNextToRead = NULL;
@@ -1280,7 +1283,7 @@ void bqPlayerCallback(SLAndroidSimpleBufferQueueItf bq, void *context) {
 	pthread_mutex_unlock(&hwo->audioEngineLock);
 
 	if(pWaveHeaderNextToRead) {
-		PostThreadMessage(1, MM_WOM_DONE, hwo, pWaveHeaderNextToRead);
+		PostThreadMessage(hwo->dwCallback, MM_WOM_DONE, hwo, pWaveHeaderNextToRead);
 	} else {
 		WAVE_OUT_LOGD("waveOut bqPlayerCallback() Nothing to play?");
 	}
@@ -1351,6 +1354,7 @@ MMRESULT waveOutOpen(LPHWAVEOUT phwo, UINT uDeviceID, LPCWAVEFORMATEX pwfx, DWOR
 	memset(handle, 0, sizeof(struct _HWAVEOUT));
 	handle->pwfx = (WAVEFORMATEX *) pwfx;
 	handle->uDeviceID = uDeviceID;
+	handle->dwCallback = dwCallback;
 
 	SLresult result;
 
@@ -1522,7 +1526,7 @@ MMRESULT waveOutOpen(LPHWAVEOUT phwo, UINT uDeviceID, LPCWAVEFORMATEX pwfx, DWOR
 	}
 
 #if defined NEW_WIN32_SOUND_ENGINE
-	sem_init(&handle->waveOutLock, 0, 1);
+	sem_init(&handle->waveOutLock, 0, 20);
 #else
 	struct sigevent sev;
 	sev.sigev_notify = SIGEV_THREAD;
@@ -1645,7 +1649,9 @@ MMRESULT waveOutWrite(HWAVEOUT hwo, LPWAVEHDR pwh, UINT cbwh) {
 		}
 		pthread_mutex_unlock(&hwo->audioEngineLock);
 
-		PostThreadMessage(1, MM_WOM_DONE, hwo, pwh);
+		PostThreadMessage(hwo->dwCallback, MM_WOM_DONE, hwo, pwh);
+
+		sem_post(&hwo->waveOutLock);
 
 		return MMSYSERR_ERROR;
 	}
@@ -1700,17 +1706,29 @@ MMRESULT waveOutGetID(HWAVEOUT hwo, LPUINT puDeviceID) {
 
 
 BOOL GetMessage(LPMSG lpMsg, HWND hWnd, UINT wMsgFilterMin, UINT wMsgFilterMax) {
+	THREAD_LOGD("GetMessage()");
 #if defined NEW_WIN32_SOUND_ENGINE
 	pthread_t thId = pthread_self();
 	for(int i = 0; i < MAX_CREATED_THREAD; i++) {
 		HANDLE threadHandle = threads[i];
 		if(threadHandle && threadHandle->threadId == thId) {
-			WaitForSingleObject(threadHandle->threadEventMessage, INFINITE);
-			if(lpMsg)
-				memcpy(lpMsg, &threadHandle->threadMessage, sizeof(MSG));
-			if(lpMsg->message == WM_QUIT)
-				return FALSE;
-			return TRUE;
+			while(TRUE) {
+				pthread_mutex_lock(&threadHandle->threadMessageLock);
+				if (threadHandle->threadMessageReadIndex != threadHandle->threadMessageWriteIndex) {
+					if (lpMsg)
+						memcpy(lpMsg, &threadHandle->threadMessages[threadHandle->threadMessageReadIndex], sizeof(MSG));
+					threadHandle->threadMessageReadIndex = (threadHandle->threadMessageReadIndex + 1) % MAX_THREAD_MESSAGES;
+					pthread_mutex_unlock(&threadHandle->threadMessageLock);
+
+					if (lpMsg && lpMsg->message == WM_QUIT)
+						return FALSE;
+					return TRUE;
+				}
+				pthread_mutex_unlock(&threadHandle->threadMessageLock);
+
+				THREAD_LOGD("GetMessage() -> WaitForSingleObject()");
+				WaitForSingleObject(threadHandle->threadEventMessage, INFINITE);
+			}
 		}
 	}
 
@@ -1721,16 +1739,26 @@ BOOL GetMessage(LPMSG lpMsg, HWND hWnd, UINT wMsgFilterMin, UINT wMsgFilterMax) 
 }
 
 BOOL PostThreadMessage(DWORD idThread, UINT Msg, WPARAM wParam, LPARAM lParam) {
-	WAVE_OUT_LOGD("waveOut PostThreadMessage()");
+	THREAD_LOGD("PostThreadMessage()");
 #if defined NEW_WIN32_SOUND_ENGINE
 	for(int i = 0; i < MAX_CREATED_THREAD; i++) {
 		HANDLE threadHandle = threads[i];
 		if(threadHandle && threadHandle->threadIndex == idThread) {
-			threadHandle->threadMessage.hwnd = NULL;
-			threadHandle->threadMessage.message = Msg;
-			threadHandle->threadMessage.wParam = wParam;
-			threadHandle->threadMessage.lParam = lParam;
-			WAVE_OUT_LOGD("waveOut SetEvent()");
+			pthread_mutex_lock(&threadHandle->threadMessageLock);
+			int nextWriteIndex = (threadHandle->threadMessageWriteIndex + 1) % MAX_THREAD_MESSAGES;
+			if (nextWriteIndex == threadHandle->threadMessageReadIndex) {
+				THREAD_LOGD("PostThreadMessage() QUEUE FULL!");
+				pthread_mutex_unlock(&threadHandle->threadMessageLock);
+				return FALSE;
+			}
+			threadHandle->threadMessages[threadHandle->threadMessageWriteIndex].hwnd = NULL;
+			threadHandle->threadMessages[threadHandle->threadMessageWriteIndex].message = Msg;
+			threadHandle->threadMessages[threadHandle->threadMessageWriteIndex].wParam = wParam;
+			threadHandle->threadMessages[threadHandle->threadMessageWriteIndex].lParam = lParam;
+			threadHandle->threadMessageWriteIndex = nextWriteIndex;
+			pthread_mutex_unlock(&threadHandle->threadMessageLock);
+
+			THREAD_LOGD("PostThreadMessage() -> SetEvent()");
 			SetEvent(threadHandle->threadEventMessage);
 			return TRUE;
 		}
