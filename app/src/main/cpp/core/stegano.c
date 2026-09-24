@@ -22,19 +22,10 @@ typedef struct _BMPDIM
 } BMPDIM, *PBMPDIM;
 
 // CCITT-16 x^16+x^12+x^5+1 Polynom
-static WORD xcrc(BYTE c, WORD wCrc)
+static __inline WORD xcrc(BYTE c, WORD wCrc)
 {
-	INT i;
-
-	wCrc ^= (WORD) c << 8;
-
-	for (i = 0; i < 8; ++i)
-	{
-		if (wCrc & 0x8000)
-			wCrc = (wCrc << 1) ^ 0x1021;
-		else
-			wCrc <<= 1;
-	}
+	wCrc = (((wCrc >> 12) ^ (c >> 4))  * 0x1021) ^ (wCrc << 4);
+	wCrc = (((wCrc >> 12) ^ (c & 0xF)) * 0x1021) ^ (wCrc << 4);
 	return wCrc;
 }
 
