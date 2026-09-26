@@ -46,7 +46,7 @@ LINKS
 
 CHANGES
 
-Version 2.8 (2026-09-XX)
+Version 2.8 (2026-09-26)
 
 - Fix status bar and navigation bar colors (white on white) issue in light mode.
 - Update from the original source code Emu42 version 1.33 from Christoph Gießelink.
