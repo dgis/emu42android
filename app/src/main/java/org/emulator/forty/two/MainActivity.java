@@ -29,6 +29,7 @@ import android.graphics.drawable.Drawable;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.Handler;
 import android.os.ParcelFileDescriptor;
 import android.os.Vibrator;
 import android.os.VibratorManager;
@@ -146,7 +147,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
     private final int MAX_MRU = 5;
     private final LinkedHashMap<String, String> mruLinkedHashMap = new LinkedHashMap<String, String>(5, 1.0f, true) {
         @Override
-        protected boolean removeEldestEntry(Map.Entry eldest) {
+        protected boolean removeEldestEntry(Entry eldest) {
             return size() > MAX_MRU;
         }
     };
@@ -412,6 +413,8 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
             showKMLLogForce();
         } else if (id == R.id.nav_show_printer) {
             OnViewPrinter();
+        } else if (id == R.id.nav_virtual_keyboard) {
+            OnToggleVirtualKeyboard();
 //        } else if (id == R.id.nav_create_ram_card) {
 //            OnCreateRAMCard();
 //        } else if (id == R.id.nav_manage_flash_rom) {
@@ -477,6 +480,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         menu.findItem(R.id.nav_backup_delete).setEnabled(uRun && isBackup);
         menu.findItem(R.id.nav_change_kml_script).setEnabled(uRun);
         menu.findItem(R.id.nav_show_kml_script_compilation_result).setEnabled(uRun);
+        menu.findItem(R.id.nav_virtual_keyboard).setEnabled(uRun);
         menu.findItem(R.id.nav_macro_record).setEnabled(uRun && nMacroState == 0 /* MACRO_OFF */);
         menu.findItem(R.id.nav_macro_play).setEnabled(uRun && nMacroState == 0 /* MACRO_OFF */);
         menu.findItem(R.id.nav_macro_stop).setEnabled(uRun && nMacroState != 0 /* MACRO_OFF */);
@@ -822,7 +826,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
             updateNavigationDrawerItems();
             displayFilename("");
             if(drawer != null) {
-                new android.os.Handler().postDelayed(() -> drawer.openDrawer(GravityCompat.START), 300);
+                new Handler().postDelayed(() -> drawer.openDrawer(GravityCompat.START), 300);
             }
         }, true);
     }
@@ -918,7 +922,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
             fileOutputStream.close();
 
 	        String subject = getString(R.string.message_screenshot);
-	        Intent intent = new Intent(android.content.Intent.ACTION_SEND);
+	        Intent intent = new Intent(Intent.ACTION_SEND);
 	        intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
 	        intent.putExtra(Intent.EXTRA_SUBJECT, subject);
 	        intent.putExtra(Intent.EXTRA_TITLE, subject);
@@ -949,7 +953,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
             fileOutputStream.close();
 
 	        String subject = getString(R.string.message_screenshot);
-	        Intent intent = new Intent(android.content.Intent.ACTION_SEND);
+	        Intent intent = new Intent(Intent.ACTION_SEND);
 	        intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
 	        intent.putExtra(Intent.EXTRA_SUBJECT, subject);
 	        intent.putExtra(Intent.EXTRA_TITLE, subject);
@@ -1007,6 +1011,12 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
 
     private void OnViewPrinter() {
         fragmentPrinterSimulator.show(getSupportFragmentManager(), "PrinterSimulatorFragment");
+    }
+
+    private void OnToggleVirtualKeyboard() {
+        if (mainScreenView != null) {
+            mainScreenView.toggleSoftKeyboard();
+        }
     }
 
     private void showKMLPicker(boolean changeKML) {
